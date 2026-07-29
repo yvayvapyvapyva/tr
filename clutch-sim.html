@@ -90,12 +90,11 @@ function updatePhysics() {
 
   wheelRPM += (targetWheel - wheelRPM) * 0.04;
 
-  // Disk следует за колесом (для визуализации)
   let eff;
   if (engagement < 0.4) eff = 0;
   else if (engagement > 0.6) eff = 1;
   else eff = (engagement - 0.4) / 0.2;
-  diskRPM = wheelRPM;
+  diskRPM = eff * engineRPM;
 
   flywheelAngle += Math.min(engineRPM, 90) / 60 * 0.016 * Math.PI * 2;
   diskAngle += Math.min(diskRPM, 90) / 60 * 0.016 * Math.PI * 2;
@@ -104,18 +103,18 @@ function updatePhysics() {
   }
 
   // Friction particles
-  let discLeft = 174 + (pedalPressed > 0.6 ? 0 : (1 - pedalPressed / 0.6) * 17);
-  let gapL = 174, gapR = discLeft;
-  if (eff > 0.05 && eff < 0.95 && engineRPM > 100 && gapR > gapL) {
-    if (Math.random() < eff * 0.4) {
+  let gapL = 174, gapR = 174 + Math.max(0, (pedalPressed - 0.4) / 0.6) * 17;
+  if (eff > 0.05 && eff < 0.95 && engineRPM > 100) {
+    let t = targetWheel / 80;
+    if (Math.random() < t * 0.6) {
       particles.push({
         x: gapL + Math.random() * (gapR - gapL),
         y: CY - 40 + Math.random() * 80,
-        vx: (Math.random() - 0.5) * 2,
-        vy: (Math.random() - 0.5) * 2 - 1,
-        life: 1,
-        size: 2 + Math.random() * 3,
-        color: `hsl(${30 + Math.random() * 30}, 100%, ${50 + Math.random() * 30}%)`
+        vx: (Math.random() - 0.5) * (2 + t * 5),
+        vy: (Math.random() - 0.5) * (2 + t * 4) - (1 + t * 2),
+        life: 0.4 + t * 1,
+        size: (1.5 + Math.random() * 3) * (0.5 + t * 1.2),
+        color: `hsl(${25 + t * 20}, 100%, ${45 + t * 35}%)`
       });
     }
   }
@@ -363,6 +362,14 @@ function drawFlywheel() {
   ctx.lineWidth = 1;
   ctx.stroke();
 
+  // Friction surface (right face)
+  let heat = Math.min(wheelRPM, 80) / 80;
+  let rr = Math.round(90 + heat * 165);
+  let gg = Math.round(60 - heat * 60);
+  let bb = Math.round(50 - heat * 50);
+  ctx.fillStyle = `rgb(${rr},${gg},${bb})`;
+  ctx.fillRect(fx + fw - 3, fy + 3, 3, fh - 6);
+
   // Horizontal grooves (насечки)
   let grooveOff = (flywheelAngle * 6) % 9;
   ctx.strokeStyle = 'rgba(255,255,255,0.2)';
@@ -391,7 +398,7 @@ function drawFlywheel() {
 }
 
 function drawClutchDisc() {
-  let cx = 174 + (pedalPressed > 0.6 ? 0 : (1 - pedalPressed / 0.6) * 17);
+  let cx = 174 + Math.max(0, (pedalPressed - 0.4) / 0.6) * 17;
   let cy = CY;
   let dw = 28, dh = 175;
   let dy = cy - dh / 2;
@@ -417,13 +424,12 @@ function drawClutchDisc() {
   ctx.fill();
   ctx.shadowBlur = 0;
 
-  // Friction material left side (faces flywheel)
-  let frictionColor = eff > 0.05 && eff < 0.95 ? '#c0392b' : '#5a5e62';
-  ctx.fillStyle = frictionColor;
-  ctx.fillRect(cx + 1, dy + 3, 6, dh - 6);
-
-  // Friction material right side
-  ctx.fillRect(cx + dw - 7, dy + 3, 6, dh - 6);
+  let heat = Math.min(wheelRPM, 80) / 80;
+  let rr = Math.round(90 + heat * 165);
+  let gg = Math.round(60 - heat * 60);
+  let bb = Math.round(50 - heat * 50);
+  ctx.fillStyle = `rgb(${rr},${gg},${bb})`;
+  ctx.fillRect(cx + 1, dy + 3, 3, dh - 6);
 
   // Friction surface texture left
   if (eff > 0.05) {
@@ -695,32 +701,35 @@ function drawWheel() {
 }
 
 function drawFrictionEffect() {
-  let discLeft = 174 + (pedalPressed > 0.6 ? 0 : (1 - pedalPressed / 0.6) * 17);
+  let discLeft = 174 + Math.max(0, (pedalPressed - 0.4) / 0.6) * 17;
   let gapLeft = 174;
   let gapRight = discLeft;
   let gap = Math.max(0, gapRight - gapLeft);
 
-  if (gap > 0 && gap < 20) {
-    let intensity = 1 - gap / 20;
+  if (gap > 0) {
+    let t = Math.min(wheelRPM, 80) / 80;
+    let glowR = 30 + t * 90;
     let midX = (gapLeft + gapRight) / 2;
-    let grad = ctx.createRadialGradient(midX, CY, 0, midX, CY, 50 + gap * 0.4);
-    grad.addColorStop(0, `rgba(241,196,15,${intensity * 0.35})`);
-    grad.addColorStop(0.5, `rgba(231,76,60,${intensity * 0.2})`);
-    grad.addColorStop(1, 'rgba(231,76,60,0)');
+    let grad = ctx.createRadialGradient(midX, CY, 0, midX, CY, glowR);
+    let a1 = 0.1 + t * 0.6;
+    let a2 = 0.05 + t * 0.25;
+    grad.addColorStop(0, `rgba(255,${Math.round(200 - t * 100)},50,${a1})`);
+    grad.addColorStop(0.4, `rgba(255,${Math.round(120 - t * 100)},20,${a2})`);
+    grad.addColorStop(1, 'rgba(255,0,0,0)');
     ctx.fillStyle = grad;
     ctx.beginPath();
-    ctx.arc(midX, CY, 50 + gap * 0.4, 0, Math.PI * 2);
+    ctx.arc(midX, CY, glowR, 0, Math.PI * 2);
     ctx.fill();
-
-    particles.forEach(p => {
-      ctx.globalAlpha = p.life;
-      ctx.fillStyle = p.color;
-      ctx.beginPath();
-      ctx.arc(p.x, p.y, p.size * p.life, 0, Math.PI * 2);
-      ctx.fill();
-    });
-    ctx.globalAlpha = 1;
   }
+
+  particles.forEach(p => {
+    ctx.globalAlpha = p.life;
+    ctx.fillStyle = p.color;
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, p.size * p.life, 0, Math.PI * 2);
+    ctx.fill();
+  });
+  ctx.globalAlpha = 1;
 }
 
 function drawTorqueFlow() {
