@@ -18,39 +18,28 @@ body {
   position:relative;
   border-radius:16px;
   background:linear-gradient(145deg,#131a20,#0d1117);
-  padding:20px;
+  padding:8px;
   box-shadow:0 20px 60px rgba(0,0,0,0.8);
 }
-h1 {
-  color:#c8d6e0;
-  font-size:18px;
-  font-weight:600;
-  letter-spacing:2px;
-  text-align:center;
-  padding:0 0 14px 0;
-  text-transform:uppercase;
-}
-h1 span { color:#f39c12; }
 canvas {
   display:block;
   border-radius:10px;
   background:#0f1419;
   cursor:default;
-  width:1100px; height:650px;
+  width:1100px; height:750px;
 }
 </style>
 </head>
 <body>
 <div class="wrap">
-  <h1><span>⏱</span> Симулятор сцепления</h1>
-  <canvas id="c" width="1100" height="650"></canvas>
+  <canvas id="c" width="1100" height="750"></canvas>
 </div>
 <script>
 const canvas = document.getElementById('c');
 const ctx = canvas.getContext('2d');
-const W = 1100, H = 650;
+const W = 1100, H = 750;
 
-const CY = 340;
+const CY = 165;
 const IDLE_RPM = 800;
 const GEAR_RATIO = 1;
 
@@ -197,7 +186,7 @@ function drawInfoBar() {
 }
 
 function drawEngine() {
-  let ex = 48, ey = 252, ew = 95, eh = 125;
+  let ex = 48, ey = CY - 88, ew = 95, eh = 125;
   let crankCx = ex + ew - 22;
   let crankCy = CY;
   let crankR = 18, rodLen = 52;
@@ -587,7 +576,7 @@ function drawShaft() {
 }
 
 function drawGearbox() {
-  let gx = 530, gy = 305, gw = 130, gh = 110;
+  let gx = 530, gy = CY - 35, gw = 130, gh = 110;
 
   let eng = 1 - pedalPressed;
   let eff = eng < 0.4 ? 0 : eng > 0.6 ? 1 : (eng - 0.4) / 0.2;
@@ -843,7 +832,7 @@ function drawTorqueFlow() {
 }
 
 function drawPedal() {
-  let px = 300, py = 560, pw = 500, ph = 70;
+  let px = 300, py = CY + 250, pw = 500, ph = 70;
 
   // Background
   ctx.fillStyle = 'rgba(0,0,0,0.3)';
@@ -865,13 +854,6 @@ function drawPedal() {
   ctx.moveTo(px + 20, trackY);
   ctx.lineTo(px + pw - 20, trackY);
   ctx.stroke();
-
-  // Pedal knob position
-  let knobX = px + 40 + (1 - pedalPressed) * (pw - 80);
-
-  // Track fill
-  ctx.fillStyle = 'rgba(255,255,255,0.05)';
-  ctx.fillRect(px + 20, trackY - 6, knobX - px - 20, 12);
 
   // Zone labels
   ctx.font = '10px "Segoe UI",system-ui,sans-serif';
@@ -900,40 +882,77 @@ function drawPedal() {
   ctx.fillStyle = grad;
   ctx.fillRect(px + 20, trackY - 3, pw - 40, 6);
 
-  // Pedal knob (foot shape)
-  let knobCY = trackY;
-  // Pedal arm
-  ctx.strokeStyle = '#555';
-  ctx.lineWidth = 3;
+  // Realistic hanging pedal
+  let pivotX = px + pw / 2;
+  let pivotY = py - 30;
+  let armLen = 85;
+  let padDist = 75;
+
+  let minAngle = -35 * Math.PI / 180;
+  let maxAngle = 35 * Math.PI / 180;
+  let angle = minAngle + (1 - pedalPressed) * (maxAngle - minAngle);
+
+  let padX = pivotX + padDist * Math.sin(angle);
+  let padY = pivotY + padDist * Math.cos(angle);
+
+  // Bracket / firewall mount
+  ctx.fillStyle = '#2a3038';
+  ctx.fillRect(pivotX - 14, pivotY - 6, 28, 14);
+  ctx.strokeStyle = 'rgba(255,255,255,0.1)';
+  ctx.lineWidth = 1;
+  ctx.strokeRect(pivotX - 14, pivotY - 6, 28, 14);
+
+  // Pivot bolt
   ctx.beginPath();
-  ctx.moveTo(knobX, knobCY + 20);
-  ctx.lineTo(knobX, knobCY - 30);
+  ctx.arc(pivotX, pivotY, 4, 0, Math.PI * 2);
+  ctx.fillStyle = '#555';
+  ctx.fill();
+  ctx.strokeStyle = 'rgba(255,255,255,0.15)';
+  ctx.lineWidth = 1;
   ctx.stroke();
 
-  // Pedal pad
-  ctx.shadowColor = 'rgba(0,0,0,0.4)';
-  ctx.shadowBlur = 12;
-  ctx.fillStyle = '#e67e22';
+  // Pedal arm
+  ctx.save();
+  ctx.shadowColor = 'rgba(0,0,0,0.3)';
+  ctx.shadowBlur = 6;
+  ctx.strokeStyle = '#4a4e52';
+  ctx.lineWidth = 5;
+  ctx.lineCap = 'round';
   ctx.beginPath();
-  ctx.roundRect ? ctx.roundRect(knobX - 18, knobCY - 38, 36, 24, 4) : ctx.rect(knobX - 18, knobCY - 38, 36, 24);
+  ctx.moveTo(pivotX, pivotY);
+  ctx.lineTo(padX, padY);
+  ctx.stroke();
+  ctx.restore();
+
+  // Pedal pad (foot shape)
+  ctx.save();
+  ctx.translate(padX, padY);
+  ctx.rotate(angle);
+
+  ctx.shadowColor = 'rgba(0,0,0,0.4)';
+  ctx.shadowBlur = 10;
+  ctx.fillStyle = '#2c3e50';
+  ctx.beginPath();
+  ctx.roundRect ? ctx.roundRect(-20, -12, 40, 24, 4) : ctx.rect(-20, -12, 40, 24);
   ctx.fill();
   ctx.shadowBlur = 0;
 
-  ctx.strokeStyle = 'rgba(255,255,255,0.2)';
+  // Pad border
+  ctx.strokeStyle = 'rgba(255,255,255,0.15)';
   ctx.lineWidth = 1;
-  ctx.beginPath();
-  ctx.roundRect ? ctx.roundRect(knobX - 18, knobCY - 38, 36, 24, 4) : ctx.rect(knobX - 18, knobCY - 38, 36, 24);
-  ctx.stroke();
+  ctx.strokeRect(-20, -12, 40, 24);
 
-  // Pedal pad texture lines
-  for (let i = 0; i < 3; i++) {
-    ctx.strokeStyle = 'rgba(255,255,255,0.1)';
-    ctx.lineWidth = 1;
+  // Pad texture (rubber grooves)
+  ctx.strokeStyle = 'rgba(255,255,255,0.08)';
+  ctx.lineWidth = 1;
+  for (let i = 0; i < 4; i++) {
     ctx.beginPath();
-    ctx.moveTo(knobX - 12, knobCY - 32 + i * 8);
-    ctx.lineTo(knobX + 12, knobCY - 32 + i * 8);
+    ctx.moveTo(-14, -6 + i * 6);
+    ctx.lineTo(14, -6 + i * 6);
     ctx.stroke();
   }
+
+  ctx.restore();
 
   // Label
   ctx.fillStyle = 'rgba(255,255,255,0.25)';
@@ -962,7 +981,7 @@ function drawStatus() {
     color = '#2ecc71';
   }
 
-  let sx = 300, sy = 498;
+  let sx = 300, sy = CY + 170;
   ctx.fillStyle = 'rgba(0,0,0,0.4)';
   ctx.beginPath();
   ctx.roundRect ? ctx.roundRect(sx - 10, sy - 22, 500, 36, 8) : ctx.rect(sx - 10, sy - 22, 500, 36);
@@ -979,7 +998,7 @@ function drawStatus() {
 
 // Interaction
 function getPedalFromMouse(mx, my) {
-  let px = 300, py = 560, pw = 500, ph = 70;
+  let px = 300, py = CY + 250, pw = 500, ph = 70;
   if (mx >= px && mx <= px + pw && my >= py && my <= py + ph) {
     let relX = (mx - px - 40) / (pw - 80);
     return clamp(1 - relX, 0, 1);
@@ -988,8 +1007,9 @@ function getPedalFromMouse(mx, my) {
 }
 
 function getLeverFromMouse(mx, my) {
-  let lx = 571 + gearLeverPos * 30;
-  let ly = 265;
+  let gx = 530, gy = CY - 35;
+  let lx = gx + 45 + gearLeverPos * 40;
+  let ly = gy - 44;
   let dx = mx - lx, dy = my - ly;
   if (dx * dx + dy * dy < 400) return true;
   return false;
