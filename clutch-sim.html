@@ -148,18 +148,21 @@ function drawInfoBar() {
     { label: 'КОЛЕСО', val: `${Math.round(wheelRPM)}`, unit: 'об/мин', color: '#96ceb4' },
   ];
 
-  let x = 60;
-  items.forEach(it => {
+  let slots = 3;
+  let slotW = (W - 80) / slots;
+  items.forEach((it, i) => {
+    let sx = 40 + i * slotW;
     ctx.fillStyle = 'rgba(255,255,255,0.35)';
-    ctx.fillText(it.label, x, 18);
+    ctx.fillText(it.label, sx, 18);
     ctx.fillStyle = it.color;
     ctx.font = 'bold 16px "Segoe UI",system-ui,sans-serif';
-    ctx.fillText(it.val, x + (it.label.length > 4 ? 55 : 48), 21);
+    let lblW = ctx.measureText(it.label).width;
+    let valW = ctx.measureText(it.val).width;
+    ctx.fillText(it.val, sx + lblW + 10, 21);
     ctx.font = '11px "Segoe UI",system-ui,sans-serif';
     ctx.fillStyle = 'rgba(255,255,255,0.3)';
-    ctx.fillText(it.unit, x + (it.label.length > 4 ? 55 : 48) + ctx.measureText(it.val).width + 6, 23);
+    ctx.fillText(it.unit, sx + lblW + 10 + valW + 8, 23);
     ctx.font = '13px "Segoe UI",system-ui,sans-serif';
-    x += 170;
   });
 
 }
@@ -393,8 +396,8 @@ function drawFlywheel() {
 
   ctx.fillStyle = 'rgba(255,255,255,0.35)';
   ctx.font = '11px "Segoe UI",system-ui,sans-serif';
-  ctx.textAlign = 'center';
-  ctx.fillText('МАХОВИК', fx + fw / 2, fy + fh + 22);
+  ctx.textAlign = 'right';
+  ctx.fillText('МАХОВИК', 174, fy + fh + 22);
   ctx.textAlign = 'left';
 }
 
@@ -498,8 +501,8 @@ function drawClutchDisc() {
   // Label
   ctx.fillStyle = 'rgba(255,255,255,0.35)';
   ctx.font = '11px "Segoe UI",system-ui,sans-serif';
-  ctx.textAlign = 'center';
-  ctx.fillText('ДИСК СЦЕПЛЕНИЯ', cx + dw / 2, dy + dh + 22);
+  ctx.textAlign = 'left';
+  ctx.fillText('ДИСК СЦЕПЛЕНИЯ', cx, dy + dh + 22);
   ctx.textAlign = 'left';
 }
 
