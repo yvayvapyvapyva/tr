@@ -68,7 +68,6 @@ let gearEngaged = true;
 let isDraggingLever = false;
 
 let particles = [];
-let torqueParticles = [];
 
 function clamp(v, mn, mx) { return Math.max(mn, Math.min(mx, v)); }
 
@@ -119,42 +118,11 @@ function updatePhysics() {
     }
   }
 
-  // Torque particles
-  if (eff > 0.02) {
-    if (Math.random() < eff * 0.25) {
-      torqueParticles.push({
-        x: 180,
-        y: CY,
-        speed: 200 + eff * 250,
-        life: 2.5,
-        size: 3,
-        dist: 0
-      });
-    }
-  }
-
   for (let i = particles.length - 1; i >= 0; i--) {
     let p = particles[i];
     p.x += p.vx; p.y += p.vy;
     p.life -= 0.025;
     if (p.life <= 0) particles.splice(i, 1);
-  }
-
-  for (let i = torqueParticles.length - 1; i >= 0; i--) {
-    let p = torqueParticles[i];
-    p.dist += p.speed * 0.016;
-    p.x = 180 + p.dist;
-
-    if (gearEngaged) {
-      if (p.x < 565) p.y = CY;
-      else if (p.x > 590) p.y = CY + 36;
-      else p.y = CY + (p.x - 565) / 25 * 36;
-    } else {
-      p.y = CY;
-    }
-
-    p.life -= 0.006;
-    if (p.life <= 0 || p.x > 900) torqueParticles.splice(i, 1);
   }
 }
 
@@ -513,19 +481,21 @@ function drawClutchDisc() {
 }
 
 function drawShaft() {
+  let eng = 1 - pedalPressed;
+  let eff = eng < 0.4 ? 0 : eng > 0.6 ? 1 : (eng - 0.4) / 0.2;
+  let glow = eff > 0.05 ? Math.min(eff * 1.5, 1) : 0;
+
   ctx.shadowBlur = 0;
   ctx.strokeStyle = 'rgba(255,255,255,0.12)';
   ctx.lineWidth = 8;
 
-  // Вал от сцепления к первичному валу КПП
   ctx.beginPath();
   ctx.moveTo(162, CY);
-  ctx.lineTo(530, CY);
+  ctx.lineTo(660, CY);
   ctx.stroke();
 
-  // Вал от вторичного вала КПП к колесу
   ctx.beginPath();
-  ctx.moveTo(660, CY + 36);
+  ctx.moveTo(530, CY + 36);
   ctx.lineTo(870, CY + 36);
   ctx.stroke();
 
@@ -533,24 +503,38 @@ function drawShaft() {
   ctx.lineWidth = 14;
   ctx.beginPath();
   ctx.moveTo(162, CY);
-  ctx.lineTo(530, CY);
+  ctx.lineTo(660, CY);
   ctx.stroke();
   ctx.beginPath();
-  ctx.moveTo(660, CY + 36);
+  ctx.moveTo(530, CY + 36);
   ctx.lineTo(870, CY + 36);
   ctx.stroke();
+
+  if (glow > 0.05) {
+    ctx.save();
+    ctx.shadowColor = `rgba(100,255,180,${glow * 0.9})`;
+    ctx.shadowBlur = 20 + glow * 50;
+    ctx.strokeStyle = `rgba(120,255,200,${glow * 0.4})`;
+    ctx.lineWidth = 10;
+    ctx.lineCap = 'round';
+    ctx.beginPath();
+    ctx.moveTo(162, CY);
+    ctx.lineTo(660, CY);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(530, CY + 36);
+    ctx.lineTo(870, CY + 36);
+    ctx.stroke();
+    ctx.restore();
+  }
 }
 
 function drawGearbox() {
   let gx = 530, gy = 305, gw = 130, gh = 110;
 
-  ctx.shadowColor = 'rgba(0,0,0,0.3)';
-  ctx.shadowBlur = 10;
-  ctx.fillStyle = '#1a2634';
-  ctx.beginPath();
-  ctx.roundRect ? ctx.roundRect(gx, gy, gw, gh, 6) : ctx.rect(gx, gy, gw, gh);
-  ctx.fill();
-  ctx.shadowBlur = 0;
+  let eng = 1 - pedalPressed;
+  let eff = eng < 0.4 ? 0 : eng > 0.6 ? 1 : (eng - 0.4) / 0.2;
+  let glow = eff > 0.05 ? Math.min(eff * 1.5, 1) : 0;
 
   ctx.strokeStyle = 'rgba(255,255,255,0.08)';
   ctx.lineWidth = 1;
@@ -562,33 +546,22 @@ function drawGearbox() {
   let inY = CY, outY = CY + 36;
   let gearAngle = diskAngle;
 
-  // Input shaft (primary)
-  ctx.strokeStyle = 'rgba(255,255,255,0.1)';
-  ctx.lineWidth = 6;
-  ctx.beginPath();
-  ctx.moveTo(gx, inY);
-  ctx.lineTo(gx + gw, inY);
-  ctx.stroke();
-
-  // Output shaft (secondary)
-  ctx.beginPath();
-  ctx.moveTo(gx, outY);
-  ctx.lineTo(gx + gw, outY);
-  ctx.stroke();
-
-  // Output shaft extension to wheel
-  ctx.strokeStyle = 'rgba(255,255,255,0.06)';
-  ctx.lineWidth = 6;
-  ctx.beginPath();
-  ctx.moveTo(gx + gw, outY);
-  ctx.lineTo(gx + gw + 30, outY);
-  ctx.stroke();
-
   // Single gear pair — вид сбоку
 
   function drawGear(cx, cy, w, h, engaged, angle) {
     let x = cx - w / 2, y = cy - h / 2;
     let alpha = engaged ? 0.2 : 0.08;
+
+    // Glow на шестерне
+    if (glow > 0.05 && engaged) {
+      ctx.save();
+      ctx.shadowColor = `rgba(100,255,180,${glow * 0.8})`;
+      ctx.shadowBlur = 15 + glow * 35;
+      ctx.fillStyle = `rgba(120,255,200,${glow * 0.25})`;
+      ctx.fillRect(x, y, w, h);
+      ctx.restore();
+    }
+
     ctx.fillStyle = `rgba(255,255,255,${alpha})`;
     ctx.fillRect(x, y, w, h);
     ctx.strokeStyle = `rgba(255,255,255,${alpha + 0.05})`;
@@ -749,50 +722,54 @@ function drawTorqueFlow() {
 
   if (glow > 0.05) {
     ctx.save();
-    ctx.shadowColor = `rgba(80,255,120,${glow * 0.5})`;
-    ctx.shadowBlur = 20 + glow * 30;
-    ctx.strokeStyle = `rgba(120,255,180,${glow * 0.12})`;
-    ctx.lineWidth = 14;
+    // Outer glow — яркое свечение при полной передаче
+    let intensity = glow;
+    ctx.shadowColor = `rgba(100,255,180,${intensity * 0.9})`;
+    ctx.shadowBlur = 20 + intensity * 60;
+    ctx.strokeStyle = `rgba(120,255,200,${intensity * 0.35})`;
+    ctx.lineWidth = 16;
     ctx.lineCap = 'round';
     ctx.beginPath();
     ctx.moveTo(162, CY);
-    ctx.lineTo(565, CY);
+    ctx.lineTo(660, CY);
+    ctx.stroke();
+
+    ctx.beginPath();
     if (gearEngaged) {
+      ctx.moveTo(565, CY);
       ctx.lineTo(590, CY + 36);
-    } else {
-      ctx.moveTo(660, CY + 36);
     }
+    ctx.stroke();
+
+    ctx.beginPath();
+    ctx.moveTo(530, CY + 36);
     ctx.lineTo(870, CY + 36);
     ctx.stroke();
 
-    ctx.shadowBlur = 6;
-    ctx.strokeStyle = `rgba(180,255,220,${glow * 0.25})`;
+    // Inner core — яркая центральная линия
+    ctx.shadowBlur = 4;
+    ctx.shadowColor = `rgba(180,255,220,${intensity * 0.6})`;
+    ctx.strokeStyle = `rgba(220,255,240,${intensity * 0.7})`;
     ctx.lineWidth = 5;
     ctx.beginPath();
     ctx.moveTo(162, CY);
-    ctx.lineTo(565, CY);
+    ctx.lineTo(660, CY);
+    ctx.stroke();
+
+    ctx.beginPath();
     if (gearEngaged) {
+      ctx.moveTo(565, CY);
       ctx.lineTo(590, CY + 36);
-    } else {
-      ctx.moveTo(660, CY + 36);
     }
+    ctx.stroke();
+
+    ctx.beginPath();
+    ctx.moveTo(530, CY + 36);
     ctx.lineTo(870, CY + 36);
     ctx.stroke();
     ctx.restore();
   }
 
-  torqueParticles.forEach(p => {
-    ctx.globalAlpha = p.life * 0.6;
-    let size = p.size * (0.5 + p.life * 0.5);
-    let grad = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, size * 3);
-    let hue = 40 + p.life * 20;
-    grad.addColorStop(0, `hsla(${hue}, 100%, 70%, 0.8)`);
-    grad.addColorStop(1, `hsla(${hue}, 100%, 50%, 0)`);
-    ctx.fillStyle = grad;
-    ctx.beginPath();
-    ctx.arc(p.x, p.y, size * 3, 0, Math.PI * 2);
-    ctx.fill();
-  });
   ctx.globalAlpha = 1;
 }
 
