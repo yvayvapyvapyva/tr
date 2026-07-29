@@ -1,0 +1,1058 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Симулятор сцепления</title>
+<style>
+* { margin:0; padding:0; box-sizing:border-box; }
+body {
+  background:#0b0e14;
+  display:flex; justify-content:center; align-items:center;
+  min-height:100vh;
+  font-family:'Segoe UI',system-ui,-apple-system,sans-serif;
+  user-select:none;
+  overflow:hidden;
+}
+.wrap {
+  position:relative;
+  border-radius:16px;
+  background:linear-gradient(145deg,#131a20,#0d1117);
+  padding:20px;
+  box-shadow:0 20px 60px rgba(0,0,0,0.8);
+}
+h1 {
+  color:#c8d6e0;
+  font-size:18px;
+  font-weight:600;
+  letter-spacing:2px;
+  text-align:center;
+  padding:0 0 14px 0;
+  text-transform:uppercase;
+}
+h1 span { color:#f39c12; }
+canvas {
+  display:block;
+  border-radius:10px;
+  background:#0f1419;
+  cursor:default;
+  width:1100px; height:650px;
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1><span>⏱</span> Симулятор сцепления</h1>
+  <canvas id="c" width="1100" height="650"></canvas>
+</div>
+<script>
+const canvas = document.getElementById('c');
+const ctx = canvas.getContext('2d');
+const W = 1100, H = 650;
+
+const CY = 340;
+const IDLE_RPM = 800;
+const GEAR_RATIO = 1;
+
+let engineRPM = IDLE_RPM;
+let flywheelAngle = 0;
+let diskAngle = 0;
+let wheelAngle = 0;
+let diskRPM = 0;
+let wheelRPM = 0;
+let pedalPressed = 0.6; // 0 = not pressed (engaged), 1 = fully pressed (disengaged)
+let isDragging = false;
+let prevPedal = 0;
+let gearLeverPos = 0; // 0 = engaged, 1 = disengaged (нейтраль)
+let gearEngaged = true;
+let isDraggingLever = false;
+
+let particles = [];
+let torqueParticles = [];
+
+function clamp(v, mn, mx) { return Math.max(mn, Math.min(mx, v)); }
+
+// Physics
+function updatePhysics() {
+  let engagement = 1 - pedalPressed;
+
+  gearEngaged = gearLeverPos < 0.3;
+
+  // Engine всегда ~800 об/мин (холостой ход)
+  engineRPM += (IDLE_RPM - engineRPM) * 0.08;
+
+  // Обороты колеса: передача момента только при зацеплении 0.4–0.6
+  let targetWheel;
+  if (engagement < 0.4 || engagement > 0.6) targetWheel = 0;
+  else targetWheel = (engagement - 0.4) / 0.2 * 79 + 1;
+
+  if (!gearEngaged) targetWheel = 0;
+
+  wheelRPM += (targetWheel - wheelRPM) * 0.04;
+
+  // Disk следует за колесом (для визуализации)
+  let eff;
+  if (engagement < 0.4) eff = 0;
+  else if (engagement > 0.6) eff = 1;
+  else eff = (engagement - 0.4) / 0.2;
+  diskRPM = wheelRPM;
+
+  flywheelAngle += Math.min(engineRPM, 90) / 60 * 0.016 * Math.PI * 2;
+  diskAngle += Math.min(diskRPM, 90) / 60 * 0.016 * Math.PI * 2;
+  if (gearEngaged) {
+    wheelAngle += Math.min(wheelRPM / 1.25, 90) / 60 * 0.016 * Math.PI * 2;
+  }
+
+  // Friction particles
+  let discLeft = 174 + (pedalPressed > 0.6 ? 0 : (1 - pedalPressed / 0.6) * 17);
+  let gapL = 174, gapR = discLeft;
+  if (eff > 0.05 && eff < 0.95 && engineRPM > 100 && gapR > gapL) {
+    if (Math.random() < eff * 0.4) {
+      particles.push({
+        x: gapL + Math.random() * (gapR - gapL),
+        y: CY - 40 + Math.random() * 80,
+        vx: (Math.random() - 0.5) * 2,
+        vy: (Math.random() - 0.5) * 2 - 1,
+        life: 1,
+        size: 2 + Math.random() * 3,
+        color: `hsl(${30 + Math.random() * 30}, 100%, ${50 + Math.random() * 30}%)`
+      });
+    }
+  }
+
+  // Torque particles
+  if (eff > 0.02) {
+    if (Math.random() < eff * 0.25) {
+      torqueParticles.push({
+        x: 180,
+        y: CY + (Math.random() - 0.5) * 8,
+        speed: 200 + eff * 250,
+        life: 2.5,
+        size: 3,
+        dist: 0
+      });
+    }
+  }
+
+  for (let i = particles.length - 1; i >= 0; i--) {
+    let p = particles[i];
+    p.x += p.vx; p.y += p.vy;
+    p.life -= 0.025;
+    if (p.life <= 0) particles.splice(i, 1);
+  }
+
+  for (let i = torqueParticles.length - 1; i >= 0; i--) {
+    let p = torqueParticles[i];
+    p.dist += p.speed * 0.016;
+    p.x = 180 + p.dist;
+    p.life -= 0.006;
+    if (p.life <= 0 || p.x > 900) torqueParticles.splice(i, 1);
+  }
+}
+
+// Drawing
+function drawBackground() {
+  ctx.fillStyle = '#0f1419';
+  ctx.fillRect(0, 0, W, H);
+
+  // Grid
+  ctx.strokeStyle = 'rgba(255,255,255,0.03)';
+  ctx.lineWidth = 1;
+  for (let x = 0; x < W; x += 40) {
+    ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, H); ctx.stroke();
+  }
+  for (let y = 0; y < H; y += 40) {
+    ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke();
+  }
+}
+
+function drawInfoBar() {
+  ctx.fillStyle = 'rgba(0,0,0,0.4)';
+  ctx.fillRect(0, 0, W, 46);
+  ctx.fillStyle = 'rgba(255,255,255,0.05)';
+  ctx.fillRect(0, 46, W, 1);
+
+  ctx.font = '13px "Segoe UI",system-ui,sans-serif';
+  ctx.textBaseline = 'middle';
+
+  let items = [
+    { label: 'ДВС', val: `${Math.round(engineRPM)}`, unit: 'об/мин', color: engineRPM > 900 ? '#f39c12' : '#4ecdc4' },
+    { label: 'ДИСК', val: `${Math.round(diskRPM)}`, unit: 'об/мин', color: '#45b7d1' },
+    { label: 'КОЛЕСО', val: `${Math.round(wheelRPM)}`, unit: 'об/мин', color: '#96ceb4' },
+  ];
+
+  let x = 60;
+  items.forEach(it => {
+    ctx.fillStyle = 'rgba(255,255,255,0.35)';
+    ctx.fillText(it.label, x, 18);
+    ctx.fillStyle = it.color;
+    ctx.font = 'bold 16px "Segoe UI",system-ui,sans-serif';
+    ctx.fillText(it.val, x + (it.label.length > 4 ? 38 : 48), 21);
+    ctx.font = '11px "Segoe UI",system-ui,sans-serif';
+    ctx.fillStyle = 'rgba(255,255,255,0.3)';
+    ctx.fillText(it.unit, x + (it.label.length > 4 ? 38 : 48) + ctx.measureText(it.val).width + 6, 23);
+    ctx.font = '13px "Segoe UI",system-ui,sans-serif';
+    x += 170;
+  });
+
+  // Clutch bar
+  x = 780;
+  ctx.fillStyle = 'rgba(255,255,255,0.35)';
+  ctx.fillText('СЦЕПЛЕНИЕ', x, 18);
+  let bw = 180, bh = 8, by = 30;
+  ctx.fillStyle = 'rgba(255,255,255,0.1)';
+  ctx.roundRect ? ctx.roundRect(x, by, bw, bh, 4) : ctx.rect(x, by, bw, bh);
+  ctx.fill();
+  let fill = (1 - pedalPressed) * bw;
+  let grad = ctx.createLinearGradient(x, 0, x + bw, 0);
+  grad.addColorStop(0, '#e74c3c');
+  grad.addColorStop(0.3, '#f39c12');
+  grad.addColorStop(0.7, '#f39c12');
+  grad.addColorStop(1, '#2ecc71');
+  ctx.fillStyle = grad;
+  ctx.fillRect(x, by, fill, bh);
+
+  let pct = Math.round((1 - pedalPressed) * 100);
+  ctx.fillStyle = 'rgba(255,255,255,0.5)';
+  ctx.font = '10px "Segoe UI",system-ui,sans-serif';
+  ctx.textAlign = 'center';
+  ctx.fillText(pct + '%', x + bw / 2, by + bh + 13);
+  ctx.textAlign = 'left';
+}
+
+function drawEngine() {
+  let ex = 48, ey = 252, ew = 95, eh = 125;
+  let crankCx = ex + ew - 22;
+  let crankCy = CY;
+  let crankR = 18, rodLen = 52;
+  let cylX = crankCx - 19, cylY = ey + 8, cylW = 38, cylH = 60;
+
+  ctx.shadowColor = 'rgba(0,0,0,0.3)';
+  ctx.shadowBlur = 10;
+  ctx.beginPath();
+  ctx.roundRect(ex, ey, ew, eh, 6);
+  ctx.fillStyle = '#1a2634';
+  ctx.fill();
+  ctx.shadowBlur = 0;
+  ctx.strokeStyle = 'rgba(255,255,255,0.08)';
+  ctx.lineWidth = 1;
+  ctx.stroke();
+
+  // Cylinder head
+  ctx.fillStyle = '#1e2a38';
+  ctx.fillRect(cylX - 2, ey + 2, cylW + 4, 8);
+  ctx.fillStyle = 'rgba(255,255,255,0.03)';
+  ctx.fillRect(cylX - 2, ey + 9, cylW + 4, 2);
+
+  // Cylinder bore
+  ctx.fillStyle = '#0d141e';
+  ctx.fillRect(cylX, cylY, cylW, cylH);
+  ctx.strokeStyle = 'rgba(255,255,255,0.05)';
+  ctx.lineWidth = 1;
+  ctx.strokeRect(cylX, cylY, cylW, cylH);
+
+  // Piston
+  let theta = flywheelAngle;
+  let pinX = crankCx + crankR * Math.sin(theta);
+  let pinY = crankCy - crankR * Math.cos(theta);
+  let pistonY = pinY - Math.sqrt(rodLen * rodLen - (pinX - crankCx) * (pinX - crankCx));
+  let pW = cylW - 5, pH = 16;
+  let pX = crankCx - pW / 2, pY = pistonY - pH / 2;
+
+  ctx.fillStyle = '#4a4e52';
+  ctx.beginPath();
+  ctx.roundRect(pX, pY, pW, pH, 2);
+  ctx.fill();
+
+  // Piston rings
+  ctx.strokeStyle = 'rgba(255,255,255,0.12)';
+  ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(pX + 3, pY + 3); ctx.lineTo(pX + pW - 3, pY + 3); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(pX + 3, pY + 7); ctx.lineTo(pX + pW - 3, pY + 7); ctx.stroke();
+
+  // Connecting rod
+  ctx.strokeStyle = '#5a5e62';
+  ctx.lineWidth = 4;
+  ctx.beginPath();
+  ctx.moveTo(pinX, pinY);
+  ctx.lineTo(crankCx, pistonY);
+  ctx.stroke();
+
+  // Rod small end
+  ctx.beginPath();
+  ctx.arc(crankCx, pistonY, 3, 0, Math.PI * 2);
+  ctx.fillStyle = '#555';
+  ctx.fill();
+
+  // Rod big end
+  ctx.beginPath();
+  ctx.arc(pinX, pinY, 4, 0, Math.PI * 2);
+  ctx.fillStyle = '#555';
+  ctx.fill();
+
+  // Crankshaft main journal
+  ctx.beginPath();
+  ctx.arc(crankCx, crankCy, 9, 0, Math.PI * 2);
+  ctx.fillStyle = '#3a4048';
+  ctx.fill();
+  ctx.strokeStyle = 'rgba(255,255,255,0.08)';
+  ctx.lineWidth = 2;
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.arc(crankCx, crankCy, 4, 0, Math.PI * 2);
+  ctx.fillStyle = '#555';
+  ctx.fill();
+
+  // Counterweight (opposite crank pin)
+  let cwAng = theta + Math.PI;
+  let cwX = crankCx + 13 * Math.sin(cwAng);
+  let cwY = crankCy - 13 * Math.cos(cwAng);
+  ctx.beginPath();
+  ctx.arc(cwX, cwY, 7, 0, Math.PI * 2);
+  ctx.fillStyle = '#3a4048';
+  ctx.fill();
+
+  // Crankshaft extension to flywheel
+  ctx.strokeStyle = 'rgba(255,255,255,0.08)';
+  ctx.lineWidth = 8;
+  ctx.beginPath();
+  ctx.moveTo(crankCx, crankCy);
+  ctx.lineTo(150, crankCy);
+  ctx.stroke();
+  ctx.strokeStyle = 'rgba(255,255,255,0.04)';
+  ctx.lineWidth = 12;
+  ctx.beginPath();
+  ctx.moveTo(crankCx, crankCy);
+  ctx.lineTo(150, crankCy);
+  ctx.stroke();
+  // Flange at flywheel end
+  ctx.fillStyle = '#2c323a';
+  ctx.fillRect(144, crankCy - 8, 8, 16);
+
+  ctx.fillStyle = 'rgba(255,255,255,0.12)';
+  ctx.font = 'bold 13px "Segoe UI",system-ui,sans-serif';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'bottom';
+  ctx.fillText('ДВИГАТЕЛЬ', ex + ew / 2, ey + eh - 6);
+  ctx.textBaseline = 'alphabetic';
+  ctx.textAlign = 'left';
+}
+
+function drawFlywheel() {
+  let fx = 150, fy = CY - 109.5, fw = 24, fh = 219;
+
+  ctx.shadowColor = 'rgba(0,0,0,0.4)';
+  ctx.shadowBlur = 12;
+  let r = 4;
+  ctx.beginPath();
+  ctx.moveTo(fx + r, fy);
+  ctx.lineTo(fx + fw - r, fy);
+  ctx.quadraticCurveTo(fx + fw, fy, fx + fw, fy + r);
+  ctx.lineTo(fx + fw, fy + fh - r);
+  ctx.quadraticCurveTo(fx + fw, fy + fh, fx + fw - r, fy + fh);
+  ctx.lineTo(fx + r, fy + fh);
+  ctx.quadraticCurveTo(fx, fy + fh, fx, fy + fh - r);
+  ctx.lineTo(fx, fy + r);
+  ctx.quadraticCurveTo(fx, fy, fx + r, fy);
+  ctx.closePath();
+  ctx.fillStyle = '#3a4048';
+  ctx.fill();
+  ctx.shadowBlur = 0;
+
+  ctx.strokeStyle = 'rgba(255,255,255,0.06)';
+  ctx.lineWidth = 1;
+  ctx.stroke();
+
+  // Horizontal grooves (насечки)
+  let grooveOff = (flywheelAngle * 6) % 9;
+  ctx.strokeStyle = 'rgba(255,255,255,0.2)';
+  ctx.lineWidth = 1.5;
+  for (let i = 0; i < 24; i++) {
+    let gy = fy + 8 + ((i * 9 + grooveOff) % (fh - 16));
+    ctx.beginPath();
+    ctx.moveTo(fx + 5, gy);
+    ctx.lineTo(fx + fw - 5, gy);
+    ctx.stroke();
+  }
+  ctx.strokeStyle = 'rgba(0,0,0,0.25)';
+  for (let i = 0; i < 24; i++) {
+    let gy = fy + 8 + ((i * 9 + grooveOff + 3) % (fh - 16));
+    ctx.beginPath();
+    ctx.moveTo(fx + 5, gy);
+    ctx.lineTo(fx + fw - 5, gy);
+    ctx.stroke();
+  }
+
+  ctx.fillStyle = 'rgba(255,255,255,0.35)';
+  ctx.font = '11px "Segoe UI",system-ui,sans-serif';
+  ctx.textAlign = 'center';
+  ctx.fillText('МАХОВИК', fx + fw / 2, fy + fh + 22);
+  ctx.textAlign = 'left';
+}
+
+function drawClutchDisc() {
+  let cx = 174 + (pedalPressed > 0.6 ? 0 : (1 - pedalPressed / 0.6) * 17);
+  let cy = CY;
+  let dw = 28, dh = 175;
+  let dy = cy - dh / 2;
+  let engagement = 1 - pedalPressed;
+  let eff = engagement < 0.4 ? 0 : engagement > 0.6 ? 1 : (engagement - 0.4) / 0.2;
+
+  // Disc body shadow
+  ctx.shadowColor = 'rgba(0,0,0,0.3)';
+  ctx.shadowBlur = 10;
+  let r = 3;
+  ctx.beginPath();
+  ctx.moveTo(cx + r, dy);
+  ctx.lineTo(cx + dw - r, dy);
+  ctx.quadraticCurveTo(cx + dw, dy, cx + dw, dy + r);
+  ctx.lineTo(cx + dw, dy + dh - r);
+  ctx.quadraticCurveTo(cx + dw, dy + dh, cx + dw - r, dy + dh);
+  ctx.lineTo(cx + r, dy + dh);
+  ctx.quadraticCurveTo(cx, dy + dh, cx, dy + dh - r);
+  ctx.lineTo(cx, dy + r);
+  ctx.quadraticCurveTo(cx, dy, cx + r, dy);
+  ctx.closePath();
+  ctx.fillStyle = '#2d3436';
+  ctx.fill();
+  ctx.shadowBlur = 0;
+
+  // Friction material left side (faces flywheel)
+  let frictionColor = eff > 0.05 && eff < 0.95 ? '#c0392b' : '#5a5e62';
+  ctx.fillStyle = frictionColor;
+  ctx.fillRect(cx + 1, dy + 3, 6, dh - 6);
+
+  // Friction material right side
+  ctx.fillRect(cx + dw - 7, dy + 3, 6, dh - 6);
+
+  // Friction surface texture left
+  if (eff > 0.05) {
+    let lineOff = (diskAngle * 5) % 7;
+    for (let i = 0; i < Math.ceil(dh / 7) + 2; i++) {
+      let ly = dy + ((i * 7 + lineOff) % dh);
+      ctx.strokeStyle = 'rgba(255,255,255,0.08)';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(cx + 2, ly);
+      ctx.lineTo(cx + 6, ly);
+      ctx.stroke();
+    }
+  }
+
+  // Center metal disc
+  let metalGrad = ctx.createLinearGradient(cx + 6, 0, cx + dw - 6, 0);
+  metalGrad.addColorStop(0, '#555');
+  metalGrad.addColorStop(0.5, '#6a6e72');
+  metalGrad.addColorStop(1, '#555');
+  ctx.fillStyle = metalGrad;
+  ctx.fillRect(cx + 7, dy + 4, dw - 14, dh - 8);
+
+  // Horizontal grooves on clutch disc body (насечки)
+  let gOff = (diskAngle * 6) % 9;
+  ctx.strokeStyle = 'rgba(255,255,255,0.2)';
+  ctx.lineWidth = 1.5;
+  for (let i = 0; i < 18; i++) {
+    let gy = dy + 8 + ((i * 9 + gOff) % (dh - 16));
+    ctx.beginPath();
+    ctx.moveTo(cx + 8, gy);
+    ctx.lineTo(cx + dw - 8, gy);
+    ctx.stroke();
+  }
+  ctx.strokeStyle = 'rgba(0,0,0,0.25)';
+  for (let i = 0; i < 18; i++) {
+    let gy = dy + 8 + ((i * 9 + gOff + 3) % (dh - 16));
+    ctx.beginPath();
+    ctx.moveTo(cx + 8, gy);
+    ctx.lineTo(cx + dw - 8, gy);
+    ctx.stroke();
+  }
+
+  // Spline center hole
+  ctx.fillStyle = '#1a1e24';
+  ctx.fillRect(cx + dw / 2 - 4, dy + dh / 2 - 12, 8, 24);
+  ctx.fillStyle = '#333';
+  ctx.fillRect(cx + dw / 2 - 2, dy + dh / 2 - 10, 4, 20);
+
+  // Markers on edges showing rotation
+  let markerYOff = Math.sin(diskAngle) * 8;
+  ctx.fillStyle = 'rgba(243,156,18,0.5)';
+  ctx.fillRect(cx + dw - 1, dy + dh / 2 + markerYOff - 2, 2, 4);
+  ctx.fillStyle = 'rgba(243,156,18,0.25)';
+  ctx.fillRect(cx - 1, dy + dh / 2 + markerYOff - 2, 2, 4);
+
+  // Small rotation arrow
+  let arrAng = diskAngle * 2;
+  ctx.strokeStyle = 'rgba(69,183,209,0.2)';
+  ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  ctx.arc(cx + dw / 2, dy + dh + 8, 8, -0.3 + arrAng, 0.3 + arrAng);
+  ctx.stroke();
+
+  // Label
+  ctx.fillStyle = 'rgba(255,255,255,0.35)';
+  ctx.font = '11px "Segoe UI",system-ui,sans-serif';
+  ctx.textAlign = 'center';
+  ctx.fillText('ДИСК СЦЕПЛЕНИЯ', cx + dw / 2, dy + dh + 22);
+  ctx.textAlign = 'left';
+}
+
+function drawShaft() {
+  ctx.shadowBlur = 0;
+  ctx.strokeStyle = 'rgba(255,255,255,0.12)';
+  ctx.lineWidth = 8;
+
+  // Вал от сцепления к первичному валу КПП
+  ctx.beginPath();
+  ctx.moveTo(162, CY);
+  ctx.lineTo(530, CY);
+  ctx.stroke();
+
+  // Вал от вторичного вала КПП к колесу
+  ctx.beginPath();
+  ctx.moveTo(660, CY + 36);
+  ctx.lineTo(870, CY + 36);
+  ctx.stroke();
+
+  ctx.strokeStyle = 'rgba(255,255,255,0.05)';
+  ctx.lineWidth = 14;
+  ctx.beginPath();
+  ctx.moveTo(162, CY);
+  ctx.lineTo(530, CY);
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.moveTo(660, CY + 36);
+  ctx.lineTo(870, CY + 36);
+  ctx.stroke();
+}
+
+function drawGearbox() {
+  let gx = 530, gy = 305, gw = 130, gh = 110;
+
+  ctx.shadowColor = 'rgba(0,0,0,0.3)';
+  ctx.shadowBlur = 10;
+  ctx.fillStyle = '#1a2634';
+  ctx.beginPath();
+  ctx.roundRect ? ctx.roundRect(gx, gy, gw, gh, 6) : ctx.rect(gx, gy, gw, gh);
+  ctx.fill();
+  ctx.shadowBlur = 0;
+
+  ctx.strokeStyle = 'rgba(255,255,255,0.08)';
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.roundRect ? ctx.roundRect(gx, gy, gw, gh, 6) : ctx.rect(gx, gy, gw, gh);
+  ctx.stroke();
+
+  // Input shaft (primary) — на одном уровне с диском сцепления
+  let inY = CY, outY = CY + 36;
+  let gearAngle = diskAngle;
+
+  // Input shaft (primary)
+  ctx.strokeStyle = 'rgba(255,255,255,0.1)';
+  ctx.lineWidth = 6;
+  ctx.beginPath();
+  ctx.moveTo(gx, inY);
+  ctx.lineTo(gx + gw, inY);
+  ctx.stroke();
+
+  // Output shaft (secondary)
+  ctx.beginPath();
+  ctx.moveTo(gx, outY);
+  ctx.lineTo(gx + gw, outY);
+  ctx.stroke();
+
+  // Output shaft extension to wheel
+  ctx.strokeStyle = 'rgba(255,255,255,0.06)';
+  ctx.lineWidth = 6;
+  ctx.beginPath();
+  ctx.moveTo(gx + gw, outY);
+  ctx.lineTo(gx + gw + 30, outY);
+  ctx.stroke();
+
+  // Single gear pair — вид сбоку
+
+  function drawGear(cx, cy, w, h, engaged, angle) {
+    let x = cx - w / 2, y = cy - h / 2;
+    let alpha = engaged ? 0.2 : 0.08;
+    ctx.fillStyle = `rgba(255,255,255,${alpha})`;
+    ctx.fillRect(x, y, w, h);
+    ctx.strokeStyle = `rgba(255,255,255,${alpha + 0.05})`;
+    ctx.lineWidth = 1;
+    ctx.strokeRect(x, y, w, h);
+
+    // Horizontal grooves
+    let gvOff = (angle * 4) % 7;
+    ctx.strokeStyle = `rgba(255,255,255,${alpha + 0.03})`;
+    ctx.lineWidth = 1;
+    for (let i = 0; i < 4; i++) {
+      let gy = y + 5 + ((i * 8 + gvOff) % (h - 10));
+      ctx.beginPath();
+      ctx.moveTo(x + 3, gy);
+      ctx.lineTo(x + w - 3, gy);
+      ctx.stroke();
+    }
+  }
+
+  drawGear(575 + gearLeverPos * 40, inY, 34, 40, gearEngaged, gearAngle);
+  drawGear(575, outY, 34, 40, gearEngaged, gearEngaged ? -gearAngle : 0);
+
+  // Shift lever (ручка КПП)
+  let leverX = gx + 45 + gearLeverPos * 40;
+  let leverY = gy - 8;
+
+  // Lever body (строго вертикально)
+  ctx.strokeStyle = 'rgba(255,255,255,0.2)';
+  ctx.lineWidth = 4;
+  ctx.beginPath();
+  ctx.moveTo(leverX, leverY);
+  ctx.lineTo(leverX, leverY - 32);
+  ctx.stroke();
+
+  // Lever knob
+  ctx.fillStyle = '#2c3e50';
+  ctx.shadowColor = 'rgba(0,0,0,0.3)';
+  ctx.shadowBlur = 8;
+  ctx.beginPath();
+  ctx.arc(leverX, leverY - 36, 8, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.shadowBlur = 0;
+  ctx.strokeStyle = 'rgba(255,255,255,0.15)';
+  ctx.lineWidth = 1;
+  ctx.stroke();
+
+  // Lever slot (gate)
+  ctx.strokeStyle = 'rgba(255,255,255,0.06)';
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(gx + 43, leverY - 4);
+  ctx.lineTo(gx + 87, leverY - 4);
+  ctx.stroke();
+}
+
+function drawWheel() {
+  let cx = 870, cy = CY + 36, r = 65;
+
+  ctx.shadowColor = 'rgba(0,0,0,0.4)';
+  ctx.shadowBlur = 15;
+  // Tire
+  ctx.beginPath();
+  ctx.arc(cx, cy, r, 0, Math.PI * 2);
+  ctx.fillStyle = '#1a1a1a';
+  ctx.fill();
+  ctx.shadowBlur = 0;
+
+  // Tread pattern
+  ctx.strokeStyle = '#2a2a2a';
+  ctx.lineWidth = 4;
+  ctx.beginPath();
+  ctx.arc(cx, cy, r - 4, 0, Math.PI * 2);
+  ctx.stroke();
+
+  // Tread marks
+  for (let i = 0; i < 20; i++) {
+    let a = wheelAngle + (i / 20) * Math.PI * 2;
+    ctx.strokeStyle = '#333';
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.moveTo(cx + Math.cos(a) * (r - 2), cy + Math.sin(a) * (r - 2));
+    ctx.lineTo(cx + Math.cos(a) * (r - 10), cy + Math.sin(a) * (r - 10));
+    ctx.stroke();
+  }
+
+  // Rim
+  ctx.beginPath();
+  ctx.arc(cx, cy, r - 14, 0, Math.PI * 2);
+  ctx.fillStyle = '#3a3a3a';
+  ctx.fill();
+  ctx.strokeStyle = 'rgba(255,255,255,0.05)';
+  ctx.lineWidth = 2;
+  ctx.stroke();
+
+  // Spokes
+  for (let i = 0; i < 5; i++) {
+    let a = wheelAngle + (i / 5) * Math.PI * 2;
+    ctx.strokeStyle = 'rgba(255,255,255,0.06)';
+    ctx.lineWidth = 5;
+    ctx.beginPath();
+    ctx.moveTo(cx, cy);
+    ctx.lineTo(cx + Math.cos(a) * (r - 14), cy + Math.sin(a) * (r - 14));
+    ctx.stroke();
+  }
+
+  // Hub
+  ctx.beginPath();
+  ctx.arc(cx, cy, 12, 0, Math.PI * 2);
+  ctx.fillStyle = '#555';
+  ctx.fill();
+  ctx.strokeStyle = 'rgba(255,255,255,0.1)';
+  ctx.lineWidth = 1;
+  ctx.stroke();
+
+  ctx.fillStyle = 'rgba(255,255,255,0.3)';
+  ctx.font = '11px "Segoe UI",system-ui,sans-serif';
+  ctx.textAlign = 'center';
+  ctx.fillText('КОЛЕСО', cx, cy + r + 18);
+  ctx.textAlign = 'left';
+}
+
+function drawFrictionEffect() {
+  let discLeft = 174 + (pedalPressed > 0.6 ? 0 : (1 - pedalPressed / 0.6) * 17);
+  let gapLeft = 174;
+  let gapRight = discLeft;
+  let gap = Math.max(0, gapRight - gapLeft);
+
+  if (gap > 0 && gap < 20) {
+    let intensity = 1 - gap / 20;
+    let midX = (gapLeft + gapRight) / 2;
+    let grad = ctx.createRadialGradient(midX, CY, 0, midX, CY, 50 + gap * 0.4);
+    grad.addColorStop(0, `rgba(241,196,15,${intensity * 0.35})`);
+    grad.addColorStop(0.5, `rgba(231,76,60,${intensity * 0.2})`);
+    grad.addColorStop(1, 'rgba(231,76,60,0)');
+    ctx.fillStyle = grad;
+    ctx.beginPath();
+    ctx.arc(midX, CY, 50 + gap * 0.4, 0, Math.PI * 2);
+    ctx.fill();
+
+    particles.forEach(p => {
+      ctx.globalAlpha = p.life;
+      ctx.fillStyle = p.color;
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, p.size * p.life, 0, Math.PI * 2);
+      ctx.fill();
+    });
+    ctx.globalAlpha = 1;
+  }
+}
+
+function drawTorqueFlow() {
+  torqueParticles.forEach(p => {
+    ctx.globalAlpha = p.life * 0.6;
+    let size = p.size * (0.5 + p.life * 0.5);
+    let grad = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, size * 3);
+    let hue = 40 + p.life * 20;
+    grad.addColorStop(0, `hsla(${hue}, 100%, 70%, 0.8)`);
+    grad.addColorStop(1, `hsla(${hue}, 100%, 50%, 0)`);
+    ctx.fillStyle = grad;
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, size * 3, 0, Math.PI * 2);
+    ctx.fill();
+  });
+  ctx.globalAlpha = 1;
+}
+
+function drawPedal() {
+  let px = 300, py = 560, pw = 500, ph = 70;
+
+  // Background
+  ctx.fillStyle = 'rgba(0,0,0,0.3)';
+  ctx.beginPath();
+  ctx.roundRect ? ctx.roundRect(px, py, pw, ph, 10) : ctx.rect(px, py, pw, ph);
+  ctx.fill();
+
+  ctx.strokeStyle = 'rgba(255,255,255,0.06)';
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.roundRect ? ctx.roundRect(px, py, pw, ph, 10) : ctx.rect(px, py, pw, ph);
+  ctx.stroke();
+
+  // Track
+  let trackY = py + ph / 2;
+  ctx.strokeStyle = 'rgba(255,255,255,0.1)';
+  ctx.lineWidth = 4;
+  ctx.beginPath();
+  ctx.moveTo(px + 20, trackY);
+  ctx.lineTo(px + pw - 20, trackY);
+  ctx.stroke();
+
+  // Pedal knob position
+  let knobX = px + 40 + (1 - pedalPressed) * (pw - 80);
+
+  // Track fill
+  ctx.fillStyle = 'rgba(255,255,255,0.05)';
+  ctx.fillRect(px + 20, trackY - 6, knobX - px - 20, 12);
+
+  // Zone labels
+  ctx.font = '10px "Segoe UI",system-ui,sans-serif';
+  ctx.fillStyle = 'rgba(255,255,255,0.2)';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'top';
+  let zones = [
+    { x: px + 70, label: 'ВЫКЛ', color: '#e74c3c' },
+    { x: px + 250, label: 'ЗОНА ТРЕНИЯ', color: '#f39c12' },
+    { x: px + 430, label: 'ВКЛ', color: '#2ecc71' },
+  ];
+  zones.forEach(z => {
+    ctx.fillStyle = z.color;
+    ctx.globalAlpha = 0.4;
+    ctx.fillText(z.label, z.x, py + 8);
+  });
+  ctx.globalAlpha = 1;
+  ctx.textBaseline = 'alphabetic';
+
+  // Gradient zones on track
+  let grad = ctx.createLinearGradient(px + 20, 0, px + pw - 20, 0);
+  grad.addColorStop(0, 'rgba(231,76,60,0.3)');
+  grad.addColorStop(0.3, 'rgba(243,156,18,0.3)');
+  grad.addColorStop(0.7, 'rgba(243,156,18,0.3)');
+  grad.addColorStop(1, 'rgba(46,204,113,0.3)');
+  ctx.fillStyle = grad;
+  ctx.fillRect(px + 20, trackY - 3, pw - 40, 6);
+
+  // Pedal knob (foot shape)
+  let knobCY = trackY;
+  // Pedal arm
+  ctx.strokeStyle = '#555';
+  ctx.lineWidth = 3;
+  ctx.beginPath();
+  ctx.moveTo(knobX, knobCY + 20);
+  ctx.lineTo(knobX, knobCY - 30);
+  ctx.stroke();
+
+  // Pedal pad
+  ctx.shadowColor = 'rgba(0,0,0,0.4)';
+  ctx.shadowBlur = 12;
+  ctx.fillStyle = '#e67e22';
+  ctx.beginPath();
+  ctx.roundRect ? ctx.roundRect(knobX - 18, knobCY - 38, 36, 24, 4) : ctx.rect(knobX - 18, knobCY - 38, 36, 24);
+  ctx.fill();
+  ctx.shadowBlur = 0;
+
+  ctx.strokeStyle = 'rgba(255,255,255,0.2)';
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.roundRect ? ctx.roundRect(knobX - 18, knobCY - 38, 36, 24, 4) : ctx.rect(knobX - 18, knobCY - 38, 36, 24);
+  ctx.stroke();
+
+  // Pedal pad texture lines
+  for (let i = 0; i < 3; i++) {
+    ctx.strokeStyle = 'rgba(255,255,255,0.1)';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(knobX - 12, knobCY - 32 + i * 8);
+    ctx.lineTo(knobX + 12, knobCY - 32 + i * 8);
+    ctx.stroke();
+  }
+
+  // Label
+  ctx.fillStyle = 'rgba(255,255,255,0.25)';
+  ctx.font = '12px "Segoe UI",system-ui,sans-serif';
+  ctx.textAlign = 'center';
+  ctx.fillText('ПЕДАЛЬ СЦЕПЛЕНИЯ', px + pw / 2, py + ph + 18);
+  ctx.textAlign = 'left';
+
+  // Status text
+  drawStatus();
+}
+
+function drawStatus() {
+  let engagement = 1 - pedalPressed;
+  let eff = engagement < 0.4 ? 0 : engagement > 0.6 ? 1 : (engagement - 0.4) / 0.2;
+
+  let text, color;
+  if (eff < 0.05) {
+    text = 'Сцепление выключено — передача момента отсутствует';
+    color = '#e74c3c';
+  } else if (eff < 0.95) {
+    text = 'Зона трения — частичная передача крутящего момента';
+    color = '#f39c12';
+  } else {
+    text = 'Сцепление включено — полная передача крутящего момента';
+    color = '#2ecc71';
+  }
+
+  let sx = 300, sy = 498;
+  ctx.fillStyle = 'rgba(0,0,0,0.4)';
+  ctx.beginPath();
+  ctx.roundRect ? ctx.roundRect(sx - 10, sy - 22, 500, 36, 8) : ctx.rect(sx - 10, sy - 22, 500, 36);
+  ctx.fill();
+
+  ctx.fillStyle = color;
+  ctx.font = 'bold 14px "Segoe UI",system-ui,sans-serif';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText(text, sx + 240, sy - 4);
+  ctx.textAlign = 'left';
+  ctx.textBaseline = 'alphabetic';
+}
+
+// Interaction
+function getPedalFromMouse(mx, my) {
+  let px = 300, py = 560, pw = 500, ph = 70;
+  if (mx >= px && mx <= px + pw && my >= py && my <= py + ph) {
+    let relX = (mx - px - 40) / (pw - 80);
+    return clamp(1 - relX, 0, 1);
+  }
+  return -1;
+}
+
+function getLeverFromMouse(mx, my) {
+  let lx = 571 + gearLeverPos * 30;
+  let ly = 265;
+  let dx = mx - lx, dy = my - ly;
+  if (dx * dx + dy * dy < 400) return true;
+  return false;
+}
+
+canvas.addEventListener('mousedown', e => {
+  let rect = canvas.getBoundingClientRect();
+  let scaleX = W / rect.width, scaleY = H / rect.height;
+  let mx = (e.clientX - rect.left) * scaleX;
+  let my = (e.clientY - rect.top) * scaleY;
+  let val = getPedalFromMouse(mx, my);
+  if (val >= 0) {
+    isDragging = true;
+    prevPedal = pedalPressed;
+    pedalPressed = val;
+    canvas.style.cursor = 'grabbing';
+  } else if (getLeverFromMouse(mx, my)) {
+    isDraggingLever = true;
+    canvas.style.cursor = 'grabbing';
+  }
+});
+
+window.addEventListener('mousemove', e => {
+  let rect = canvas.getBoundingClientRect();
+  let scaleX = W / rect.width, scaleY = H / rect.height;
+  let mx = (e.clientX - rect.left) * scaleX;
+  let my = (e.clientY - rect.top) * scaleY;
+
+  if (isDragging) {
+    let val = getPedalFromMouse(mx, my);
+    if (val >= 0) pedalPressed = val;
+  } else if (isDraggingLever) {
+    let gx = 530;
+    let relX = clamp((mx - gx - 45) / 40, 0, 1);
+    gearLeverPos = relX;
+  } else {
+    let onPedal = getPedalFromMouse(mx, my) >= 0;
+    let onLever = getLeverFromMouse(mx, my);
+    canvas.style.cursor = onPedal || onLever ? 'pointer' : 'default';
+  }
+});
+
+window.addEventListener('mouseup', () => {
+  if (isDragging) {
+    isDragging = false;
+    canvas.style.cursor = 'default';
+  }
+  if (isDraggingLever) {
+    isDraggingLever = false;
+    canvas.style.cursor = 'default';
+  }
+});
+
+// Touch
+canvas.addEventListener('touchstart', e => {
+  e.preventDefault();
+  let rect = canvas.getBoundingClientRect();
+  let scaleX = W / rect.width, scaleY = H / rect.height;
+  let touch = e.touches[0];
+  let mx = (touch.clientX - rect.left) * scaleX;
+  let my = (touch.clientY - rect.top) * scaleY;
+  let val = getPedalFromMouse(mx, my);
+  if (val >= 0) {
+    isDragging = true;
+    pedalPressed = val;
+  } else if (getLeverFromMouse(mx, my)) {
+    isDraggingLever = true;
+  }
+});
+
+canvas.addEventListener('touchmove', e => {
+  e.preventDefault();
+  let rect = canvas.getBoundingClientRect();
+  let scaleX = W / rect.width, scaleY = H / rect.height;
+  let touch = e.touches[0];
+  let mx = (touch.clientX - rect.left) * scaleX;
+  let my = (touch.clientY - rect.top) * scaleY;
+  if (isDragging) {
+    let val = getPedalFromMouse(mx, my);
+    if (val >= 0) pedalPressed = val;
+  } else if (isDraggingLever) {
+    let gx = 530;
+    let relX = clamp((mx - gx - 45) / 40, 0, 1);
+    gearLeverPos = relX;
+  }
+});
+
+canvas.addEventListener('touchend', e => {
+  e.preventDefault();
+  isDragging = false;
+  isDraggingLever = false;
+});
+
+// Keyboard
+document.addEventListener('keydown', e => {
+  if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+    e.preventDefault();
+    if (e.key === 'ArrowDown') pedalPressed = clamp(pedalPressed + 0.05, 0, 1);
+    if (e.key === 'ArrowUp') pedalPressed = clamp(pedalPressed - 0.05, 0, 1);
+  }
+  if (e.key === 'ArrowLeft') {
+    e.preventDefault();
+    gearLeverPos = clamp(gearLeverPos - 0.1, 0, 1);
+  }
+  if (e.key === 'ArrowRight') {
+    e.preventDefault();
+    gearLeverPos = clamp(gearLeverPos + 0.1, 0, 1);
+  }
+});
+
+// Polyfill roundRect if needed
+if (!CanvasRenderingContext2D.prototype.roundRect) {
+  CanvasRenderingContext2D.prototype.roundRect = function(x, y, w, h, r) {
+    if (r > w / 2) r = w / 2;
+    if (r > h / 2) r = h / 2;
+    this.moveTo(x + r, y);
+    this.lineTo(x + w - r, y);
+    this.quadraticCurveTo(x + w, y, x + w, y + r);
+    this.lineTo(x + w, y + h - r);
+    this.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+    this.lineTo(x + r, y + h);
+    this.quadraticCurveTo(x, y + h, x, y + h - r);
+    this.lineTo(x, y + r);
+    this.quadraticCurveTo(x, y, x + r, y);
+    return this;
+  };
+}
+
+// Main loop
+function draw() {
+  ctx.clearRect(0, 0, W, H);
+
+  drawBackground();
+  drawShaft();
+  drawFrictionEffect();
+  drawTorqueFlow();
+  drawEngine();
+  drawFlywheel();
+  drawClutchDisc();
+  drawGearbox();
+  drawWheel();
+  drawInfoBar();
+  drawPedal();
+
+  // Connection arrows
+  ctx.fillStyle = 'rgba(255,255,255,0.06)';
+  ctx.font = '16px "Segoe UI",system-ui,sans-serif';
+  ctx.textAlign = 'center';
+  let labels = [
+    { x: 146, y: CY + 4, text: '→' },
+    { x: 460, y: CY + 4, text: '→' },
+    { x: 740, y: CY + 40, text: '→' },
+  ];
+  labels.forEach(l => {
+    ctx.fillText(l.text, l.x, l.y);
+  });
+  ctx.textAlign = 'left';
+}
+
+function loop() {
+  updatePhysics();
+  draw();
+  requestAnimationFrame(loop);
+}
+
+loop();
+</script>
+</body>
+</html>
