@@ -81,9 +81,9 @@ function updatePhysics() {
   // Engine всегда ~800 об/мин (холостой ход)
   engineRPM += (IDLE_RPM - engineRPM) * 0.08;
 
-  // Обороты колеса: передача момента только при зацеплении 0.4–0.6
   let targetWheel;
-  if (engagement < 0.4 || engagement > 0.6) targetWheel = 0;
+  if (engagement < 0.4) targetWheel = 0;
+  else if (engagement > 0.6) targetWheel = 80;
   else targetWheel = (engagement - 0.4) / 0.2 * 79 + 1;
 
   if (!gearEngaged) targetWheel = 0;
@@ -104,7 +104,7 @@ function updatePhysics() {
 
   // Friction particles
   let gapL = 174, gapR = 174 + Math.max(0, (pedalPressed - 0.4) / 0.6) * 17;
-  if (eff > 0.05 && eff < 0.95 && engineRPM > 100) {
+  if (eff > 0.05 && engagement < 0.6 && engineRPM > 100) {
     let t = targetWheel / 80;
     if (Math.random() < t * 0.6) {
       particles.push({
@@ -124,7 +124,7 @@ function updatePhysics() {
     if (Math.random() < eff * 0.25) {
       torqueParticles.push({
         x: 180,
-        y: CY + (Math.random() - 0.5) * 8,
+        y: CY,
         speed: 200 + eff * 250,
         life: 2.5,
         size: 3,
@@ -144,6 +144,15 @@ function updatePhysics() {
     let p = torqueParticles[i];
     p.dist += p.speed * 0.016;
     p.x = 180 + p.dist;
+
+    if (gearEngaged) {
+      if (p.x < 565) p.y = CY;
+      else if (p.x > 590) p.y = CY + 36;
+      else p.y = CY + (p.x - 565) / 25 * 36;
+    } else {
+      p.y = CY;
+    }
+
     p.life -= 0.006;
     if (p.life <= 0 || p.x > 900) torqueParticles.splice(i, 1);
   }
@@ -363,10 +372,11 @@ function drawFlywheel() {
   ctx.stroke();
 
   // Friction surface (right face)
-  let heat = Math.min(wheelRPM, 80) / 80;
-  let rr = Math.round(90 + heat * 165);
-  let gg = Math.round(60 - heat * 60);
-  let bb = Math.round(50 - heat * 50);
+  let effF = (1 - pedalPressed) < 0.4 ? 0 : (1 - pedalPressed) > 0.6 ? 1 : ((1 - pedalPressed) - 0.4) / 0.2;
+  let heatF = effF > 0.02 && effF < 0.98 ? Math.min(effF, 1 - effF) * 2 : 0;
+  let rr = Math.round(90 + heatF * 165);
+  let gg = Math.round(60 - heatF * 60);
+  let bb = Math.round(50 - heatF * 50);
   ctx.fillStyle = `rgb(${rr},${gg},${bb})`;
   ctx.fillRect(fx + fw - 3, fy + 3, 3, fh - 6);
 
@@ -424,7 +434,7 @@ function drawClutchDisc() {
   ctx.fill();
   ctx.shadowBlur = 0;
 
-  let heat = Math.min(wheelRPM, 80) / 80;
+  let heat = eff > 0.02 && eff < 0.98 ? Math.min(eff, 1 - eff) * 2 : 0;
   let rr = Math.round(90 + heat * 165);
   let gg = Math.round(60 - heat * 60);
   let bb = Math.round(50 - heat * 50);
@@ -733,6 +743,44 @@ function drawFrictionEffect() {
 }
 
 function drawTorqueFlow() {
+  let eng = 1 - pedalPressed;
+  let eff = eng < 0.4 ? 0 : eng > 0.6 ? 1 : (eng - 0.4) / 0.2;
+  let glow = eff > 0.05 ? Math.min(eff * 1.5, 1) : 0;
+
+  if (glow > 0.05) {
+    ctx.save();
+    ctx.shadowColor = `rgba(80,255,120,${glow * 0.5})`;
+    ctx.shadowBlur = 20 + glow * 30;
+    ctx.strokeStyle = `rgba(120,255,180,${glow * 0.12})`;
+    ctx.lineWidth = 14;
+    ctx.lineCap = 'round';
+    ctx.beginPath();
+    ctx.moveTo(162, CY);
+    ctx.lineTo(565, CY);
+    if (gearEngaged) {
+      ctx.lineTo(590, CY + 36);
+    } else {
+      ctx.moveTo(660, CY + 36);
+    }
+    ctx.lineTo(870, CY + 36);
+    ctx.stroke();
+
+    ctx.shadowBlur = 6;
+    ctx.strokeStyle = `rgba(180,255,220,${glow * 0.25})`;
+    ctx.lineWidth = 5;
+    ctx.beginPath();
+    ctx.moveTo(162, CY);
+    ctx.lineTo(565, CY);
+    if (gearEngaged) {
+      ctx.lineTo(590, CY + 36);
+    } else {
+      ctx.moveTo(660, CY + 36);
+    }
+    ctx.lineTo(870, CY + 36);
+    ctx.stroke();
+    ctx.restore();
+  }
+
   torqueParticles.forEach(p => {
     ctx.globalAlpha = p.life * 0.6;
     let size = p.size * (0.5 + p.life * 0.5);
