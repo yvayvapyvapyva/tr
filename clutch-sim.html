@@ -340,8 +340,7 @@ function drawFlywheel() {
   ctx.stroke();
 
   // Friction surface (right face)
-  let effF = (1 - pedalPressed) < 0.4 ? 0 : (1 - pedalPressed) > 0.6 ? 1 : ((1 - pedalPressed) - 0.4) / 0.2;
-  let heatF = effF > 0.02 && effF < 0.98 ? Math.min(effF, 1 - effF) * 2 : 0;
+  let heatF = (1 - pedalPressed) < 0.4 || (1 - pedalPressed) > 0.6 ? 0 : ((1 - pedalPressed) - 0.4) / 0.2;
   let rr = Math.round(90 + heatF * 165);
   let gg = Math.round(60 - heatF * 60);
   let bb = Math.round(50 - heatF * 50);
@@ -402,7 +401,7 @@ function drawClutchDisc() {
   ctx.fill();
   ctx.shadowBlur = 0;
 
-  let heat = eff > 0.02 && eff < 0.98 ? Math.min(eff, 1 - eff) * 2 : 0;
+  let heat = engagement < 0.4 || engagement > 0.6 ? 0 : (engagement - 0.4) / 0.2;
   let rr = Math.round(90 + heat * 165);
   let gg = Math.round(60 - heat * 60);
   let bb = Math.round(50 - heat * 50);
@@ -512,19 +511,21 @@ function drawShaft() {
 
   if (glow > 0.05) {
     ctx.save();
-    ctx.shadowColor = `rgba(100,255,180,${glow * 0.9})`;
-    ctx.shadowBlur = 20 + glow * 50;
-    ctx.strokeStyle = `rgba(120,255,200,${glow * 0.4})`;
+    ctx.shadowColor = `rgba(100,255,180,${glow * 1.0})`;
+    ctx.shadowBlur = 25 + glow * 60;
+    ctx.strokeStyle = `rgba(120,255,200,${glow * 0.6})`;
     ctx.lineWidth = 10;
     ctx.lineCap = 'round';
     ctx.beginPath();
     ctx.moveTo(162, CY);
     ctx.lineTo(660, CY);
     ctx.stroke();
-    ctx.beginPath();
-    ctx.moveTo(530, CY + 36);
-    ctx.lineTo(870, CY + 36);
-    ctx.stroke();
+    if (gearEngaged) {
+      ctx.beginPath();
+      ctx.moveTo(530, CY + 36);
+      ctx.lineTo(870, CY + 36);
+      ctx.stroke();
+    }
     ctx.restore();
   }
 }
@@ -536,11 +537,14 @@ function drawGearbox() {
   let eff = eng < 0.4 ? 0 : eng > 0.6 ? 1 : (eng - 0.4) / 0.2;
   let glow = eff > 0.05 ? Math.min(eff * 1.5, 1) : 0;
 
-  ctx.strokeStyle = 'rgba(255,255,255,0.08)';
-  ctx.lineWidth = 1;
+  ctx.shadowColor = 'rgba(0,0,0,0.4)';
+  ctx.shadowBlur = 8;
+  ctx.strokeStyle = 'rgba(255,255,255,0.2)';
+  ctx.lineWidth = 2;
   ctx.beginPath();
   ctx.roundRect ? ctx.roundRect(gx, gy, gw, gh, 6) : ctx.rect(gx, gy, gw, gh);
   ctx.stroke();
+  ctx.shadowBlur = 0;
 
   // Input shaft (primary) — на одном уровне с диском сцепления
   let inY = CY, outY = CY + 36;
@@ -548,17 +552,20 @@ function drawGearbox() {
 
   // Single gear pair — вид сбоку
 
-  function drawGear(cx, cy, w, h, engaged, angle) {
+  function drawGear(cx, cy, w, h, engaged, angle, gearGlow) {
     let x = cx - w / 2, y = cy - h / 2;
     let alpha = engaged ? 0.2 : 0.08;
 
     // Glow на шестерне
-    if (glow > 0.05 && engaged) {
+    if (glow > 0.05 && gearGlow) {
       ctx.save();
-      ctx.shadowColor = `rgba(100,255,180,${glow * 0.8})`;
-      ctx.shadowBlur = 15 + glow * 35;
-      ctx.fillStyle = `rgba(120,255,200,${glow * 0.25})`;
+      ctx.shadowColor = `rgba(100,255,180,${glow * 1.0})`;
+      ctx.shadowBlur = 25 + glow * 50;
+      ctx.fillStyle = `rgba(120,255,200,${glow * 0.5})`;
       ctx.fillRect(x, y, w, h);
+      ctx.strokeStyle = `rgba(180,255,220,${glow * 0.5})`;
+      ctx.lineWidth = 2;
+      ctx.strokeRect(x, y, w, h);
       ctx.restore();
     }
 
@@ -579,10 +586,26 @@ function drawGearbox() {
       ctx.lineTo(x + w - 3, gy);
       ctx.stroke();
     }
+
+    if (glow > 0.05 && gearGlow) {
+      ctx.save();
+      ctx.shadowColor = `rgba(100,255,180,${glow * 1.0})`;
+      ctx.shadowBlur = 15 + glow * 30;
+      ctx.strokeStyle = `rgba(180,255,220,${glow * 0.4})`;
+      ctx.lineWidth = 2;
+      for (let i = 0; i < 4; i++) {
+        let gy = y + 5 + ((i * 8 + gvOff) % (h - 10));
+        ctx.beginPath();
+        ctx.moveTo(x + 3, gy);
+        ctx.lineTo(x + w - 3, gy);
+        ctx.stroke();
+      }
+      ctx.restore();
+    }
   }
 
-  drawGear(575 + gearLeverPos * 40, inY, 34, 40, gearEngaged, gearAngle);
-  drawGear(575, outY, 34, 40, gearEngaged, gearEngaged ? -gearAngle : 0);
+  drawGear(575 + gearLeverPos * 40, inY, 34, 40, gearEngaged, gearAngle, true);
+  drawGear(575, outY, 34, 40, gearEngaged, gearEngaged ? -gearAngle : 0, gearEngaged);
 
   // Shift lever (ручка КПП)
   let leverX = gx + 45 + gearLeverPos * 40;
@@ -734,17 +757,12 @@ function drawTorqueFlow() {
     ctx.lineTo(660, CY);
     ctx.stroke();
 
-    ctx.beginPath();
     if (gearEngaged) {
-      ctx.moveTo(565, CY);
-      ctx.lineTo(590, CY + 36);
+      ctx.beginPath();
+      ctx.moveTo(530, CY + 36);
+      ctx.lineTo(870, CY + 36);
+      ctx.stroke();
     }
-    ctx.stroke();
-
-    ctx.beginPath();
-    ctx.moveTo(530, CY + 36);
-    ctx.lineTo(870, CY + 36);
-    ctx.stroke();
 
     // Inner core — яркая центральная линия
     ctx.shadowBlur = 4;
@@ -756,17 +774,12 @@ function drawTorqueFlow() {
     ctx.lineTo(660, CY);
     ctx.stroke();
 
-    ctx.beginPath();
     if (gearEngaged) {
-      ctx.moveTo(565, CY);
-      ctx.lineTo(590, CY + 36);
+      ctx.beginPath();
+      ctx.moveTo(530, CY + 36);
+      ctx.lineTo(870, CY + 36);
+      ctx.stroke();
     }
-    ctx.stroke();
-
-    ctx.beginPath();
-    ctx.moveTo(530, CY + 36);
-    ctx.lineTo(870, CY + 36);
-    ctx.stroke();
     ctx.restore();
   }
 
