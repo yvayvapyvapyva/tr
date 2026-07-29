@@ -176,6 +176,34 @@ function drawInfoBar() {
 
 }
 
+function drawGearIndicator() {
+  let gearLabel = gearEngaged ? '1' : 'N';
+  let gearColor = gearEngaged ? '#4ecdc4' : '#f39c12';
+  let gx2 = W - 65;
+  ctx.save();
+  ctx.shadowColor = 'rgba(0,0,0,0.6)';
+  ctx.shadowBlur = 3;
+  ctx.fillStyle = 'rgba(255,255,255,0.25)';
+  ctx.font = '12px "Segoe UI",system-ui,sans-serif';
+  ctx.textAlign = 'right';
+  ctx.textBaseline = 'middle';
+  ctx.fillText('ПЕРЕДАЧА', gx2 - 24, 75);
+  ctx.fillStyle = 'rgba(255,255,255,0.06)';
+  ctx.beginPath();
+  ctx.roundRect ? ctx.roundRect(gx2 - 20, 60, 40, 30, 6) : ctx.rect(gx2 - 20, 60, 40, 30);
+  ctx.fill();
+  ctx.strokeStyle = `rgba(255,255,255,0.15)`;
+  ctx.lineWidth = 1.5;
+  ctx.stroke();
+  ctx.fillStyle = gearColor;
+  ctx.font = 'bold 22px "Segoe UI",system-ui,sans-serif';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText(gearLabel, gx2, 76);
+  ctx.restore();
+  ctx.textAlign = 'left';
+}
+
 function drawEngine() {
   let ex = 48, ey = CY - 88, ew = 95, eh = 125;
   let crankCx = ex + ew - 22;
@@ -1226,6 +1254,7 @@ function draw() {
   drawGearbox();
   drawWheel();
   drawInfoBar();
+  drawGearIndicator();
   drawPedal();
 
   // Connection arrows
