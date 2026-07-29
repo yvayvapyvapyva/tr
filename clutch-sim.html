@@ -201,7 +201,7 @@ function drawEngine() {
   let crankCx = ex + ew - 22;
   let crankCy = CY;
   let crankR = 18, rodLen = 52;
-  let cylX = crankCx - 19, cylY = ey + 8, cylW = 38, cylH = 60;
+  let cylW = 38, cylH = 60, cylSpacing = 36;
 
   ctx.shadowColor = 'rgba(0,0,0,0.3)';
   ctx.shadowBlur = 10;
@@ -214,57 +214,66 @@ function drawEngine() {
   ctx.lineWidth = 1;
   ctx.stroke();
 
-  // Cylinder head
-  ctx.fillStyle = '#1e2a38';
-  ctx.fillRect(cylX - 2, ey + 2, cylW + 4, 8);
-  ctx.fillStyle = 'rgba(255,255,255,0.03)';
-  ctx.fillRect(cylX - 2, ey + 9, cylW + 4, 2);
+  function drawOneCyl(offset, theta) {
+    let cx = crankCx + offset;
+    let cy = crankCy;
 
-  // Cylinder bore
-  ctx.fillStyle = '#0d141e';
-  ctx.fillRect(cylX, cylY, cylW, cylH);
-  ctx.strokeStyle = 'rgba(255,255,255,0.05)';
-  ctx.lineWidth = 1;
-  ctx.strokeRect(cylX, cylY, cylW, cylH);
+    let cylX = cx - cylW / 2, cylY = ey + 8;
 
-  // Piston
-  let theta = flywheelAngle;
-  let pinX = crankCx + crankR * Math.sin(theta);
-  let pinY = crankCy - crankR * Math.cos(theta);
-  let pistonY = pinY - Math.sqrt(rodLen * rodLen - (pinX - crankCx) * (pinX - crankCx));
-  let pW = cylW - 5, pH = 16;
-  let pX = crankCx - pW / 2, pY = pistonY - pH / 2;
+    // Cylinder head
+    ctx.fillStyle = '#1e2a38';
+    ctx.fillRect(cylX - 2, ey + 2, cylW + 4, 8);
+    ctx.fillStyle = 'rgba(255,255,255,0.03)';
+    ctx.fillRect(cylX - 2, ey + 9, cylW + 4, 2);
 
-  ctx.fillStyle = '#4a4e52';
-  ctx.beginPath();
-  ctx.roundRect(pX, pY, pW, pH, 2);
-  ctx.fill();
+    // Cylinder bore
+    ctx.fillStyle = '#0d141e';
+    ctx.fillRect(cylX, cylY, cylW, cylH);
+    ctx.strokeStyle = 'rgba(255,255,255,0.05)';
+    ctx.lineWidth = 1;
+    ctx.strokeRect(cylX, cylY, cylW, cylH);
 
-  // Piston rings
-  ctx.strokeStyle = 'rgba(255,255,255,0.12)';
-  ctx.lineWidth = 1;
-  ctx.beginPath(); ctx.moveTo(pX + 3, pY + 3); ctx.lineTo(pX + pW - 3, pY + 3); ctx.stroke();
-  ctx.beginPath(); ctx.moveTo(pX + 3, pY + 7); ctx.lineTo(pX + pW - 3, pY + 7); ctx.stroke();
+    // Piston
+    let pinX = cx + crankR * Math.sin(theta);
+    let pinY = cy - crankR * Math.cos(theta);
+    let pistonY = pinY - Math.sqrt(rodLen * rodLen - (pinX - cx) * (pinX - cx));
+    let pW = cylW - 5, pH = 16;
+    let pX = cx - pW / 2, pY = pistonY - pH / 2;
 
-  // Connecting rod
-  ctx.strokeStyle = '#5a5e62';
-  ctx.lineWidth = 4;
-  ctx.beginPath();
-  ctx.moveTo(pinX, pinY);
-  ctx.lineTo(crankCx, pistonY);
-  ctx.stroke();
+    ctx.fillStyle = '#4a4e52';
+    ctx.beginPath();
+    ctx.roundRect(pX, pY, pW, pH, 2);
+    ctx.fill();
 
-  // Rod small end
-  ctx.beginPath();
-  ctx.arc(crankCx, pistonY, 3, 0, Math.PI * 2);
-  ctx.fillStyle = '#555';
-  ctx.fill();
+    // Piston rings
+    ctx.strokeStyle = 'rgba(255,255,255,0.12)';
+    ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(pX + 3, pY + 3); ctx.lineTo(pX + pW - 3, pY + 3); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(pX + 3, pY + 7); ctx.lineTo(pX + pW - 3, pY + 7); ctx.stroke();
 
-  // Rod big end
-  ctx.beginPath();
-  ctx.arc(pinX, pinY, 4, 0, Math.PI * 2);
-  ctx.fillStyle = '#555';
-  ctx.fill();
+    // Connecting rod
+    ctx.strokeStyle = '#5a5e62';
+    ctx.lineWidth = 4;
+    ctx.beginPath();
+    ctx.moveTo(pinX, pinY);
+    ctx.lineTo(cx, pistonY);
+    ctx.stroke();
+
+    // Rod small end
+    ctx.beginPath();
+    ctx.arc(cx, pistonY, 3, 0, Math.PI * 2);
+    ctx.fillStyle = '#555';
+    ctx.fill();
+
+    // Rod big end
+    ctx.beginPath();
+    ctx.arc(pinX, pinY, 4, 0, Math.PI * 2);
+    ctx.fillStyle = '#555';
+    ctx.fill();
+  }
+
+  drawOneCyl(0, flywheelAngle);
+  drawOneCyl(-cylSpacing - 15, flywheelAngle + Math.PI);
 
   // Crankshaft main journal
   ctx.beginPath();
@@ -280,11 +289,58 @@ function drawEngine() {
   ctx.fill();
 
   // Counterweight (opposite crank pin)
-  let cwAng = theta + Math.PI;
+  let cwAng = flywheelAngle + Math.PI;
   let cwX = crankCx + 13 * Math.sin(cwAng);
   let cwY = crankCy - 13 * Math.cos(cwAng);
   ctx.beginPath();
   ctx.arc(cwX, cwY, 7, 0, Math.PI * 2);
+  ctx.fillStyle = '#3a4048';
+  ctx.fill();
+
+  // Left cylinder crankshaft
+  let leftCx = crankCx - cylSpacing - 15;
+  // Crank web between journals
+  ctx.strokeStyle = 'rgba(255,255,255,0.08)';
+  ctx.lineWidth = 8;
+  ctx.beginPath();
+  ctx.moveTo(leftCx, crankCy);
+  ctx.lineTo(crankCx, crankCy);
+  ctx.stroke();
+  ctx.strokeStyle = 'rgba(255,255,255,0.04)';
+  ctx.lineWidth = 12;
+  ctx.beginPath();
+  ctx.moveTo(leftCx, crankCy);
+  ctx.lineTo(crankCx, crankCy);
+  ctx.stroke();
+
+  // Left main journal
+  ctx.beginPath();
+  ctx.arc(leftCx, crankCy, 9, 0, Math.PI * 2);
+  ctx.fillStyle = '#3a4048';
+  ctx.fill();
+  ctx.strokeStyle = 'rgba(255,255,255,0.08)';
+  ctx.lineWidth = 2;
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.arc(leftCx, crankCy, 4, 0, Math.PI * 2);
+  ctx.fillStyle = '#555';
+  ctx.fill();
+
+  // Left crank pin (180° offset from right piston)
+  let leftTheta = flywheelAngle + Math.PI;
+  let leftPinX = leftCx + crankR * Math.sin(leftTheta);
+  let leftPinY = crankCy - crankR * Math.cos(leftTheta);
+  ctx.beginPath();
+  ctx.arc(leftPinX, leftPinY, 4, 0, Math.PI * 2);
+  ctx.fillStyle = '#555';
+  ctx.fill();
+
+  // Left counterweight
+  let leftCwAng = leftTheta + Math.PI;
+  let leftCwX = leftCx + 13 * Math.sin(leftCwAng);
+  let leftCwY = crankCy - 13 * Math.cos(leftCwAng);
+  ctx.beginPath();
+  ctx.arc(leftCwX, leftCwY, 7, 0, Math.PI * 2);
   ctx.fillStyle = '#3a4048';
   ctx.fill();
 
