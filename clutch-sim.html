@@ -12,7 +12,7 @@ body {
   min-height:100vh;
   font-family:'Segoe UI',system-ui,-apple-system,sans-serif;
   user-select:none;
-  overflow:hidden;
+  overflow:auto;
 }
 .wrap {
   position:relative;
@@ -20,24 +20,26 @@ body {
   background:linear-gradient(145deg,#131a20,#0d1117);
   padding:8px;
   box-shadow:0 20px 60px rgba(0,0,0,0.8);
+  width:fit-content; max-width:calc(100% - 16px);
+  margin:8px auto;
 }
 canvas {
   display:block;
   border-radius:10px;
   background:#0f1419;
-  cursor:default;
-  width:1100px; height:750px;
+  cursor:default; touch-action:none;
+  width:min(640px,100%); height:auto; aspect-ratio:640/750;
 }
 </style>
 </head>
 <body>
 <div class="wrap">
-  <canvas id="c" width="1100" height="750"></canvas>
+  <canvas id="c" width="640" height="750"></canvas>
 </div>
 <script>
 const canvas = document.getElementById('c');
 const ctx = canvas.getContext('2d');
-const W = 1100, H = 750;
+const W = 640, H = 750;
 
 const CY = 165;
 const IDLE_RPM = 800;
