@@ -512,24 +512,24 @@ function drawShaft() {
 
   ctx.beginPath();
   ctx.moveTo(162, CY);
-  ctx.lineTo(660, CY);
+  ctx.lineTo(404, CY);
   ctx.stroke();
 
   ctx.beginPath();
-  ctx.moveTo(530, CY + 36);
-  ctx.lineTo(870, CY + 36);
-  ctx.stroke();
+ctx.moveTo(274, CY + 36);
+    ctx.lineTo(504, CY + 36);
+    ctx.stroke();
 
   ctx.strokeStyle = 'rgba(255,255,255,0.05)';
   ctx.lineWidth = 14;
   ctx.beginPath();
   ctx.moveTo(162, CY);
-  ctx.lineTo(660, CY);
+  ctx.lineTo(404, CY);
   ctx.stroke();
   ctx.beginPath();
-  ctx.moveTo(530, CY + 36);
-  ctx.lineTo(870, CY + 36);
-  ctx.stroke();
+ctx.moveTo(274, CY + 36);
+    ctx.lineTo(504, CY + 36);
+    ctx.stroke();
 
   if (glow > 0.05) {
     ctx.save();
@@ -540,12 +540,12 @@ function drawShaft() {
     ctx.lineCap = 'round';
     ctx.beginPath();
     ctx.moveTo(162, CY);
-    ctx.lineTo(660, CY);
+    ctx.lineTo(404, CY);
     ctx.stroke();
     if (gearEngaged) {
       ctx.beginPath();
-      ctx.moveTo(530, CY + 36);
-      ctx.lineTo(870, CY + 36);
+      ctx.moveTo(274, CY + 36);
+      ctx.lineTo(504, CY + 36);
       ctx.stroke();
     }
     ctx.restore();
@@ -553,7 +553,7 @@ function drawShaft() {
 }
 
 function drawGearbox() {
-  let gx = 530, gy = CY - 35, gw = 130, gh = 110;
+  let gx = 274, gy = CY - 35, gw = 130, gh = 110;
 
   let eng = 1 - pedalPressed;
   let eff = eng < 0.4 ? 0 : eng > 0.6 ? 1 : (eng - 0.4) / 0.2;
@@ -626,8 +626,8 @@ function drawGearbox() {
     }
   }
 
-  drawGear(575 + gearLeverPos * 40, inY, 34, 40, gearEngaged, gearAngle, true);
-  drawGear(575, outY, 34, 40, gearEngaged, gearEngaged ? -gearAngle : 0, gearEngaged);
+  drawGear(319 + gearLeverPos * 40, inY, 34, 40, gearEngaged, gearAngle, true);
+  drawGear(319, outY, 34, 40, gearEngaged, gearEngaged ? -gearAngle : 0, gearEngaged);
 
   // Shift lever (ручка КПП)
   let leverX = gx + 45 + gearLeverPos * 40;
@@ -663,7 +663,7 @@ function drawGearbox() {
 }
 
 function drawWheel() {
-  let cx = 870, cy = CY + 36, r = 65;
+  let cx = 504, cy = CY + 36, r = 65;
 
   ctx.shadowColor = 'rgba(0,0,0,0.4)';
   ctx.shadowBlur = 15;
@@ -776,13 +776,13 @@ function drawTorqueFlow() {
     ctx.lineCap = 'round';
     ctx.beginPath();
     ctx.moveTo(162, CY);
-    ctx.lineTo(660, CY);
+    ctx.lineTo(404, CY);
     ctx.stroke();
 
     if (gearEngaged) {
       ctx.beginPath();
-      ctx.moveTo(530, CY + 36);
-      ctx.lineTo(870, CY + 36);
+      ctx.moveTo(274, CY + 36);
+      ctx.lineTo(504, CY + 36);
       ctx.stroke();
     }
 
@@ -793,13 +793,13 @@ function drawTorqueFlow() {
     ctx.lineWidth = 5;
     ctx.beginPath();
     ctx.moveTo(162, CY);
-    ctx.lineTo(660, CY);
+    ctx.lineTo(404, CY);
     ctx.stroke();
 
     if (gearEngaged) {
       ctx.beginPath();
-      ctx.moveTo(530, CY + 36);
-      ctx.lineTo(870, CY + 36);
+      ctx.moveTo(274, CY + 36);
+      ctx.lineTo(504, CY + 36);
       ctx.stroke();
     }
     ctx.restore();
@@ -983,7 +983,7 @@ function drawStatus() {
     color = '#2ecc71';
   }
 
-  let sx = 300, sy = CY + 170;
+  let sx = 60, sy = CY + 204;
   ctx.fillStyle = 'rgba(0,0,0,0.4)';
   ctx.beginPath();
   ctx.roundRect ? ctx.roundRect(sx - 10, sy - 22, 500, 36, 8) : ctx.rect(sx - 10, sy - 22, 500, 36);
@@ -1020,7 +1020,7 @@ function getPedalFromMouse(mx, my) {
 }
 
 function getLeverFromMouse(mx, my) {
-  let gx = 530, gy = CY - 35;
+  let gx = 274, gy = CY - 35;
   let lx = gx + 45 + gearLeverPos * 40;
   let ly = gy - 44;
   let dx = mx - lx, dy = my - ly;
@@ -1056,7 +1056,7 @@ window.addEventListener('mousemove', e => {
     let relX = (mx - px - 15) / (pw - 30);
     pedalPressed = clamp(1 - relX, 0, 1);
   } else if (isDraggingLever) {
-    let gx = 530;
+    let gx = 274;
     let relX = clamp((mx - gx - 45) / 40, 0, 1);
     gearLeverPos = relX;
   } else {
@@ -1106,7 +1106,7 @@ canvas.addEventListener('touchmove', e => {
     let relX = (mx - px - 15) / (pw - 30);
     pedalPressed = clamp(1 - relX, 0, 1);
   } else if (isDraggingLever) {
-    let gx = 530;
+    let gx = 274;
     let relX = clamp((mx - gx - 45) / 40, 0, 1);
     gearLeverPos = relX;
   }
@@ -1175,8 +1175,8 @@ function draw() {
   ctx.textAlign = 'center';
   let labels = [
     { x: 146, y: CY + 4, text: '→' },
-    { x: 460, y: CY + 4, text: '→' },
-    { x: 740, y: CY + 40, text: '→' },
+    { x: 260, y: CY + 4, text: '→' },
+    { x: 390, y: CY + 40, text: '→' },
   ];
   labels.forEach(l => {
     ctx.fillText(l.text, l.x, l.y);
