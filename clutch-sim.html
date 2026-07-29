@@ -53,10 +53,10 @@ let diskRPM = 0;
 let wheelRPM = 0;
 let pedalPressed = 0; // 0 = not pressed (engaged), 1 = fully pressed (disengaged)
 let isDragging = false;
+let isDraggingLever = false;
 let prevPedal = 0;
 let gearLeverPos = 1; // 0 = engaged, 1 = disengaged (нейтраль)
 let gearEngaged = true;
-let isDraggingLever = false;
 
 let particles = [];
 
@@ -1160,6 +1160,7 @@ window.addEventListener('mouseup', () => {
   }
   if (isDraggingLever) {
     isDraggingLever = false;
+    gearLeverPos = gearLeverPos < 0.5 ? 0 : 1;
     canvas.style.cursor = 'default';
   }
 });
@@ -1201,8 +1202,8 @@ canvas.addEventListener('touchmove', e => {
 
 canvas.addEventListener('touchend', e => {
   e.preventDefault();
-  isDragging = false;
-  isDraggingLever = false;
+  if (isDragging) { isDragging = false; }
+  if (isDraggingLever) { isDraggingLever = false; gearLeverPos = gearLeverPos < 0.5 ? 0 : 1; }
 });
 
 // Keyboard
@@ -1212,13 +1213,9 @@ document.addEventListener('keydown', e => {
     if (e.key === 'ArrowDown') pedalPressed = clamp(pedalPressed + 0.05, 0, 1);
     if (e.key === 'ArrowUp') pedalPressed = clamp(pedalPressed - 0.05, 0, 1);
   }
-  if (e.key === 'ArrowLeft') {
+  if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
     e.preventDefault();
-    gearLeverPos = clamp(gearLeverPos - 0.1, 0, 1);
-  }
-  if (e.key === 'ArrowRight') {
-    e.preventDefault();
-    gearLeverPos = clamp(gearLeverPos + 0.1, 0, 1);
+    gearLeverPos = gearLeverPos < 0.5 ? 1 : 0;
   }
 });
 
