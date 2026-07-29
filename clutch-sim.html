@@ -832,61 +832,13 @@ function drawTorqueFlow() {
 }
 
 function drawPedal() {
-  let px = 300, py = CY + 250, pw = 500, ph = 70;
+  let trackY = CY + 470;
 
-  // Background
-  ctx.fillStyle = 'rgba(0,0,0,0.3)';
-  ctx.beginPath();
-  ctx.roundRect ? ctx.roundRect(px, py, pw, ph, 10) : ctx.rect(px, py, pw, ph);
-  ctx.fill();
-
-  ctx.strokeStyle = 'rgba(255,255,255,0.06)';
-  ctx.lineWidth = 1;
-  ctx.beginPath();
-  ctx.roundRect ? ctx.roundRect(px, py, pw, ph, 10) : ctx.rect(px, py, pw, ph);
-  ctx.stroke();
-
-  // Track
-  let trackY = py + ph / 2;
-  ctx.strokeStyle = 'rgba(255,255,255,0.1)';
-  ctx.lineWidth = 4;
-  ctx.beginPath();
-  ctx.moveTo(px + 20, trackY);
-  ctx.lineTo(px + pw - 20, trackY);
-  ctx.stroke();
-
-  // Zone labels
-  ctx.font = '10px "Segoe UI",system-ui,sans-serif';
-  ctx.fillStyle = 'rgba(255,255,255,0.2)';
-  ctx.textAlign = 'center';
-  ctx.textBaseline = 'top';
-  let zones = [
-    { x: px + 70, label: 'ВЫКЛ', color: '#e74c3c' },
-    { x: px + 250, label: 'ЗОНА ТРЕНИЯ', color: '#f39c12' },
-    { x: px + 430, label: 'ВКЛ', color: '#2ecc71' },
-  ];
-  zones.forEach(z => {
-    ctx.fillStyle = z.color;
-    ctx.globalAlpha = 0.4;
-    ctx.fillText(z.label, z.x, py + 8);
-  });
-  ctx.globalAlpha = 1;
-  ctx.textBaseline = 'alphabetic';
-
-  // Gradient zones on track
-  let grad = ctx.createLinearGradient(px + 20, 0, px + pw - 20, 0);
-  grad.addColorStop(0, 'rgba(231,76,60,0.3)');
-  grad.addColorStop(0.3, 'rgba(243,156,18,0.3)');
-  grad.addColorStop(0.7, 'rgba(243,156,18,0.3)');
-  grad.addColorStop(1, 'rgba(46,204,113,0.3)');
-  ctx.fillStyle = grad;
-  ctx.fillRect(px + 20, trackY - 3, pw - 40, 6);
-
-  // Realistic hanging pedal
-  let pivotX = px + pw / 2;
-  let pivotY = py - 30;
-  let armLen = 85;
-  let padDist = 75;
+  // Ось педали под осью диска сцепления
+  let pivotX = 300;
+  let pivotY = CY + 150;
+  let armLen = trackY - pivotY + 10;
+  let padDist = armLen - 20;
 
   let minAngle = -35 * Math.PI / 180;
   let maxAngle = 35 * Math.PI / 180;
@@ -897,14 +849,17 @@ function drawPedal() {
 
   // Bracket / firewall mount
   ctx.fillStyle = '#2a3038';
-  ctx.fillRect(pivotX - 14, pivotY - 6, 28, 14);
+  ctx.shadowColor = 'rgba(0,0,0,0.3)';
+  ctx.shadowBlur = 6;
+  ctx.fillRect(pivotX - 16, pivotY - 8, 32, 18);
+  ctx.shadowBlur = 0;
   ctx.strokeStyle = 'rgba(255,255,255,0.1)';
   ctx.lineWidth = 1;
-  ctx.strokeRect(pivotX - 14, pivotY - 6, 28, 14);
+  ctx.strokeRect(pivotX - 16, pivotY - 8, 32, 18);
 
   // Pivot bolt
   ctx.beginPath();
-  ctx.arc(pivotX, pivotY, 4, 0, Math.PI * 2);
+  ctx.arc(pivotX, pivotY, 5, 0, Math.PI * 2);
   ctx.fillStyle = '#555';
   ctx.fill();
   ctx.strokeStyle = 'rgba(255,255,255,0.15)';
@@ -914,9 +869,9 @@ function drawPedal() {
   // Pedal arm
   ctx.save();
   ctx.shadowColor = 'rgba(0,0,0,0.3)';
-  ctx.shadowBlur = 6;
+  ctx.shadowBlur = 8;
   ctx.strokeStyle = '#4a4e52';
-  ctx.lineWidth = 5;
+  ctx.lineWidth = 6;
   ctx.lineCap = 'round';
   ctx.beginPath();
   ctx.moveTo(pivotX, pivotY);
@@ -924,42 +879,112 @@ function drawPedal() {
   ctx.stroke();
   ctx.restore();
 
-  // Pedal pad (foot shape)
+  // Pedal pad (большая колодка)
   ctx.save();
   ctx.translate(padX, padY);
-  ctx.rotate(angle);
+  ctx.rotate(-angle);
 
-  ctx.shadowColor = 'rgba(0,0,0,0.4)';
-  ctx.shadowBlur = 10;
+  ctx.shadowColor = 'rgba(0,0,0,0.5)';
+  ctx.shadowBlur = 14;
   ctx.fillStyle = '#2c3e50';
   ctx.beginPath();
-  ctx.roundRect ? ctx.roundRect(-20, -12, 40, 24, 4) : ctx.rect(-20, -12, 40, 24);
+  let hw = 24, hh = 48;
+  ctx.roundRect ? ctx.roundRect(-hw, -hh, hw * 2, hh * 2, 6) : ctx.rect(-hw, -hh, hw * 2, hh * 2);
   ctx.fill();
   ctx.shadowBlur = 0;
 
   // Pad border
   ctx.strokeStyle = 'rgba(255,255,255,0.15)';
-  ctx.lineWidth = 1;
-  ctx.strokeRect(-20, -12, 40, 24);
+  ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  ctx.roundRect ? ctx.roundRect(-hw, -hh, hw * 2, hh * 2, 6) : ctx.rect(-hw, -hh, hw * 2, hh * 2);
+  ctx.stroke();
 
   // Pad texture (rubber grooves)
   ctx.strokeStyle = 'rgba(255,255,255,0.08)';
-  ctx.lineWidth = 1;
-  for (let i = 0; i < 4; i++) {
+  ctx.lineWidth = 1.5;
+  for (let i = 0; i < 10; i++) {
     ctx.beginPath();
-    ctx.moveTo(-14, -6 + i * 6);
-    ctx.lineTo(14, -6 + i * 6);
+    ctx.moveTo(-hw + 8, -hh + 8 + i * 8);
+    ctx.lineTo(hw - 8, -hh + 8 + i * 8);
     ctx.stroke();
   }
 
   ctx.restore();
 
-  // Label
-  ctx.fillStyle = 'rgba(255,255,255,0.25)';
-  ctx.font = '12px "Segoe UI",system-ui,sans-serif';
+  // Дуга по ходу движения педали
+  let gaR = padDist - 55;
+  let startA = Math.PI / 2 - maxAngle;  // справа (100%)
+  let endA = Math.PI / 2 - minAngle;    // слева (0%)
+  let curA = Math.PI / 2 - angle;
+  let engPct = (1 - pedalPressed) * 100;
+
+  ctx.save();
+
+  // Фоновая дуга
+  ctx.strokeStyle = 'rgba(255,255,255,0.06)';
+  ctx.lineWidth = 3;
+  ctx.beginPath();
+  ctx.arc(pivotX, pivotY, gaR, endA, startA, true);
+  ctx.stroke();
+
+  if (engPct > 0) {
+    let hue = 120 * (engPct / 100);
+    ctx.shadowColor = `hsla(${hue}, 100%, 55%, 0.5)`;
+    ctx.shadowBlur = 10;
+    ctx.strokeStyle = `hsl(${hue}, 100%, 55%)`;
+    ctx.lineWidth = 6;
+    ctx.lineCap = 'round';
+    ctx.beginPath();
+    ctx.arc(pivotX, pivotY, gaR, endA, curA, true);
+    ctx.stroke();
+    ctx.shadowBlur = 0;
+
+    ctx.strokeStyle = `hsl(${hue}, 100%, 70%)`;
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.arc(pivotX, pivotY, gaR, endA, curA, true);
+    ctx.stroke();
+  }
+
+  // Метки
+  let ticks = [0, 25, 50, 75, 100];
+  ticks.forEach(pct => {
+    let t = pct / 100;
+    let ta = minAngle + t * (maxAngle - minAngle);
+    let ca = Math.PI / 2 - ta;
+    let tx = pivotX + gaR * Math.cos(ca);
+    let ty = pivotY + gaR * Math.sin(ca);
+    let inner = 10;
+    let tix = pivotX + (gaR - inner) * Math.cos(ca);
+    let tiy = pivotY + (gaR - inner) * Math.sin(ca);
+    ctx.strokeStyle = pct <= engPct ? `hsl(${120 * t}, 100%, 55%)` : 'rgba(255,255,255,0.15)';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(tix, tiy);
+    ctx.lineTo(tx, ty);
+    ctx.stroke();
+
+    ctx.fillStyle = pct <= engPct ? `hsl(${120 * t}, 100%, 55%)` : 'rgba(255,255,255,0.3)';
+    ctx.font = 'bold 10px "Segoe UI",system-ui,sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'bottom';
+    let lx = pivotX + (gaR + 12) * Math.cos(ca);
+    let ly = pivotY + (gaR + 12) * Math.sin(ca);
+    ctx.fillText(pct + '%', lx, ly);
+  });
+
+  // Процент в центре дуги
+  let hue = 120 * (engPct / 100);
+  ctx.fillStyle = `hsl(${hue}, 100%, 55%)`;
+  ctx.font = 'bold 13px "Segoe UI",system-ui,sans-serif';
   ctx.textAlign = 'center';
-  ctx.fillText('ПЕДАЛЬ СЦЕПЛЕНИЯ', px + pw / 2, py + ph + 18);
-  ctx.textAlign = 'left';
+  ctx.textBaseline = 'middle';
+  let midA = (endA + startA) / 2;
+  let mx = pivotX + (gaR - 22) * Math.cos(midA);
+  let my = pivotY + (gaR - 22) * Math.sin(midA);
+  ctx.fillText(`${Math.round(engPct)}%`, mx, my);
+  ctx.restore();
 
   // Status text
   drawStatus();
@@ -998,9 +1023,20 @@ function drawStatus() {
 
 // Interaction
 function getPedalFromMouse(mx, my) {
-  let px = 300, py = CY + 250, pw = 500, ph = 70;
-  if (mx >= px && mx <= px + pw && my >= py && my <= py + ph) {
-    let relX = (mx - px - 40) / (pw - 80);
+  let pivotX = 300;
+  let pivotY = CY + 150;
+  let trackY = CY + 470;
+  let armLen = trackY - pivotY + 10;
+  let padDist = armLen - 20;
+  let minAngle = -35 * Math.PI / 180;
+  let maxAngle = 35 * Math.PI / 180;
+  let angle = minAngle + (1 - pedalPressed) * (maxAngle - minAngle);
+  let padX = pivotX + padDist * Math.sin(angle);
+  let padY = pivotY + padDist * Math.cos(angle);
+  let hw = 30, hh = 54;
+  if (mx >= padX - hw && mx <= padX + hw && my >= padY - hh && my <= padY + hh) {
+    let px = 107, pw = 386;
+    let relX = (mx - px - 15) / (pw - 30);
     return clamp(1 - relX, 0, 1);
   }
   return -1;
@@ -1039,14 +1075,15 @@ window.addEventListener('mousemove', e => {
   let my = (e.clientY - rect.top) * scaleY;
 
   if (isDragging) {
-    let val = getPedalFromMouse(mx, my);
-    if (val >= 0) pedalPressed = val;
+    let px = 107, pw = 386;
+    let relX = (mx - px - 15) / (pw - 30);
+    pedalPressed = clamp(1 - relX, 0, 1);
   } else if (isDraggingLever) {
     let gx = 530;
     let relX = clamp((mx - gx - 45) / 40, 0, 1);
     gearLeverPos = relX;
   } else {
-    let onPedal = getPedalFromMouse(mx, my) >= 0;
+    let onPedal = getPedalFromMouse(mx, my);
     let onLever = getLeverFromMouse(mx, my);
     canvas.style.cursor = onPedal || onLever ? 'pointer' : 'default';
   }
@@ -1088,8 +1125,9 @@ canvas.addEventListener('touchmove', e => {
   let mx = (touch.clientX - rect.left) * scaleX;
   let my = (touch.clientY - rect.top) * scaleY;
   if (isDragging) {
-    let val = getPedalFromMouse(mx, my);
-    if (val >= 0) pedalPressed = val;
+    let px = 107, pw = 386;
+    let relX = (mx - px - 15) / (pw - 30);
+    pedalPressed = clamp(1 - relX, 0, 1);
   } else if (isDraggingLever) {
     let gx = 530;
     let relX = clamp((mx - gx - 45) / 40, 0, 1);
