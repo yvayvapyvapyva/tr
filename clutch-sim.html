@@ -679,6 +679,18 @@ function drawGearbox() {
   ctx.lineWidth = 1;
   ctx.stroke();
 
+  // Interactive highlight
+  ctx.save();
+  let pulse = 0.4 + 0.3 * Math.sin(Date.now() / 500);
+  ctx.shadowColor = `rgba(50,150,255,${pulse * 0.8})`;
+  ctx.shadowBlur = 16;
+  ctx.strokeStyle = `rgba(80,180,255,${pulse})`;
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.arc(leverX, leverY - 36, 10, 0, Math.PI * 2);
+  ctx.stroke();
+  ctx.restore();
+
   // Lever slot (gate)
   ctx.strokeStyle = 'rgba(255,255,255,0.06)';
   ctx.lineWidth = 2;
@@ -916,6 +928,16 @@ function drawPedal() {
     ctx.lineTo(hw - 8, -hh + 8 + i * 8);
     ctx.stroke();
   }
+
+  // Interactive highlight
+  let pulse = 0.4 + 0.3 * Math.sin(Date.now() / 500);
+  ctx.shadowColor = `rgba(50,150,255,${pulse * 0.8})`;
+  ctx.shadowBlur = 16;
+  ctx.strokeStyle = `rgba(80,180,255,${pulse})`;
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.roundRect ? ctx.roundRect(-hw - 3, -hh - 3, hw * 2 + 6, hh * 2 + 6, 8) : ctx.rect(-hw - 3, -hh - 3, hw * 2 + 6, hh * 2 + 6);
+  ctx.stroke();
 
   ctx.restore();
 
