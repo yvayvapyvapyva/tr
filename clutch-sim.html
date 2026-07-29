@@ -152,37 +152,14 @@ function drawInfoBar() {
     ctx.fillText(it.label, x, 18);
     ctx.fillStyle = it.color;
     ctx.font = 'bold 16px "Segoe UI",system-ui,sans-serif';
-    ctx.fillText(it.val, x + (it.label.length > 4 ? 38 : 48), 21);
+    ctx.fillText(it.val, x + (it.label.length > 4 ? 55 : 48), 21);
     ctx.font = '11px "Segoe UI",system-ui,sans-serif';
     ctx.fillStyle = 'rgba(255,255,255,0.3)';
-    ctx.fillText(it.unit, x + (it.label.length > 4 ? 38 : 48) + ctx.measureText(it.val).width + 6, 23);
+    ctx.fillText(it.unit, x + (it.label.length > 4 ? 55 : 48) + ctx.measureText(it.val).width + 6, 23);
     ctx.font = '13px "Segoe UI",system-ui,sans-serif';
     x += 170;
   });
 
-  // Clutch bar
-  x = 780;
-  ctx.fillStyle = 'rgba(255,255,255,0.35)';
-  ctx.fillText('СЦЕПЛЕНИЕ', x, 18);
-  let bw = 180, bh = 8, by = 30;
-  ctx.fillStyle = 'rgba(255,255,255,0.1)';
-  ctx.roundRect ? ctx.roundRect(x, by, bw, bh, 4) : ctx.rect(x, by, bw, bh);
-  ctx.fill();
-  let fill = (1 - pedalPressed) * bw;
-  let grad = ctx.createLinearGradient(x, 0, x + bw, 0);
-  grad.addColorStop(0, '#e74c3c');
-  grad.addColorStop(0.3, '#f39c12');
-  grad.addColorStop(0.7, '#f39c12');
-  grad.addColorStop(1, '#2ecc71');
-  ctx.fillStyle = grad;
-  ctx.fillRect(x, by, fill, bh);
-
-  let pct = Math.round((1 - pedalPressed) * 100);
-  ctx.fillStyle = 'rgba(255,255,255,0.5)';
-  ctx.font = '10px "Segoe UI",system-ui,sans-serif';
-  ctx.textAlign = 'center';
-  ctx.fillText(pct + '%', x + bw / 2, by + bh + 13);
-  ctx.textAlign = 'left';
 }
 
 function drawEngine() {
@@ -832,7 +809,7 @@ function drawTorqueFlow() {
 }
 
 function drawPedal() {
-  let trackY = CY + 470;
+  let trackY = CY + 540;
 
   // Ось педали под осью диска сцепления
   let pivotX = 300;
@@ -913,7 +890,7 @@ function drawPedal() {
   ctx.restore();
 
   // Дуга по ходу движения педали
-  let gaR = padDist - 55;
+  let gaR = padDist - 65;
   let startA = Math.PI / 2 - maxAngle;  // справа (100%)
   let endA = Math.PI / 2 - minAngle;    // слева (0%)
   let curA = Math.PI / 2 - angle;
@@ -948,7 +925,7 @@ function drawPedal() {
   }
 
   // Метки
-  let ticks = [0, 25, 50, 75, 100];
+  let ticks = [0, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100];
   ticks.forEach(pct => {
     let t = pct / 100;
     let ta = minAngle + t * (maxAngle - minAngle);
@@ -1025,7 +1002,7 @@ function drawStatus() {
 function getPedalFromMouse(mx, my) {
   let pivotX = 300;
   let pivotY = CY + 150;
-  let trackY = CY + 470;
+  let trackY = CY + 540;
   let armLen = trackY - pivotY + 10;
   let padDist = armLen - 20;
   let minAngle = -35 * Math.PI / 180;
