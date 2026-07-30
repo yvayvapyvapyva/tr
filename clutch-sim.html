@@ -102,7 +102,7 @@ function updatePhysics() {
   let gapL = 174, gapR = 174 + Math.max(0, (pedalPressed - 0.4) / 0.6) * 17;
   if (eff > 0.05 && engagement < 0.6 && engineRPM > 100) {
     let si = 0.5 + eff * 0.5;
-    let spawnRate = si * 1.2;
+    let spawnRate = si * 2.4;
     if (Math.random() < spawnRate) {
       particles.push({
         x: gapL + Math.random() * (gapR - gapL),
@@ -110,7 +110,7 @@ function updatePhysics() {
         vx: (Math.random() - 0.5) * (2 + si * 6),
         vy: (Math.random() - 0.5) * (2 + si * 5) - (1 + si * 2),
         life: 0.3 + si * 0.8,
-        size: (0.5 + Math.random() * 2) * (0.3 + si * 0.8),
+        size: (0.3 + Math.random() * 1) * (0.3 + si * 0.8),
         color: `hsl(${30 + si * 15}, 100%, ${55 + si * 35}%)`
       });
     }
