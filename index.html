@@ -64,7 +64,7 @@ function clamp(v, mn, mx) { return Math.max(mn, Math.min(mx, v)); }
 
 // Physics
 function updatePhysics() {
-  let engagement = 1 - pedalPressed;
+  let engagement = Math.round((1 - pedalPressed) * 100) / 100;
 
   gearEngaged = gearLeverPos < 0.3;
 
@@ -408,7 +408,8 @@ function drawFlywheel() {
   ctx.stroke();
 
   // Friction surface (right face)
-  let heatF = (1 - pedalPressed) < 0.4 || (1 - pedalPressed) > 0.6 ? 0 : ((1 - pedalPressed) - 0.4) / 0.2;
+  let heatEng = Math.round((1 - pedalPressed) * 100) / 100;
+  let heatF = heatEng < 0.4 || heatEng >= 0.6 ? 0 : (heatEng - 0.4) / 0.2;
   let rr = Math.round(90 + heatF * 165);
   let gg = Math.round(60 - heatF * 60);
   let bb = Math.round(50 - heatF * 50);
@@ -451,7 +452,7 @@ function drawClutchDisc() {
   let cy = CY;
   let dw = 28, dh = 175;
   let dy = cy - dh / 2;
-  let engagement = 1 - pedalPressed;
+  let engagement = Math.round((1 - pedalPressed) * 100) / 100;
   let eff = engagement < 0.4 ? 0 : engagement > 0.6 ? 1 : (engagement - 0.4) / 0.2;
 
   // Disc body shadow
@@ -473,7 +474,7 @@ function drawClutchDisc() {
   ctx.fill();
   ctx.shadowBlur = 0;
 
-  let heat = engagement < 0.4 || engagement > 0.6 ? 0 : (engagement - 0.4) / 0.2;
+  let heat = engagement < 0.4 || engagement >= 0.6 ? 0 : (engagement - 0.4) / 0.2;
   let rr = Math.round(90 + heat * 165);
   let gg = Math.round(60 - heat * 60);
   let bb = Math.round(50 - heat * 50);
