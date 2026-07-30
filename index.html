@@ -66,8 +66,8 @@ let particles = [];
 
 // Audio
 let audioCtx = null;
-let osc1 = null, osc2 = null;
-let gain1 = null, gain2 = null;
+let osc1 = null, osc2 = null, osc3 = null;
+let gain1 = null, gain2 = null, gain3 = null;
 let audioStarted = false;
 
 function initAudio() {
@@ -94,11 +94,28 @@ function initAudio() {
   osc2.connect(gain2);
   osc2.start();
 
+  gain3 = audioCtx.createGain();
+  gain3.gain.value = 0;
+  gain3.connect(audioCtx.destination);
+
+  osc3 = audioCtx.createOscillator();
+  osc3.type = 'sawtooth';
+  osc3.frequency.value = 60;
+  osc3.connect(gain3);
+  osc3.start();
+
   audioStarted = true;
 }
 
 function updateAudio(eff, rpm, eng) {
   if (!audioStarted) return;
+
+  let engVol = 0;
+  if (rpm > 30) {
+    engVol = 0.08;
+    osc3.frequency.value = 20 + rpm * 0.03;
+  }
+  gain3.gain.linearRampToValueAtTime(engVol, audioCtx.currentTime + 0.1);
 
   let vol = 0;
   if (eff > 0.02 && eng < 0.6 && rpm > 50 && gearEngaged) {
@@ -114,11 +131,13 @@ function cleanupAudio() {
   try {
     if (osc1) { osc1.stop(); osc1.disconnect(); }
     if (osc2) { osc2.stop(); osc2.disconnect(); }
+    if (osc3) { osc3.stop(); osc3.disconnect(); }
     if (gain1) gain1.disconnect();
     if (gain2) gain2.disconnect();
+    if (gain3) gain3.disconnect();
     if (audioCtx) audioCtx.close();
   } catch(e) {}
-  osc1 = osc2 = gain1 = gain2 = audioCtx = null;
+  osc1 = osc2 = osc3 = gain1 = gain2 = gain3 = audioCtx = null;
   audioStarted = false;
 }
 
