@@ -61,6 +61,7 @@ let isDraggingLever = false;
 let prevPedal = 0;
 let gearLeverPos = 1; // 0 = engaged, 1 = disengaged (нейтраль)
 let gearEngaged = true;
+let wasEngineRunning = false;
 
 let particles = [];
 
@@ -94,11 +95,30 @@ function initAudio() {
   osc2.connect(gain2);
   osc2.start();
 
+  gain3 = audioCtx.createGain();
+  gain3.gain.value = 0;
+  gain3.connect(audioCtx.destination);
+
+  osc3 = audioCtx.createOscillator();
+  osc3.type = 'sine';
+  osc3.frequency.value = 100;
+  osc3.connect(gain3);
+  osc3.start();
+
   audioStarted = true;
 }
 
 function updateAudio(eff, rpm, eng) {
   if (!audioStarted) return;
+
+  if (wasEngineRunning && !engineRunning && rpm > 50) {
+    let now = audioCtx.currentTime;
+    osc3.frequency.setValueAtTime(150, now);
+    osc3.frequency.linearRampToValueAtTime(30, now + 0.35);
+    gain3.gain.setValueAtTime(1.0, now);
+    gain3.gain.linearRampToValueAtTime(0, now + 0.4);
+  }
+  wasEngineRunning = engineRunning;
 
   let vol = 0;
   if (eff > 0.02 && eng < 0.6 && rpm > 50 && gearEngaged) {
