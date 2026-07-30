@@ -731,12 +731,12 @@ function drawWheel() {
   // Tire
   ctx.beginPath();
   ctx.arc(cx, cy, r, 0, Math.PI * 2);
-  ctx.fillStyle = '#1a1a1a';
+  ctx.fillStyle = '#2a2a2a';
   ctx.fill();
   ctx.shadowBlur = 0;
 
   // Tread pattern
-  ctx.strokeStyle = '#2a2a2a';
+  ctx.strokeStyle = '#444';
   ctx.lineWidth = 4;
   ctx.beginPath();
   ctx.arc(cx, cy, r - 4, 0, Math.PI * 2);
@@ -745,8 +745,8 @@ function drawWheel() {
   // Tread marks
   for (let i = 0; i < 20; i++) {
     let a = wheelAngle + (i / 20) * Math.PI * 2;
-    ctx.strokeStyle = '#333';
-    ctx.lineWidth = 3;
+    ctx.strokeStyle = '#555';
+    ctx.lineWidth = 2;
     ctx.beginPath();
     ctx.moveTo(cx + Math.cos(a) * (r - 2), cy + Math.sin(a) * (r - 2));
     ctx.lineTo(cx + Math.cos(a) * (r - 10), cy + Math.sin(a) * (r - 10));
@@ -756,17 +756,17 @@ function drawWheel() {
   // Rim
   ctx.beginPath();
   ctx.arc(cx, cy, r - 14, 0, Math.PI * 2);
-  ctx.fillStyle = '#3a3a3a';
+  ctx.fillStyle = '#666';
   ctx.fill();
-  ctx.strokeStyle = 'rgba(255,255,255,0.05)';
+  ctx.strokeStyle = 'rgba(255,255,255,0.15)';
   ctx.lineWidth = 2;
   ctx.stroke();
 
   // Spokes
   for (let i = 0; i < 5; i++) {
     let a = wheelAngle + (i / 5) * Math.PI * 2;
-    ctx.strokeStyle = 'rgba(255,255,255,0.06)';
-    ctx.lineWidth = 5;
+    ctx.strokeStyle = 'rgba(200,200,200,0.3)';
+    ctx.lineWidth = 4;
     ctx.beginPath();
     ctx.moveTo(cx, cy);
     ctx.lineTo(cx + Math.cos(a) * (r - 14), cy + Math.sin(a) * (r - 14));
@@ -776,16 +776,16 @@ function drawWheel() {
   // Hub
   ctx.beginPath();
   ctx.arc(cx, cy, 12, 0, Math.PI * 2);
-  ctx.fillStyle = '#555';
+  ctx.fillStyle = '#888';
   ctx.fill();
-  ctx.strokeStyle = 'rgba(255,255,255,0.1)';
-  ctx.lineWidth = 1;
+  ctx.strokeStyle = 'rgba(255,255,255,0.2)';
+  ctx.lineWidth = 1.5;
   ctx.stroke();
 
   ctx.save();
   ctx.shadowColor = 'rgba(0,0,0,0.6)';
   ctx.shadowBlur = 3;
-  ctx.fillStyle = 'rgba(255,255,255,0.45)';
+  ctx.fillStyle = 'rgba(255,255,255,0.65)';
   ctx.font = '15px "Segoe UI",system-ui,sans-serif';
   ctx.textAlign = 'center';
   ctx.fillText('КОЛЕСО', cx, cy + r + 18);
