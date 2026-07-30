@@ -52,6 +52,7 @@ let wheelAngle = 0;
 let diskRPM = 0;
 let wheelRPM = 0;
 let pedalPressed = 0; // 0 = not pressed (engaged), 1 = fully pressed (disengaged)
+let engineRunning = false;
 let isDragging = false;
 let isDraggingLever = false;
 let prevPedal = 0;
@@ -97,7 +98,7 @@ function updateAudio(eff, rpm, eng) {
   if (!audioStarted) return;
 
   let vol = 0;
-  if (eff > 0.02 && eng < 0.6) {
+  if (eff > 0.02 && eng < 0.6 && rpm > 50) {
     vol = 1.0;
     osc1.frequency.value = 70 + eff * 50;
     osc2.frequency.value = osc1.frequency.value + 14;
@@ -126,15 +127,19 @@ function updatePhysics() {
 
   gearEngaged = gearLeverPos < 0.3;
 
-  // Engine всегда ~800 об/мин (холостой ход)
-  engineRPM += (IDLE_RPM - engineRPM) * 0.08;
+  // Engine всегда ~800 об/мин (холостой ход) или 0 если заглушен
+  if (engineRunning) {
+    engineRPM += (IDLE_RPM - engineRPM) * 0.08;
+  } else {
+    engineRPM += (0 - engineRPM) * 0.08;
+  }
 
   let targetWheel;
   if (engagement < 0.4) targetWheel = 0;
   else if (engagement > 0.6) targetWheel = 80;
   else targetWheel = (engagement - 0.4) / 0.2 * 79 + 1;
 
-  if (!gearEngaged) targetWheel = 0;
+  if (!gearEngaged || !engineRunning) targetWheel = 0;
 
   wheelRPM += (targetWheel - wheelRPM) * 0.04;
 
@@ -153,7 +158,7 @@ function updatePhysics() {
   else if (engagement > 0.6) diskVisFactor = 1;
   else diskVisFactor = (engagement - 0.4) / 0.2;
   diskAngle += diskVisFactor * Math.min(engineRPM, 90) / 60 * 0.016 * Math.PI * 2;
-  if (gearEngaged) {
+  if (gearEngaged && wheelRPM > 1) {
     wheelAngle -= Math.min(wheelRPM / 1.25, 90) / 60 * 0.016 * Math.PI * 2;
   }
 
@@ -1062,7 +1067,7 @@ function drawPedal() {
     ctx.stroke();
 
     ctx.fillStyle = '#fff';
-    ctx.font = 'bold 13px "Segoe UI",system-ui,sans-serif';
+  ctx.font = 'bold 16px "Segoe UI",system-ui,sans-serif';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'bottom';
     let lx = pivotX + (gaR + 16) * Math.cos(ca);
@@ -1170,6 +1175,8 @@ canvas.addEventListener('mousedown', e => {
   } else if (getLeverFromMouse(mx, my)) {
     isDraggingLever = true;
     canvas.style.cursor = 'grabbing';
+  } else if (getStartButton(mx, my)) {
+    engineRunning = !engineRunning;
   }
 });
 
@@ -1190,7 +1197,8 @@ window.addEventListener('mousemove', e => {
   } else {
     let onPedal = getPedalFromMouse(mx, my);
     let onLever = getLeverFromMouse(mx, my);
-    canvas.style.cursor = onPedal || onLever ? 'pointer' : 'default';
+    let onButton = getStartButton(mx, my);
+    canvas.style.cursor = onPedal || onLever || onButton ? 'pointer' : 'default';
   }
 });
 
@@ -1221,6 +1229,8 @@ canvas.addEventListener('touchstart', e => {
     pedalPressed = val;
   } else if (getLeverFromMouse(mx, my)) {
     isDraggingLever = true;
+  } else if (getStartButton(mx, my)) {
+    engineRunning = !engineRunning;
   }
 });
 
@@ -1280,6 +1290,37 @@ if (!CanvasRenderingContext2D.prototype.roundRect) {
   };
 }
 
+// Start button
+function drawStartButton() {
+  let bx = 48, by = CY + 45, bw = 95, bh = 56;
+  ctx.save();
+  ctx.shadowColor = 'rgba(0,0,0,0.4)';
+  ctx.shadowBlur = 6;
+  ctx.fillStyle = engineRunning ? '#1a2a1a' : '#2a1a1a';
+  ctx.beginPath();
+  ctx.roundRect ? ctx.roundRect(bx, by, bw, bh, 6) : ctx.rect(bx, by, bw, bh);
+  ctx.fill();
+  ctx.shadowBlur = 0;
+  ctx.strokeStyle = engineRunning ? 'rgba(46,204,113,0.4)' : 'rgba(231,76,60,0.4)';
+  ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  ctx.roundRect ? ctx.roundRect(bx, by, bw, bh, 6) : ctx.rect(bx, by, bw, bh);
+  ctx.stroke();
+  ctx.fillStyle = '#fff';
+  ctx.font = 'bold 16px "Segoe UI",system-ui,sans-serif';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText(engineRunning ? 'СТОП' : 'СТАРТ', bx + bw / 2, by + bh / 2);
+  ctx.restore();
+  ctx.textAlign = 'left';
+  ctx.textBaseline = 'alphabetic';
+}
+
+function getStartButton(mx, my) {
+  let bx = 48, by = CY + 45, bw = 95, bh = 56;
+  return mx >= bx && mx <= bx + bw && my >= by && my <= by + bh;
+}
+
 // Main loop
 function draw() {
   ctx.clearRect(0, 0, W, H);
@@ -1296,6 +1337,7 @@ function draw() {
   drawInfoBar();
   drawGearIndicator();
   drawPedal();
+  drawStartButton();
 
   // Connection arrows
   ctx.fillStyle = 'rgba(255,255,255,0.06)';
