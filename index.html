@@ -58,6 +58,7 @@ let torqueDropLoss = 0;
 let baseRPM = 0;
 let isDragging = false;
 let isDraggingLever = false;
+let grindingActive = false;
 let prevPedal = 0;
 let gearLeverPos = 1; // 0 = engaged, 1 = disengaged (нейтраль)
 let gearEngaged = true;
@@ -67,8 +68,8 @@ let particles = [];
 
 // Audio
 let audioCtx = null;
-let osc1 = null, osc2 = null;
-let gain1 = null, gain2 = null;
+let osc1 = null, osc2 = null, osc4 = null;
+let gain1 = null, gain2 = null, gain4 = null;
 let audioStarted = false;
 
 function initAudio() {
@@ -105,6 +106,16 @@ function initAudio() {
   osc3.connect(gain3);
   osc3.start();
 
+  gain4 = audioCtx.createGain();
+  gain4.gain.value = 0;
+  gain4.connect(audioCtx.destination);
+
+  osc4 = audioCtx.createOscillator();
+  osc4.type = 'sawtooth';
+  osc4.frequency.value = 250;
+  osc4.connect(gain4);
+  osc4.start();
+
   audioStarted = true;
 }
 
@@ -128,6 +139,16 @@ function updateAudio(eff, rpm, eng) {
   }
   gain1.gain.linearRampToValueAtTime(vol, audioCtx.currentTime + 0.05);
   gain2.gain.linearRampToValueAtTime(vol * 0.6, audioCtx.currentTime + 0.05);
+
+  if (grindingActive) {
+    let now = audioCtx.currentTime;
+    osc4.frequency.value = 200 + Math.random() * 200;
+    gain4.gain.setValueAtTime(0.5, now);
+    gain4.gain.linearRampToValueAtTime(0.5, now + 0.05);
+  } else {
+    gain4.gain.linearRampToValueAtTime(0, audioCtx.currentTime + 0.15);
+  }
+  grindingActive = false;
 }
 
 function cleanupAudio() {
@@ -135,16 +156,19 @@ function cleanupAudio() {
     if (osc1) { osc1.stop(); osc1.disconnect(); }
     if (osc2) { osc2.stop(); osc2.disconnect(); }
     if (osc3) { osc3.stop(); osc3.disconnect(); }
+    if (osc4) { osc4.stop(); osc4.disconnect(); }
     if (gain1) gain1.disconnect();
     if (gain2) gain2.disconnect();
     if (gain3) gain3.disconnect();
+    if (gain4) gain4.disconnect();
     if (audioCtx) audioCtx.close();
   } catch(e) {}
-  osc1 = osc2 = osc3 = gain1 = gain2 = gain3 = audioCtx = null;
+  osc1 = osc2 = osc3 = osc4 = gain1 = gain2 = gain3 = gain4 = audioCtx = null;
   audioStarted = false;
 }
 
 function clamp(v, mn, mx) { return Math.max(mn, Math.min(mx, v)); }
+function canEngageGear() { return pedalPressed > 0.98; }
 
 // Physics
 function updatePhysics() {
@@ -1239,7 +1263,12 @@ window.addEventListener('mousemove', e => {
   } else if (isDraggingLever) {
     let gx = 274;
     let relX = clamp((mx - gx - 45) / 40, 0, 1);
-    gearLeverPos = relX;
+    if (relX < 0.5 && !canEngageGear()) {
+      gearLeverPos = 1;
+      grindingActive = true;
+    } else {
+      gearLeverPos = relX;
+    }
   } else {
     let onPedal = getPedalFromMouse(mx, my);
     let onLever = getLeverFromMouse(mx, my);
@@ -1255,7 +1284,12 @@ window.addEventListener('mouseup', () => {
   }
   if (isDraggingLever) {
     isDraggingLever = false;
-    gearLeverPos = gearLeverPos < 0.5 ? 0 : 1;
+    if (gearLeverPos < 0.5 && !canEngageGear()) {
+      gearLeverPos = 1;
+      grindingActive = true;
+    } else {
+      gearLeverPos = gearLeverPos < 0.5 ? 0 : 1;
+    }
     canvas.style.cursor = 'default';
   }
 });
@@ -1294,14 +1328,27 @@ canvas.addEventListener('touchmove', e => {
   } else if (isDraggingLever) {
     let gx = 274;
     let relX = clamp((mx - gx - 45) / 40, 0, 1);
-    gearLeverPos = relX;
+    if (relX < 0.5 && !canEngageGear()) {
+      gearLeverPos = 1;
+      grindingActive = true;
+    } else {
+      gearLeverPos = relX;
+    }
   }
 });
 
 canvas.addEventListener('touchend', e => {
   e.preventDefault();
   if (isDragging) { isDragging = false; }
-  if (isDraggingLever) { isDraggingLever = false; gearLeverPos = gearLeverPos < 0.5 ? 0 : 1; }
+  if (isDraggingLever) {
+    isDraggingLever = false;
+    if (gearLeverPos < 0.5 && !canEngageGear()) {
+      gearLeverPos = 1;
+      grindingActive = true;
+    } else {
+      gearLeverPos = gearLeverPos < 0.5 ? 0 : 1;
+    }
+  }
 });
 
 // Keyboard
@@ -1314,7 +1361,12 @@ document.addEventListener('keydown', e => {
   }
   if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
     e.preventDefault();
-    gearLeverPos = gearLeverPos < 0.5 ? 1 : 0;
+    let target = gearLeverPos < 0.5 ? 1 : 0;
+    if (target === 0 && !canEngageGear()) {
+      grindingActive = true;
+    } else {
+      gearLeverPos = target;
+    }
   }
 });
 
