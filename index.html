@@ -45,7 +45,7 @@ const CY = 165;
 const IDLE_RPM = 800;
 const GEAR_RATIO = 1;
 
-let engineRPM = IDLE_RPM;
+let engineRPM = 0;
 let flywheelAngle = 0;
 let diskAngle = 0;
 let wheelAngle = 0;
@@ -53,6 +53,9 @@ let diskRPM = 0;
 let wheelRPM = 0;
 let pedalPressed = 0; // 0 = not pressed (engaged), 1 = fully pressed (disengaged)
 let engineRunning = false;
+let prevTorqueBucket = 0;
+let torqueDropLoss = 0;
+let baseRPM = 0;
 let isDragging = false;
 let isDraggingLever = false;
 let prevPedal = 0;
@@ -98,7 +101,7 @@ function updateAudio(eff, rpm, eng) {
   if (!audioStarted) return;
 
   let vol = 0;
-  if (eff > 0.02 && eng < 0.6 && rpm > 50) {
+  if (eff > 0.02 && eng < 0.6 && rpm > 50 && gearEngaged) {
     vol = 1.0;
     osc1.frequency.value = 70 + eff * 50;
     osc2.frequency.value = osc1.frequency.value + 14;
@@ -127,11 +130,33 @@ function updatePhysics() {
 
   gearEngaged = gearLeverPos < 0.3;
 
-  // Engine всегда ~800 об/мин (холостой ход) или 0 если заглушен
+  let eff;
+  if (engagement < 0.4) eff = 0;
+  else if (engagement > 0.6) eff = 1;
+  else eff = (engagement - 0.4) / 0.2;
+
+  // Engine RPM: recovery + torque load drops
+  let torquePct = Math.round(eff * 100);
+  let bucket = Math.floor(torquePct / 5);
+  if (!engineRunning) {
+    baseRPM = 0;
+    torqueDropLoss = 0;
+    prevTorqueBucket = bucket;
+    engineRPM = Math.max(0, engineRPM - 25);
+  }
   if (engineRunning) {
-    engineRPM += (IDLE_RPM - engineRPM) * 0.08;
-  } else {
-    engineRPM += (0 - engineRPM) * 0.08;
+    if (bucket > prevTorqueBucket && gearEngaged) {
+      let drop = 20 * (bucket - prevTorqueBucket);
+      torqueDropLoss += drop;
+    }
+    prevTorqueBucket = bucket;
+    baseRPM += (IDLE_RPM - baseRPM) * 0.08;
+    engineRPM = baseRPM - torqueDropLoss;
+    if (engineRPM < 0) engineRPM = 0;
+    if (torqueDropLoss > 0) {
+      torqueDropLoss -= torqueDropLoss * 0.016;
+      if (torqueDropLoss < 0.1) torqueDropLoss = 0;
+    }
   }
 
   let targetWheel;
@@ -143,10 +168,6 @@ function updatePhysics() {
 
   wheelRPM += (targetWheel - wheelRPM) * 0.04;
 
-  let eff;
-  if (engagement < 0.4) eff = 0;
-  else if (engagement > 0.6) eff = 1;
-  else eff = (engagement - 0.4) / 0.2;
   updateAudio(eff, engineRPM, engagement);
   let targetDisk = eff * engineRPM;
   diskRPM += (targetDisk - diskRPM) * 0.08;
@@ -164,7 +185,7 @@ function updatePhysics() {
 
   // Friction particles
   let gapL = 174, gapR = 174 + Math.max(0, (pedalPressed - 0.4) / 0.6) * 17;
-  if (eff > 0.01 && engagement < 0.6 && engineRPM > 100) {
+  if (eff > 0.01 && engagement < 0.6 && engineRPM > 100 && gearEngaged) {
     let si = 0.95 + eff * 1.05;
     let spawnRate = si * 2.4;
     if (Math.random() < spawnRate) {
@@ -1290,6 +1311,44 @@ if (!CanvasRenderingContext2D.prototype.roundRect) {
   };
 }
 
+// RPM gauge
+function drawRPMGauge() {
+  let gx = 20, gy = CY - 88, gw = 14, gh = CY + 101 - (CY - 88);
+  let pct = Math.min(engineRPM / IDLE_RPM, 1);
+  let fillH = Math.round(gh * pct);
+
+  ctx.save();
+  ctx.shadowColor = 'rgba(0,0,0,0.3)';
+  ctx.shadowBlur = 4;
+  ctx.fillStyle = '#1a2028';
+  ctx.beginPath();
+  ctx.roundRect(gx, gy, gw, gh, 3);
+  ctx.fill();
+  ctx.shadowBlur = 0;
+  ctx.strokeStyle = 'rgba(255,255,255,0.08)';
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.roundRect(gx, gy, gw, gh, 3);
+  ctx.stroke();
+
+  let hue = pct * 120;
+  ctx.fillStyle = `hsl(${hue}, 100%, 50%)`;
+  ctx.beginPath();
+  ctx.rect(gx, gy + gh - fillH, gw, fillH);
+  ctx.fill();
+
+  ctx.fillStyle = 'rgba(255,255,255,0.4)';
+  ctx.font = '9px "Segoe UI",system-ui,sans-serif';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'bottom';
+  ctx.fillText('800', gx + gw / 2, gy - 2);
+  ctx.textBaseline = 'top';
+  ctx.fillText('0', gx + gw / 2, gy + gh + 2);
+  ctx.restore();
+  ctx.textAlign = 'left';
+  ctx.textBaseline = 'alphabetic';
+}
+
 // Start button
 function drawStartButton() {
   let bx = 48, by = CY + 45, bw = 95, bh = 56;
@@ -1329,6 +1388,7 @@ function draw() {
   drawShaft();
   drawTorqueFlow();
   drawEngine();
+  drawRPMGauge();
   drawFlywheel();
   drawClutchDisc();
   drawFrictionEffect();
