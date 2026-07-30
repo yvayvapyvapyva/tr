@@ -63,6 +63,8 @@ let prevPedal = 0;
 let gearLeverPos = 1; // 0 = engaged, 1 = disengaged (нейтраль)
 let gearEngaged = true;
 let wasEngineRunning = false;
+let notifyText = '';
+let notifyTimer = 0;
 
 let particles = [];
 
@@ -201,6 +203,8 @@ function updatePhysics() {
     if (engineRPM < 0) engineRPM = 0;
     if (engineRPM < 700 && torqueDropLoss > 0) {
       engineRunning = false;
+      notifyText = 'Сцепление отпущено слишком быстро!';
+      notifyTimer = 150;
     }
     if (torqueDropLoss > 0) {
       torqueDropLoss -= torqueDropLoss * 0.016;
@@ -1266,6 +1270,8 @@ window.addEventListener('mousemove', e => {
     if (relX < 0.5 && !canEngageGear()) {
       gearLeverPos = 1;
       grindingActive = true;
+      notifyText = 'Для включения передачи полностью выжмите сцепление';
+      notifyTimer = 150;
     } else {
       gearLeverPos = relX;
     }
@@ -1287,6 +1293,8 @@ window.addEventListener('mouseup', () => {
     if (gearLeverPos < 0.5 && !canEngageGear()) {
       gearLeverPos = 1;
       grindingActive = true;
+      notifyText = 'Для включения передачи полностью выжмите сцепление';
+      notifyTimer = 150;
     } else {
       gearLeverPos = gearLeverPos < 0.5 ? 0 : 1;
     }
@@ -1331,6 +1339,8 @@ canvas.addEventListener('touchmove', e => {
     if (relX < 0.5 && !canEngageGear()) {
       gearLeverPos = 1;
       grindingActive = true;
+      notifyText = 'Для включения передачи полностью выжмите сцепление';
+      notifyTimer = 150;
     } else {
       gearLeverPos = relX;
     }
@@ -1345,6 +1355,8 @@ canvas.addEventListener('touchend', e => {
     if (gearLeverPos < 0.5 && !canEngageGear()) {
       gearLeverPos = 1;
       grindingActive = true;
+      notifyText = 'Для включения передачи полностью выжмите сцепление';
+      notifyTimer = 150;
     } else {
       gearLeverPos = gearLeverPos < 0.5 ? 0 : 1;
     }
@@ -1364,6 +1376,8 @@ document.addEventListener('keydown', e => {
     let target = gearLeverPos < 0.5 ? 1 : 0;
     if (target === 0 && !canEngageGear()) {
       grindingActive = true;
+      notifyText = 'Для включения передачи полностью выжмите сцепление';
+      notifyTimer = 150;
     } else {
       gearLeverPos = target;
     }
@@ -1520,6 +1534,23 @@ function draw() {
     ctx.fillText(l.text, l.x, l.y);
   });
   ctx.textAlign = 'left';
+
+  if (notifyTimer > 0) {
+    notifyTimer--;
+    ctx.save();
+    ctx.fillStyle = 'rgba(0,0,0,0.75)';
+    ctx.beginPath();
+    ctx.roundRect ? ctx.roundRect(100, 20, 440, 44, 8) : ctx.rect(100, 20, 440, 44);
+    ctx.fill();
+    ctx.fillStyle = '#ff6b4a';
+    ctx.font = 'bold 15px "Segoe UI",system-ui,sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(notifyText, 320, 42);
+    ctx.restore();
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'alphabetic';
+  }
 }
 
 function loop() {
