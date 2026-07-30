@@ -207,7 +207,7 @@ function updatePhysics() {
       notifyTimer = 150;
     }
     if (torqueDropLoss > 0) {
-      torqueDropLoss -= torqueDropLoss * 0.016;
+      torqueDropLoss -= torqueDropLoss * 0.048;
       if (torqueDropLoss < 0.1) torqueDropLoss = 0;
     }
   }
