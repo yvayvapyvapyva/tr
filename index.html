@@ -153,6 +153,9 @@ function updatePhysics() {
     baseRPM += (IDLE_RPM - baseRPM) * 0.08;
     engineRPM = baseRPM - torqueDropLoss;
     if (engineRPM < 0) engineRPM = 0;
+    if (engineRPM < 700 && torqueDropLoss > 0) {
+      engineRunning = false;
+    }
     if (torqueDropLoss > 0) {
       torqueDropLoss -= torqueDropLoss * 0.016;
       if (torqueDropLoss < 0.1) torqueDropLoss = 0;
@@ -1337,13 +1340,30 @@ function drawRPMGauge() {
   ctx.rect(gx, gy + gh - fillH, gw, fillH);
   ctx.fill();
 
-  ctx.fillStyle = 'rgba(255,255,255,0.4)';
-  ctx.font = '9px "Segoe UI",system-ui,sans-serif';
+  // 700 RPM stall line
+  let stallY = gy + gh * (1 - 700 / IDLE_RPM);
+  ctx.strokeStyle = 'rgba(255,255,255,0.7)';
+  ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  ctx.moveTo(gx - 4, stallY);
+  ctx.lineTo(gx + gw + 4, stallY);
+  ctx.stroke();
+  ctx.shadowColor = 'rgba(0,0,0,0.8)';
+  ctx.shadowBlur = 3;
+  ctx.fillStyle = '#fff';
+  ctx.font = 'bold 11px "Segoe UI",system-ui,sans-serif';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'top';
+  ctx.fillText('700', gx + gw / 2, stallY + 3);
+
+  ctx.fillStyle = '#fff';
+  ctx.font = 'bold 11px "Segoe UI",system-ui,sans-serif';
   ctx.textAlign = 'center';
   ctx.textBaseline = 'bottom';
   ctx.fillText('800', gx + gw / 2, gy - 2);
   ctx.textBaseline = 'top';
   ctx.fillText('0', gx + gw / 2, gy + gh + 2);
+  ctx.shadowBlur = 0;
   ctx.restore();
   ctx.textAlign = 'left';
   ctx.textBaseline = 'alphabetic';
