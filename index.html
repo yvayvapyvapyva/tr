@@ -68,21 +68,24 @@ let audioStarted = false;
 function initAudio() {
   if (audioStarted) return;
   audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
   gain1 = audioCtx.createGain();
   gain1.gain.value = 0;
   gain1.connect(audioCtx.destination);
+
   osc1 = audioCtx.createOscillator();
-  osc1.type = 'sawtooth';
-  osc1.frequency.value = 90;
+  osc1.type = 'sine';
+  osc1.frequency.value = 40;
   osc1.connect(gain1);
   osc1.start();
 
   gain2 = audioCtx.createGain();
   gain2.gain.value = 0;
   gain2.connect(audioCtx.destination);
+
   osc2 = audioCtx.createOscillator();
-  osc2.type = 'triangle';
-  osc2.frequency.value = 500;
+  osc2.type = 'sine';
+  osc2.frequency.value = 48;
   osc2.connect(gain2);
   osc2.start();
 
@@ -93,12 +96,12 @@ function updateAudio(eff, rpm, eng) {
   if (!audioStarted) return;
   let vol = 0;
   if (eff > 0.02 && eng < 0.6) {
-    vol = 0.02 + Math.min(eff, 1) * 0.04;
-    osc1.frequency.value = 80 + eff * 80 + rpm * 0.05;
-    osc2.frequency.value = 400 + eff * 500;
+    vol = 0.6 + Math.min(eff, 1) * 0.4;
+    osc1.frequency.value = 70 + eff * 50;
+    osc2.frequency.value = osc1.frequency.value + 14;
   }
   gain1.gain.linearRampToValueAtTime(vol, audioCtx.currentTime + 0.05);
-  gain2.gain.linearRampToValueAtTime(vol * 0.5, audioCtx.currentTime + 0.05);
+  gain2.gain.linearRampToValueAtTime(vol * 0.6, audioCtx.currentTime + 0.05);
 }
 
 function cleanupAudio() {
