@@ -161,7 +161,7 @@ function drawInfoBar() {
     ctx.save();
     ctx.shadowColor = 'rgba(0,0,0,0.6)';
     ctx.shadowBlur = 3;
-    ctx.fillStyle = 'rgba(255,255,255,0.35)';
+    ctx.fillStyle = '#fff';
     ctx.fillText(it.label, sx, 20);
     ctx.fillStyle = it.color;
     ctx.font = 'bold 22px "Segoe UI",system-ui,sans-serif';
@@ -169,7 +169,7 @@ function drawInfoBar() {
     let valW = ctx.measureText(it.val).width;
     ctx.fillText(it.val, sx + lblW + 12, 26);
     ctx.font = '15px "Segoe UI",system-ui,sans-serif';
-    ctx.fillStyle = 'rgba(255,255,255,0.3)';
+    ctx.fillStyle = '#fff';
     ctx.fillText(it.unit, sx + lblW + 12 + valW + 10, 32);
     ctx.restore();
   });
@@ -183,7 +183,7 @@ function drawGearIndicator() {
   ctx.save();
   ctx.shadowColor = 'rgba(0,0,0,0.6)';
   ctx.shadowBlur = 3;
-  ctx.fillStyle = 'rgba(255,255,255,0.25)';
+  ctx.fillStyle = '#fff';
   ctx.font = '12px "Segoe UI",system-ui,sans-serif';
   ctx.textAlign = 'right';
   ctx.textBaseline = 'middle';
@@ -372,7 +372,7 @@ function drawEngine() {
   ctx.save();
   ctx.shadowColor = 'rgba(0,0,0,0.6)';
   ctx.shadowBlur = 3;
-  ctx.fillStyle = 'rgba(255,255,255,0.2)';
+  ctx.fillStyle = '#fff';
   ctx.font = 'bold 17px "Segoe UI",system-ui,sans-serif';
   ctx.textAlign = 'center';
   ctx.textBaseline = 'bottom';
@@ -438,7 +438,7 @@ function drawFlywheel() {
   ctx.save();
   ctx.shadowColor = 'rgba(0,0,0,0.6)';
   ctx.shadowBlur = 3;
-  ctx.fillStyle = 'rgba(255,255,255,0.45)';
+  ctx.fillStyle = '#fff';
   ctx.font = '15px "Segoe UI",system-ui,sans-serif';
   ctx.textAlign = 'right';
   ctx.fillText('МАХОВИК', 174, fy + fh + 22);
@@ -541,7 +541,7 @@ function drawClutchDisc() {
   ctx.save();
   ctx.shadowColor = 'rgba(0,0,0,0.6)';
   ctx.shadowBlur = 3;
-  ctx.fillStyle = 'rgba(255,255,255,0.45)';
+  ctx.fillStyle = '#fff';
   ctx.font = '15px "Segoe UI",system-ui,sans-serif';
   ctx.textAlign = 'left';
   ctx.fillText('ДИСК СЦЕПЛЕНИЯ', cx, dy + dh + 22);
@@ -785,7 +785,7 @@ function drawWheel() {
   ctx.save();
   ctx.shadowColor = 'rgba(0,0,0,0.6)';
   ctx.shadowBlur = 3;
-  ctx.fillStyle = 'rgba(255,255,255,0.65)';
+  ctx.fillStyle = '#fff';
   ctx.font = '15px "Segoe UI",system-ui,sans-serif';
   ctx.textAlign = 'center';
   ctx.fillText('КОЛЕСО', cx, cy + r + 18);
@@ -1001,7 +1001,7 @@ function drawPedal() {
     ctx.lineTo(tx, ty);
     ctx.stroke();
 
-    ctx.fillStyle = pct <= engPct ? `hsl(${120 * t}, 100%, 55%)` : 'rgba(255,255,255,0.3)';
+    ctx.fillStyle = '#fff';
     ctx.font = 'bold 13px "Segoe UI",system-ui,sans-serif';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'bottom';
