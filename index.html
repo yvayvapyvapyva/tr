@@ -1250,7 +1250,12 @@ canvas.addEventListener('mousedown', e => {
     isDraggingLever = true;
     canvas.style.cursor = 'grabbing';
   } else if (getStartButton(mx, my)) {
-    engineRunning = !engineRunning;
+    if (!engineRunning && gearLeverPos < 0.3 && !canEngageGear()) {
+      notifyText = 'Для запуска двигателя выжмите сцепление или включите нейтраль';
+      notifyTimer = 150;
+    } else {
+      engineRunning = !engineRunning;
+    }
   }
 });
 
@@ -1318,7 +1323,12 @@ canvas.addEventListener('touchstart', e => {
   } else if (getLeverFromMouse(mx, my)) {
     isDraggingLever = true;
   } else if (getStartButton(mx, my)) {
-    engineRunning = !engineRunning;
+    if (!engineRunning && gearLeverPos < 0.3 && !canEngageGear()) {
+      notifyText = 'Для запуска двигателя выжмите сцепление или включите нейтраль';
+      notifyTimer = 150;
+    } else {
+      engineRunning = !engineRunning;
+    }
   }
 });
 
