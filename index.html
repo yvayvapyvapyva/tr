@@ -60,6 +60,59 @@ let gearEngaged = true;
 
 let particles = [];
 
+// Audio
+let audioCtx = null;
+let osc1 = null, osc2 = null, gain1 = null, gain2 = null;
+let audioStarted = false;
+
+function initAudio() {
+  if (audioStarted) return;
+  audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  gain1 = audioCtx.createGain();
+  gain1.gain.value = 0;
+  gain1.connect(audioCtx.destination);
+  osc1 = audioCtx.createOscillator();
+  osc1.type = 'sawtooth';
+  osc1.frequency.value = 90;
+  osc1.connect(gain1);
+  osc1.start();
+
+  gain2 = audioCtx.createGain();
+  gain2.gain.value = 0;
+  gain2.connect(audioCtx.destination);
+  osc2 = audioCtx.createOscillator();
+  osc2.type = 'triangle';
+  osc2.frequency.value = 500;
+  osc2.connect(gain2);
+  osc2.start();
+
+  audioStarted = true;
+}
+
+function updateAudio(eff, rpm, eng) {
+  if (!audioStarted) return;
+  let vol = 0;
+  if (eff > 0.02 && eng < 0.6) {
+    vol = 0.02 + Math.min(eff, 1) * 0.04;
+    osc1.frequency.value = 80 + eff * 80 + rpm * 0.05;
+    osc2.frequency.value = 400 + eff * 500;
+  }
+  gain1.gain.linearRampToValueAtTime(vol, audioCtx.currentTime + 0.05);
+  gain2.gain.linearRampToValueAtTime(vol * 0.5, audioCtx.currentTime + 0.05);
+}
+
+function cleanupAudio() {
+  try {
+    if (osc1) { osc1.stop(); osc1.disconnect(); }
+    if (osc2) { osc2.stop(); osc2.disconnect(); }
+    if (gain1) gain1.disconnect();
+    if (gain2) gain2.disconnect();
+    if (audioCtx) audioCtx.close();
+  } catch(e) {}
+  osc1 = osc2 = gain1 = gain2 = audioCtx = null;
+  audioStarted = false;
+}
+
 function clamp(v, mn, mx) { return Math.max(mn, Math.min(mx, v)); }
 
 // Physics
@@ -84,6 +137,7 @@ function updatePhysics() {
   if (engagement < 0.4) eff = 0;
   else if (engagement > 0.6) eff = 1;
   else eff = (engagement - 0.4) / 0.2;
+  updateAudio(eff, engineRPM, engagement);
   let targetDisk = eff * engineRPM;
   diskRPM += (targetDisk - diskRPM) * 0.08;
 
@@ -1097,6 +1151,7 @@ function getLeverFromMouse(mx, my) {
 }
 
 canvas.addEventListener('mousedown', e => {
+  initAudio();
   let rect = canvas.getBoundingClientRect();
   let scaleX = W / rect.width, scaleY = H / rect.height;
   let mx = (e.clientX - rect.left) * scaleX;
@@ -1146,8 +1201,9 @@ window.addEventListener('mouseup', () => {
   }
 });
 
-// Touch
+  // Touch
 canvas.addEventListener('touchstart', e => {
+  initAudio();
   e.preventDefault();
   let rect = canvas.getBoundingClientRect();
   let scaleX = W / rect.width, scaleY = H / rect.height;
@@ -1189,6 +1245,7 @@ canvas.addEventListener('touchend', e => {
 
 // Keyboard
 document.addEventListener('keydown', e => {
+  initAudio();
   if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
     e.preventDefault();
     if (e.key === 'ArrowDown') pedalPressed = clamp(pedalPressed + 0.05, 0, 1);
@@ -1257,6 +1314,8 @@ function loop() {
 }
 
 loop();
+
+window.addEventListener('beforeunload', cleanupAudio);
 </script>
 </body>
 </html>
