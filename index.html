@@ -98,7 +98,7 @@ function updateAudio(eff, rpm, eng) {
 
   let vol = 0;
   if (eff > 0.02 && eng < 0.6) {
-    vol = 0.6 + Math.min(eff, 1) * 0.4;
+    vol = 1.0;
     osc1.frequency.value = 70 + eff * 50;
     osc2.frequency.value = osc1.frequency.value + 14;
   }
@@ -154,7 +154,7 @@ function updatePhysics() {
   else diskVisFactor = (engagement - 0.4) / 0.2;
   diskAngle += diskVisFactor * Math.min(engineRPM, 90) / 60 * 0.016 * Math.PI * 2;
   if (gearEngaged) {
-    wheelAngle += Math.min(wheelRPM / 1.25, 90) / 60 * 0.016 * Math.PI * 2;
+    wheelAngle -= Math.min(wheelRPM / 1.25, 90) / 60 * 0.016 * Math.PI * 2;
   }
 
   // Friction particles
