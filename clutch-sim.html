@@ -801,27 +801,6 @@ function drawWheel() {
 }
 
 function drawFrictionEffect() {
-  let discLeft = 174 + Math.max(0, (pedalPressed - 0.4) / 0.6) * 17;
-  let gapLeft = 174;
-  let gapRight = discLeft;
-  let gap = Math.max(0, gapRight - gapLeft);
-
-  if (gap > 0) {
-    let t = Math.min(wheelRPM, 80) / 80;
-    let glowR = 30 + t * 90;
-    let midX = (gapLeft + gapRight) / 2;
-    let grad = ctx.createRadialGradient(midX, CY, 0, midX, CY, glowR);
-    let a1 = 0.1 + t * 0.6;
-    let a2 = 0.05 + t * 0.25;
-    grad.addColorStop(0, `rgba(255,${Math.round(200 - t * 100)},50,${a1})`);
-    grad.addColorStop(0.4, `rgba(255,${Math.round(120 - t * 100)},20,${a2})`);
-    grad.addColorStop(1, 'rgba(255,0,0,0)');
-    ctx.fillStyle = grad;
-    ctx.beginPath();
-    ctx.arc(midX, CY, glowR, 0, Math.PI * 2);
-    ctx.fill();
-  }
-
   particles.forEach(p => {
     ctx.globalAlpha = p.life;
     ctx.save();
