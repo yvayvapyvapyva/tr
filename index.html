@@ -62,7 +62,8 @@ let particles = [];
 
 // Audio
 let audioCtx = null;
-let osc1 = null, osc2 = null, gain1 = null, gain2 = null;
+let osc1 = null, osc2 = null;
+let gain1 = null, gain2 = null;
 let audioStarted = false;
 
 function initAudio() {
@@ -94,6 +95,7 @@ function initAudio() {
 
 function updateAudio(eff, rpm, eng) {
   if (!audioStarted) return;
+
   let vol = 0;
   if (eff > 0.02 && eng < 0.6) {
     vol = 0.6 + Math.min(eff, 1) * 0.4;
