@@ -1030,18 +1030,19 @@ function drawPedal() {
 }
 
 function drawStatus() {
-  let engagement = 1 - pedalPressed;
+  let engagement = Math.round((1 - pedalPressed) * 100) / 100;
   let eff = engagement < 0.4 ? 0 : engagement > 0.6 ? 1 : (engagement - 0.4) / 0.2;
 
+  let pct = Math.round(eff * 100);
   let text, color;
-  if (eff < 0.05) {
-    text = 'Сцепление выключено — передача момента отсутствует';
+  if (eff < 0.02) {
+    text = `Сцепление выключено — передача ${pct}% крутящего момента`;
     color = '#e74c3c';
-  } else if (eff < 0.95) {
-    text = 'Зона трения — частичная передача крутящего момента';
+  } else if (eff < 0.98) {
+    text = `Зона трения — передача ${pct}% крутящего момента`;
     color = '#f39c12';
   } else {
-    text = 'Сцепление включено — полная передача крутящего момента';
+    text = `Сцепление включено — передача ${pct}% крутящего момента`;
     color = '#2ecc71';
   }
 
