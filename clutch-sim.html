@@ -107,10 +107,10 @@ function updatePhysics() {
       particles.push({
         x: gapL + Math.random() * (gapR - gapL),
         y: CY - 87 + Math.random() * 175,
-        vx: (Math.random() - 0.5) * (2 + si * 6),
-        vy: (Math.random() - 0.5) * (2 + si * 5) - (1 + si * 2),
+        vx: (Math.random() - 0.5) * (0.5 + si * 1.5),
+        vy: (Math.random() - 0.5) * (0.5 + si * 1.2) - (0.3 + si * 0.5),
         life: 0.3 + si * 0.8,
-        size: (0.3 + Math.random() * 1) * (0.3 + si * 0.8),
+        size: 0.5 + Math.random() * 0.5,
         color: `hsl(${30 + si * 15}, 100%, ${55 + si * 35}%)`
       });
     }
