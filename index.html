@@ -839,11 +839,11 @@ function drawGearbox() {
 
   // Interactive highlight
   ctx.save();
-  let pulse = 0.4 + 0.3 * Math.sin(Date.now() / 500);
-  ctx.shadowColor = `rgba(50,150,255,${pulse * 0.8})`;
-  ctx.shadowBlur = 16;
-  ctx.strokeStyle = `rgba(80,180,255,${pulse})`;
-  ctx.lineWidth = 2;
+  let pulse = 0.5 + 0.5 * Math.sin(Date.now() / 400);
+  ctx.shadowColor = `rgba(50,150,255,${pulse})`;
+  ctx.shadowBlur = 24;
+  ctx.strokeStyle = `rgba(80,200,255,${pulse})`;
+  ctx.lineWidth = 2.5;
   ctx.beginPath();
   ctx.arc(leverX, leverY - 44, 18, 0, Math.PI * 2);
   ctx.stroke();
@@ -1072,11 +1072,11 @@ function drawPedal() {
   }
 
   // Interactive highlight
-  let pulse = 0.4 + 0.3 * Math.sin(Date.now() / 500);
-  ctx.shadowColor = `rgba(50,150,255,${pulse * 0.8})`;
-  ctx.shadowBlur = 16;
-  ctx.strokeStyle = `rgba(80,180,255,${pulse})`;
-  ctx.lineWidth = 2;
+  let pulse = 0.5 + 0.5 * Math.sin(Date.now() / 400);
+  ctx.shadowColor = `rgba(50,150,255,${pulse})`;
+  ctx.shadowBlur = 24;
+  ctx.strokeStyle = `rgba(80,200,255,${pulse})`;
+  ctx.lineWidth = 2.5;
   ctx.beginPath();
   ctx.roundRect ? ctx.roundRect(-hw - 3, -hh - 3, hw * 2 + 6, hh * 2 + 6, 8) : ctx.rect(-hw - 3, -hh - 3, hw * 2 + 6, hh * 2 + 6);
   ctx.stroke();
@@ -1459,6 +1459,20 @@ function drawStartButton() {
   ctx.beginPath();
   ctx.roundRect ? ctx.roundRect(bx, by, bw, bh, 6) : ctx.rect(bx, by, bw, bh);
   ctx.stroke();
+  // Interactive pulse
+  let pulse = 0.5 + 0.5 * Math.sin(Date.now() / 400);
+  ctx.shadowColor = engineRunning
+    ? `rgba(46,204,113,${pulse * 0.8})`
+    : `rgba(231,76,60,${pulse * 0.8})`;
+  ctx.shadowBlur = 18;
+  ctx.strokeStyle = engineRunning
+    ? `rgba(46,204,113,${pulse * 0.6})`
+    : `rgba(231,76,60,${pulse * 0.6})`;
+  ctx.lineWidth = 2.5;
+  ctx.beginPath();
+  ctx.roundRect ? ctx.roundRect(bx - 2, by - 2, bw + 4, bh + 4, 8) : ctx.rect(bx - 2, by - 2, bw + 4, bh + 4);
+  ctx.stroke();
+  ctx.shadowBlur = 0;
   ctx.fillStyle = '#fff';
   ctx.font = 'bold 16px "Segoe UI",system-ui,sans-serif';
   ctx.textAlign = 'center';
