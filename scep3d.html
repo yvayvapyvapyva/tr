@@ -199,10 +199,10 @@ import {OrbitControls} from 'three/addons/controls/OrbitControls.js';
 /* ============ TELEGRAM WEBAPP ============ */
 const tg = window.Telegram?.WebApp;
 if (tg) {
-  tg.ready();
-  tg.expand();
-  if (tg.requestFullscreen) tg.requestFullscreen();
-  if (tg.disableVerticalSwipes) tg.disableVerticalSwipes();
+  try { tg.ready(); } catch(e) {}
+  try { tg.expand(); } catch(e) {}
+  try { if (tg.requestFullscreen) tg.requestFullscreen(); } catch(e) {}
+  try { if (tg.disableVerticalSwipes) tg.disableVerticalSwipes(); } catch(e) {}
 }
 
 document.addEventListener('touchmove', e => {
