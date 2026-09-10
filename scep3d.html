@@ -6,7 +6,7 @@
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
 <title>Сцепление — 3D модель</title>
 <style>
-  html,body{margin:0;height:100%;overflow:hidden;background:#0e1420;font-family:Arial,sans-serif;color:#e8eef5}
+  html,body{margin:0;height:100%;overflow:hidden;background:#9aa7b8;font-family:Arial,sans-serif;color:#16202e}
   #view{position:absolute;inset:0}
   canvas{display:block}
 
@@ -213,7 +213,7 @@ const renderer = new THREE.WebGLRenderer({antialias:true});
 renderer.setPixelRatio(Math.min(devicePixelRatio,2));
 view.appendChild(renderer.domElement);
 const scene = new THREE.Scene();
-scene.background = new THREE.Color(0x0e1420);
+scene.background = new THREE.Color(0x9aa7b8);
 const camera = new THREE.PerspectiveCamera(50,1,0.1,300);
 camera.position.set(4,4.5,18);
 const controls = new OrbitControls(camera,renderer.domElement);
@@ -223,7 +223,7 @@ controls.target.set(-0.2,0.4,0); controls.maxDistance = 60; controls.minDistance
 scene.add(new THREE.HemisphereLight(0xbfd4ff,0x2a231c,1.0));
 const dl = new THREE.DirectionalLight(0xffffff,1.7); dl.position.set(7,12,9); scene.add(dl);
 const dl2 = new THREE.DirectionalLight(0x88aaff,0.5); dl2.position.set(-9,5,-7); scene.add(dl2);
-const grid = new THREE.GridHelper(40,40,0x2c3e55,0x1b2a3d); grid.position.y=-1.8; scene.add(grid);
+const grid = new THREE.GridHelper(40,40,0x6a7a92,0x536078); grid.position.y=-1.8; scene.add(grid);
 
 function resize(){
   const w=innerWidth,h=innerHeight;
