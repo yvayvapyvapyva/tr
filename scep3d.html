@@ -348,7 +348,7 @@ for(let i=0;i<6;i++){ const a=i/6*Math.PI*2, b=new THREE.Mesh(cylX(.06,.06,.1),M
   b.position.set(-0.16,Math.cos(a)*.95,Math.sin(a)*.95); b.visible=false; flywheel.add(b); }
 
 const clutchDisc=new THREE.Group(); scene.add(clutchDisc);
-clutchDisc.add(new THREE.Mesh(cylX(1.02,1.02,.08,36),M.orange));
+clutchDisc.add(new THREE.Mesh(cylX(1.12,1.12,.08,36),M.orange));
 const hub=new THREE.Mesh(cylX(.3,.3,.24),M.dark); hub.position.x=.12; clutchDisc.add(hub);
 for(let i=0;i<6;i++){ const a=i/6*Math.PI*2, s=new THREE.Mesh(new THREE.BoxGeometry(.05,.16,.22),M.steel);
   s.position.set(.025,Math.cos(a)*.62,Math.sin(a)*.62); s.rotation.x=a; clutchDisc.add(s); }
@@ -873,7 +873,7 @@ renderer.setAnimationLoop(()=>{
   axleAng+= aOmega*dt;
 
   crank.rotation.x=thE; flywheel.rotation.x=thE;
-  clutchDisc.position.x=-0.97+gf*0.25;
+  clutchDisc.position.x=-1.00+gf*0.25;
   clutchDisc.rotation.x=discAng;
   forkG.rotation.z=gf*0.25;
   shifter.position.x=shifterX;
