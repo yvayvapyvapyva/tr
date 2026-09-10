@@ -10,7 +10,7 @@
   #view{position:absolute;inset:0}
   canvas{display:block}
 
-  #startBtn{position:fixed;top:calc(10px + env(safe-area-inset-top));right:12px;z-index:12;
+  #startBtn{position:fixed;top:calc(10px + env(safe-area-inset-top));left:12px;z-index:12;
        font-size:15px;font-weight:bold;padding:12px 16px;border-radius:12px;border:2px solid;
        min-width:180px;height:56px;cursor:pointer;touch-action:manipulation;
        transition:background .15s,opacity .15s;
@@ -202,7 +202,12 @@ if (tg) {
   tg.ready();
   tg.expand();
   if (tg.requestFullscreen) tg.requestFullscreen();
+  if (tg.disableVerticalSwipes) tg.disableVerticalSwipes();
 }
+
+document.addEventListener('touchmove', e => {
+  if (tg && e.touches.length === 1 && e.touches[0].clientY < 50) e.preventDefault();
+}, {passive: false});
 
 /* ============ БАЗА ============ */
 const view = document.getElementById('view');
