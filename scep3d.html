@@ -198,7 +198,11 @@ import {OrbitControls} from 'three/addons/controls/OrbitControls.js';
 
 /* ============ TELEGRAM WEBAPP ============ */
 const tg = window.Telegram?.WebApp;
-if (tg) { tg.ready(); tg.expand(); }
+if (tg) {
+  tg.ready();
+  tg.expand();
+  if (tg.requestFullscreen) tg.requestFullscreen();
+}
 
 /* ============ БАЗА ============ */
 const view = document.getElementById('view');
