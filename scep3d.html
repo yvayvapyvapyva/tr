@@ -341,17 +341,17 @@ cylXs.forEach(x=>{
 
 const flywheel=new THREE.Group(); flywheel.position.x=-1.15; scene.add(flywheel);
 flywheel.add(new THREE.Mesh(cylX(1.25,1.25,.22,40),M.red));
-{ const n=40, tg=new THREE.BoxGeometry(.18,.14,.16);
+{ const n=40, tg=new THREE.BoxGeometry(.18,.07,.16);
   for(let i=0;i<n;i++){ const a=i/n*Math.PI*2, t=new THREE.Mesh(tg,M.dark);
-    t.position.set(0,Math.cos(a)*1.32,Math.sin(a)*1.32); t.rotation.x=a; flywheel.add(t);} }
+    t.position.set(0,Math.cos(a)*1.285,Math.sin(a)*1.285); t.rotation.x=a; flywheel.add(t);} }
 for(let i=0;i<6;i++){ const a=i/6*Math.PI*2, b=new THREE.Mesh(cylX(.06,.06,.1),M.steel);
   b.position.set(-0.16,Math.cos(a)*.95,Math.sin(a)*.95); b.visible=false; flywheel.add(b); }
 
 const clutchDisc=new THREE.Group(); scene.add(clutchDisc);
 clutchDisc.add(new THREE.Mesh(cylX(1.02,1.02,.08,36),M.orange));
 const hub=new THREE.Mesh(cylX(.3,.3,.24),M.dark); hub.position.x=.12; clutchDisc.add(hub);
-for(let i=0;i<6;i++){ const a=i/6*Math.PI*2, s=new THREE.Mesh(new THREE.BoxGeometry(.1,.16,.22),M.steel);
-  s.position.set(.05,Math.cos(a)*.62,Math.sin(a)*.62); s.rotation.x=a; clutchDisc.add(s); }
+for(let i=0;i<6;i++){ const a=i/6*Math.PI*2, s=new THREE.Mesh(new THREE.BoxGeometry(.05,.16,.22),M.steel);
+  s.position.set(.025,Math.cos(a)*.62,Math.sin(a)*.62); s.rotation.x=a; clutchDisc.add(s); }
 
 const inputShaft=new THREE.Mesh(cylX(.11,.11,1.45),M.blue); inputShaft.position.set(-0.275,0,0); scene.add(inputShaft);
 
