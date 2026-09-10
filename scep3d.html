@@ -349,6 +349,9 @@ for(let i=0;i<6;i++){ const a=i/6*Math.PI*2, b=new THREE.Mesh(cylX(.06,.06,.1),M
 
 const clutchDisc=new THREE.Group(); scene.add(clutchDisc);
 clutchDisc.add(new THREE.Mesh(cylX(1.12,1.12,.08,36),M.orange));
+{ const mk=new THREE.BoxGeometry(.05,.02,.1);
+  for(let i=0;i<36;i++){ const a=i/36*Math.PI*2;
+    const m=new THREE.Mesh(mk,M.dark); m.position.set(0,Math.cos(a)*1.125,Math.sin(a)*1.125); m.rotation.x=a; clutchDisc.add(m); } }
 const hub=new THREE.Mesh(cylX(.3,.3,.24),M.dark); hub.position.x=.12; clutchDisc.add(hub);
 for(let i=0;i<6;i++){ const a=i/6*Math.PI*2, s=new THREE.Mesh(new THREE.BoxGeometry(.05,.16,.22),M.steel);
   s.position.set(.025,Math.cos(a)*.62,Math.sin(a)*.62); s.rotation.x=a; clutchDisc.add(s); }
