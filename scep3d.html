@@ -2,17 +2,15 @@
 <html lang="ru">
 <head>
 <meta charset="utf-8"/>
-<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=1,user-scalable=no"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"/>
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
 <title>Сцепление — 3D модель</title>
 <style>
-  html,body{margin:0;padding:0;height:100%;width:100%;overflow:hidden;background:#0e1420;font-family:Arial,sans-serif;color:#e8eef5;
-    position:fixed;top:0;left:0;right:0;bottom:0;-webkit-user-select:none;user-select:none;
-    -webkit-tap-highlight-color:transparent;touch-action:none}
-  #view{position:absolute;top:0;left:0;right:0;bottom:0}
-  canvas{display:block;width:100%!important;height:100%!important}
+  html,body{margin:0;height:100%;overflow:hidden;background:#0e1420;font-family:Arial,sans-serif;color:#e8eef5}
+  #view{position:absolute;inset:0}
+  canvas{display:block}
 
-  #startBtn{position:fixed;top:calc(10px + env(safe-area-inset-top,10px));right:12px;z-index:12;
+  #startBtn{position:fixed;top:calc(10px + env(safe-area-inset-top));right:12px;z-index:12;
        font-size:15px;font-weight:bold;padding:12px 16px;border-radius:12px;border:2px solid;
        min-width:180px;height:56px;cursor:pointer;touch-action:manipulation;
        transition:background .15s,opacity .15s;
@@ -20,7 +18,7 @@
   #startBtn.dis{opacity:.35;pointer-events:none}
   #startBtn.kill{background:#5a1414;color:#ff9d8f;border-color:#c0392b}
 
-  #bottomUI{position:fixed;bottom:calc(8px + env(safe-area-inset-bottom,8px));left:12px;z-index:10;
+  #bottomUI{position:fixed;bottom:calc(8px + env(safe-area-inset-bottom));left:12px;z-index:10;
        display:flex;align-items:stretch;width:max-content;transform-origin:bottom left;
        background:rgba(10,16,26,.86);border:1px solid #26374d;border-radius:16px;padding:8px 4px 8px;
        backdrop-filter:blur(4px);user-select:none;-webkit-user-select:none;touch-action:none;
@@ -68,7 +66,7 @@
   #gearLabels span{padding:3px 12px;border-radius:6px;background:#232a32;border:1px solid #39424d;transition:all .2s}
   #gearLabels span.active{background:#12452a;color:#6cf09c;border-color:#2a8f4f}
 
-  #msg{position:fixed;top:calc(90px + env(safe-area-inset-top,10px));left:50%;transform:translateX(-50%);z-index:20;
+  #msg{position:fixed;top:calc(90px + env(safe-area-inset-top));left:50%;transform:translateX(-50%);z-index:20;
        padding:14px 24px;border-radius:14px;font-size:17px;font-weight:bold;text-align:center;display:none;max-width:92vw}
   #msg small{display:block;font-weight:normal;font-size:13px;margin-top:5px;opacity:.85}
   #msg.warn{display:block;background:#5a1414;color:#ffc2b7;border:2px solid #c0392b;box-shadow:0 4px 24px rgba(192,57,43,.45)}
@@ -78,7 +76,7 @@
     .pcol{padding:0 8px}
     #bottomUI{padding:6px 2px 6px}
     #startBtn{min-width:130px;height:48px;font-size:13px;padding:10px}
-    #msg{font-size:14px;padding:10px 16px;top:calc(70px + env(safe-area-inset-top,10px))}
+    #msg{font-size:14px;padding:10px 16px;top:calc(70px + env(safe-area-inset-top))}
   }
 </style>
 </head>
@@ -200,16 +198,7 @@ import {OrbitControls} from 'three/addons/controls/OrbitControls.js';
 
 /* ============ TELEGRAM WEBAPP ============ */
 const tg = window.Telegram?.WebApp;
-if (tg) {
-  tg.ready();
-  tg.expand();
-  tg.setHeaderColor('#0e1420');
-  tg.setBackgroundColor('#0e1420');
-  if (tg.MainButton) tg.MainButton.hide();
-  if (tg.BackButton) tg.BackButton.hide();
-  document.body.style.paddingTop = 'env(safe-area-inset-top)';
-  document.body.style.paddingBottom = 'env(safe-area-inset-bottom)';
-}
+if (tg) { tg.ready(); tg.expand(); }
 
 /* ============ БАЗА ============ */
 const view = document.getElementById('view');
@@ -231,9 +220,7 @@ const grid = new THREE.GridHelper(40,40,0x2c3e55,0x1b2a3d); grid.position.y=-1.8
 
 function resize(){
   const w=innerWidth,h=innerHeight;
-  renderer.setSize(w,h,false); camera.aspect=w/h; camera.updateProjectionMatrix();
-  renderer.domElement.style.width=w+'px';
-  renderer.domElement.style.height=h+'px';
+  renderer.setSize(w,h); camera.aspect=w/h; camera.updateProjectionMatrix();
 }
 
 /* ============ АВТОМАСШТАБ НИЖНЕЙ ПАНЕЛИ ============ */
@@ -241,15 +228,11 @@ const bottomUI=document.getElementById('bottomUI');
 function fitBottomUI(){
   bottomUI.style.transform='scale(1)';
   const w=bottomUI.offsetWidth;
-  const h=bottomUI.offsetHeight;
-  const sw=Math.min(1,(innerWidth-28)/w);
-  const sh=Math.min(1,(innerHeight-120)/h);
-  const s=Math.min(sw,sh);
+  const s=Math.min(1,(innerWidth-28)/w);
   bottomUI.style.transform='scale('+s+')';
 }
 addEventListener('resize',()=>{ resize(); fitBottomUI(); });
 addEventListener('orientationchange',()=>{ setTimeout(()=>{ resize(); fitBottomUI(); },120); });
-if(window.visualViewport){ window.visualViewport.addEventListener('resize',()=>{ resize(); fitBottomUI(); }); }
 resize(); fitBottomUI();
 
 /* ============ МАТЕРИАЛЫ ============ */
