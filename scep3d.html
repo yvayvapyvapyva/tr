@@ -223,7 +223,7 @@ controls.target.set(-0.2,0.4,0); controls.maxDistance = 60; controls.minDistance
 scene.add(new THREE.HemisphereLight(0xbfd4ff,0x2a231c,1.0));
 const dl = new THREE.DirectionalLight(0xffffff,1.7); dl.position.set(7,12,9); scene.add(dl);
 const dl2 = new THREE.DirectionalLight(0x88aaff,0.5); dl2.position.set(-9,5,-7); scene.add(dl2);
-const grid = new THREE.GridHelper(40,40,0x6a7a92,0x536078); grid.position.y=-1.8; scene.add(grid);
+const grid = new THREE.GridHelper(40,40,0x6a7a92,0x536078); grid.position.y=-3.834; scene.add(grid);
 
 function resize(){
   const w=innerWidth,h=innerHeight;
@@ -404,7 +404,7 @@ function spawnSpark(gx){
   sparkVel[i*3+2]= Math.cos(a)*tv+Math.sin(a)*Math.random()*1.2;
   sparkMax[i]=sparkLife[i]=0.24+Math.random()*0.42;
 }
-const MESH={x:0.47,y:0.28,z:0};
+const MESH={x:0.47,y:-0.45,z:0};
 function spawnGearSpark(){
   const i=sparkHead; sparkHead=(sparkHead+1)%SPARK_N;
   sparkPos[i*3]  =MESH.x+(Math.random()-0.5)*0.12;
@@ -439,9 +439,9 @@ glowRing.geometry.rotateY(Math.PI/2);
 scene.add(glowRing);
 
 /* ============ КПП ============ */
-addHousing(new THREE.Mesh(new THREE.BoxGeometry(0.82,1.32,0.85),glass())).position.set(0.41,0.30,0);
-const OUT_Y=0.52;
-const outShaft=new THREE.Mesh(cylX(.11,.11,2.46),M.blue); outShaft.position.set(1.37,OUT_Y,0); scene.add(outShaft);
+addHousing(new THREE.Mesh(new THREE.BoxGeometry(0.82,3.1,1.7),glass())).position.set(0.41,-0.75,0);
+const OUT_Y=-1.50; /* выходной вал проходит под двигателем */
+const outShaft=new THREE.Mesh(cylX(.12,.12,8.2,24),M.blue); outShaft.position.set(-1.49,OUT_Y,0); scene.add(outShaft);
 
 function makeGear(teeth,r,thick,mat){
   const g=new THREE.Group();
@@ -452,10 +452,10 @@ function makeGear(teeth,r,thick,mat){
     t.position.set(0,Math.cos(a)*(r+.02),Math.sin(a)*(r+.02)); t.rotation.x=a; g.add(t); }
   return g;
 }
-const gA=makeGear(10,.1625,.2,M.blue); gA.position.set(0.30, 0,  0); scene.add(gA);
+const gA=makeGear(16,.75,.2,M.blue); gA.position.set(0.30, 0,  0); scene.add(gA);
 
 const shifter=new THREE.Group(); scene.add(shifter);
-const gD=makeGear(22,.3575,.2,M.blue); gD.position.y=OUT_Y; shifter.add(gD);
+const gD=makeGear(16,.75,.2,M.blue); gD.position.y=OUT_Y; shifter.add(gD);
 const prongGeo=new THREE.BoxGeometry(.06,.5,.12);
 const pr1=new THREE.Mesh(prongGeo,M.dark); pr1.position.set(.16,OUT_Y, .18); shifter.add(pr1);
 const pr2=new THREE.Mesh(prongGeo,M.dark); pr2.position.set(.16,OUT_Y,-.18); shifter.add(pr2);
@@ -469,8 +469,9 @@ let rejectTimer=0, outRejectTimer=0;
 const REJECT_DUR=1.0, OUT_DUR=0.6;
 
 /* ============ КОЛЕСО ============ */
-const WX=2.6;
-function makeWheel(){
+const WX=2.6, LWX=-5.58;
+function makeWheel(flip){
+  const f=flip<0?-1:1;
   const g=new THREE.Group();
   const prof=[new THREE.Vector2(.80,-.50),new THREE.Vector2(1.18,-.49),new THREE.Vector2(1.44,-.345),
               new THREE.Vector2(1.545,-.145),new THREE.Vector2(1.55,0),new THREE.Vector2(1.545,.145),
@@ -494,16 +495,17 @@ function makeWheel(){
   for(let i=0;i<5;i++){ const a=i/5*Math.PI*2;
     const s=new THREE.Mesh(sp,M.alloy);
     s.position.set(0,Math.cos(a)*.61,Math.sin(a)*.61); s.rotation.x=a; g.add(s); }
-  const disc=new THREE.Mesh(cylX(.78,.78,.08,36),M.brake); disc.position.x=-0.24; g.add(disc);
-  const hub2=new THREE.Mesh(cylX(.30,.30,.10,20),M.brake); hub2.position.x=-0.24; g.add(hub2);
+  const disc=new THREE.Mesh(cylX(.78,.78,.08,36),M.brake); disc.position.x=-0.24*f; g.add(disc);
+  const hub2=new THREE.Mesh(cylX(.30,.30,.10,20),M.brake); hub2.position.x=-0.24*f; g.add(hub2);
   g.add(new THREE.Mesh(cylX(.29,.29,.96,20),M.steel));
   g.add(new THREE.Mesh(cylX(.15,.15,1.04,14),M.dark));
   for(let i=0;i<5;i++){ const a=i/5*Math.PI*2;
     const n=new THREE.Mesh(cylX(.05,.05,.06,6),M.steel);
-    n.position.set(.51,Math.cos(a)*.21,Math.sin(a)*.21); g.add(n); }
+    n.position.set(.51*f,Math.cos(a)*.21,Math.sin(a)*.21); g.add(n); }
   return g;
 }
-const wheel=makeWheel(); wheel.position.set(WX,OUT_Y,0); wheel.scale.setScalar(1.5); scene.add(wheel);
+const wheel=makeWheel();      wheel.position.set(WX, OUT_Y,0); wheel.scale.setScalar(1.5); scene.add(wheel);
+const wheelL=makeWheel(-1);   wheelL.position.set(LWX,OUT_Y,0); wheelL.scale.setScalar(1.5); scene.add(wheelL);
 
 /* ============ 3D-ТАБЛИЧКИ ОБОРОТОВ (меняющийся размер, как у меток передач) ============ */
 function roundRectPath(k,x,y,w,h,r){
@@ -538,7 +540,7 @@ function makeRpmLabel(accent){
   return s;
 }
 const engLabel=makeRpmLabel('#ffd166'); engLabel.position.set(-2.75,2.8,0); scene.add(engLabel);
-const whlLabel=makeRpmLabel('#6cf09c'); whlLabel.position.set(WX,3.45,0);  scene.add(whlLabel);
+const whlLabel=makeRpmLabel('#6cf09c'); whlLabel.position.set(WX,OUT_Y+2.94,0);  scene.add(whlLabel);
 engLabel.userData.draw(0);
 whlLabel.userData.draw(0);
 
@@ -729,7 +731,7 @@ addEventListener('keyup',  e=>{ if(e.code==='Space'){ p=0; e.preventDefault(); }
 
 function friction(pp){ if(pp<=0.4) return 1; if(pp>=0.6) return 0; return (0.6-pp)/0.2; }
 function gapF(pp){ return Math.max(0,(pp-0.4)/0.6); }
-function gearMismatch(){ const c=-dOmega*(10/22); return Math.abs(c*0.17 + aOmega*0.38); }
+function gearMismatch(){ const c=-dOmega*GR; return Math.abs(c*0.17 + aOmega*0.38); }
 
 function attemptFirstGear(){
   if(shiftBlocked()){ rejectTimer=REJECT_DUR; leverTarget=0.42; }
@@ -777,7 +779,7 @@ const IDLE_RPM=800;
 const IDLE_OMEGA=IDLE_RPM*RPM2O;
 const STALL_OMEGA=700*RPM2O;
 const CRANK_OMEGA=320*RPM2O;
-const GR=(10/22);
+const GR=1; /* одинаковые шестерни — передача 1:1 */
 let thE=0, discAng=0, axleAng=0;
 let engOmega=0, dOmega=0, aOmega=0;
 let gElast=0, blocked=0, lastPct=-1;
@@ -881,7 +883,7 @@ renderer.setAnimationLoop(()=>{
   forkG.rotation.z=gf*0.25;
   shifter.position.x=shifterX;
   gA.rotation.x=discAng; gD.rotation.x=-axleAng;
-  wheel.rotation.x=-axleAng;
+  wheel.rotation.x=-axleAng; wheelL.rotation.x=-axleAng;
 
   for(let i=0;i<cylXs.length;i++){
     const x=cylXs[i], psi=thE+phases[i];
