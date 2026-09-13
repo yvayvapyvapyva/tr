@@ -518,12 +518,13 @@ function makeGear(teeth,r,thick,mat){
 }
 const gA=makeGear(16,.75,.2,M.blue); gA.position.set(0.30, 0,  0); scene.add(gA);
 
+/* Вилка КПП: зубья и поперечина СЛЕВА от шестерни (локальный X = -0.16) */
 const shifter=new THREE.Group(); scene.add(shifter);
 const gD=makeGear(16,.75,.2,M.blue); gD.position.y=OUT_Y; shifter.add(gD);
 const prongGeo=new THREE.BoxGeometry(.06,.5,.12);
-const pr1=new THREE.Mesh(prongGeo,M.dark); pr1.position.set(.16,OUT_Y, .18); shifter.add(pr1);
-const pr2=new THREE.Mesh(prongGeo,M.dark); pr2.position.set(.16,OUT_Y,-.18); shifter.add(pr2);
-const cross=new THREE.Mesh(new THREE.BoxGeometry(.1,.1,.5),M.dark); cross.position.set(.16,OUT_Y+.25,0); shifter.add(cross);
+const pr1=new THREE.Mesh(prongGeo,M.dark); pr1.position.set(-.16,OUT_Y, .18); shifter.add(pr1);
+const pr2=new THREE.Mesh(prongGeo,M.dark); pr2.position.set(-.16,OUT_Y,-.18); shifter.add(pr2);
+const cross=new THREE.Mesh(new THREE.BoxGeometry(.1,.1,.5),M.dark); cross.position.set(-.16,OUT_Y+.25,0); shifter.add(cross);
 
 const GEAR_L=0.30, GEAR_R=0.52;
 let leverP=1, leverTarget=1;
@@ -531,9 +532,9 @@ let rejectTimer=0, outRejectTimer=0;
 const REJECT_DUR=1.0, OUT_DUR=0.6;
 
 /* ============ РЫЧАГ КПП + КУЛИСА + ТРОС ============ */
-/* Кулиса по центру между колёсами, рычаг ходит вперёд-назад,
-   трос выходит из основания кулисы и идёт к вилке коробки */
-const SHIFTER_POS=new THREE.Vector3(-1.5,-0.40,1.15);
+/* Кулиса по центру между колёсами, отодвинута от двигателя (увеличен z до 2.6).
+   Рычаг качается вперёд-назад: вперёд = первая передача, назад = нейтраль. */
+const SHIFTER_POS=new THREE.Vector3(-1.5,-0.40,2.6);
 
 const gearConsole=new THREE.Group();
 gearConsole.position.copy(SHIFTER_POS);
@@ -543,7 +544,7 @@ scene.add(gearConsole);
 const consoleBase=new THREE.Mesh(new THREE.CylinderGeometry(0.26,0.32,0.26,20),M.dark);
 gearConsole.add(consoleBase);
 
-/* качающийся рычаг (ручка КПП) — ходит вперёд/назад вдоль мотоцикла */
+/* качающийся рычаг (ручка КПП) — ходит вперёд/назад */
 const gearLever3D=new THREE.Group();
 gearLever3D.position.set(0,0.12,0);
 gearConsole.add(gearLever3D);
@@ -1136,13 +1137,13 @@ renderer.setAnimationLoop(()=>{
   shifter.position.x=shifterX;
   gA.rotation.x=discAng; gD.rotation.x=-axleAng;
 
-  /* рычаг КПП качается вперёд-назад; трос из основания кулисы идёт к вилке.
-     1-я передача (leverP=0) — рычаг вперёд (к переднему колесу). */
-  const leverAng=0.45*(1-2*leverP);
-  gearLever3D.rotation.z=leverAng;
+  /* рычаг КПП качается вперёд-назад; ИНВЕРТИРОВАН:
+     вперёд (-Z) = первая передача, назад (+Z) = нейтраль */
+  const leverAng=0.45*(2*leverP-1);
+  gearLever3D.rotation.x=leverAng;
   {
     _cFrom.set(SHIFTER_POS.x, SHIFTER_POS.y+0.10, SHIFTER_POS.z-0.28);
-    _cTo.set(shifterX + 0.16, OUT_Y+0.25, 0);
+    _cTo.set(shifterX - 0.16, OUT_Y+0.25, 0);
     _cMid.set((_cFrom.x+_cTo.x)*0.5, Math.min(_cFrom.y,_cTo.y)-0.20, (_cFrom.z+_cTo.z)*0.5);
     updateShiftCable(_cFrom,_cMid,_cTo);
   }
