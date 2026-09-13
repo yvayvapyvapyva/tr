@@ -87,7 +87,6 @@
 <div id="view"></div>
 
 <div id="bottomUI">
-  <!-- СЦЕПЛЕНИЕ -->
   <div class="pcol">
     <div class="ptitle">Сцепление</div>
     <div class="pscale">
@@ -128,7 +127,6 @@
     </div>
   </div>
 
-  <!-- ГАЗ -->
   <div class="pcol">
     <div class="ptitle">Газ</div>
     <div class="pscale">
@@ -168,7 +166,6 @@
     </div>
   </div>
 
-  <!-- КПП -->
   <div class="pcol">
     <div class="ptitle">КПП</div>
     <div id="gearLabels">
@@ -440,7 +437,7 @@ scene.add(glowRing);
 
 /* ============ КПП ============ */
 addHousing(new THREE.Mesh(new THREE.BoxGeometry(0.82,3.1,1.7),glass())).position.set(0.41,-0.75,0);
-const OUT_Y=-1.50; /* выходной вал проходит под двигателем */
+const OUT_Y=-1.50;
 const outShaft=new THREE.Mesh(cylX(.12,.12,8.2,24),M.blue); outShaft.position.set(-1.49,OUT_Y,0); scene.add(outShaft);
 
 function makeGear(teeth,r,thick,mat){
@@ -468,46 +465,129 @@ let leverP=1, leverTarget=1;
 let rejectTimer=0, outRejectTimer=0;
 const REJECT_DUR=1.0, OUT_DUR=0.6;
 
-/* ============ КОЛЕСО ============ */
+/* ============ КОЛЕСО (ПРОЗРАЧНОЕ, СУППОРТ НЕ ВРАЩАЕТСЯ) ============ */
 const WX=2.6, LWX=-5.58;
 function makeWheel(flip){
   const f=flip<0?-1:1;
+
+  /* assembly — неподвижная часть (суппорт, кронштейн, ось)
+     g        — вращающаяся часть (шина, обод, тормозной диск)        */
+  const assembly=new THREE.Group();
   const g=new THREE.Group();
-  const prof=[new THREE.Vector2(.80,-.50),new THREE.Vector2(1.18,-.49),new THREE.Vector2(1.44,-.345),
-              new THREE.Vector2(1.545,-.145),new THREE.Vector2(1.55,0),new THREE.Vector2(1.545,.145),
-              new THREE.Vector2(1.44,.345),new THREE.Vector2(1.18,.49),new THREE.Vector2(.80,.50)];
-  const tg=new THREE.LatheGeometry(prof,52); tg.rotateZ(Math.PI/2);
-  g.add(new THREE.Mesh(tg,M.tire));
-  g.add(new THREE.Mesh(cylX(1.556,1.556,.10,44),M.tread));
-  const N=26, pitch=Math.PI*2/N;
-  const blkLong=new THREE.BoxGeometry(.20,.05,.26);
-  const blkShort=new THREE.BoxGeometry(.20,.05,.19);
-  for(let row=0;row<2;row++){
-    const xo=row===0?-0.21:0.21, off=row===0?0:pitch/2;
-    for(let i=0;i<N;i++){ const a=i*pitch+off;
-      const b=new THREE.Mesh(i%2?blkShort:blkLong,M.tread);
-      b.position.set(xo,Math.cos(a)*1.535,Math.sin(a)*1.535); b.rotation.x=a; g.add(b); }
+  assembly.add(g);
+  assembly.userData.rotor=g;
+
+  /* ЗЕРКАЛЬНАЯ СТОРОНА: диск/суппорт — внутри (к центру машины),
+     спицы и ступица — снаружи. На левом колесе f=-1 → всё уходит влево. */
+  const discX = -0.25*f;   // сторона тормозного диска и суппорта
+  const faceX =  0.25*f;   // сторона спиц (внешняя)
+  const hubX  =  0.30*f;   // сторона ступицы (внешняя)
+
+  const wheelGlass = new THREE.MeshStandardMaterial({
+    color:0x88aacc, metalness:.2, roughness:.1,
+    transparent:true, opacity:.18, side:THREE.DoubleSide, depthWrite:false
+  });
+  const tireGlass = new THREE.MeshStandardMaterial({
+    color:0x2c3947, metalness:.05, roughness:.45,
+    transparent:true, opacity:.26, side:THREE.DoubleSide, depthWrite:false
+  });
+
+  /* --- ШИНА: ПРЯМОУГОЛЬНЫЙ ПРОФИЛЬ --- */
+  const HW=0.47;
+  const prof=[
+    new THREE.Vector2(0.950, -HW),      // борт у обода
+    new THREE.Vector2(1.220, -HW),      // ПЛОСКАЯ боковина
+    new THREE.Vector2(1.400, -0.462),
+    new THREE.Vector2(1.490, -0.420),   // квадратное плечо
+    new THREE.Vector2(1.535, -0.338),
+    new THREE.Vector2(1.550, -0.300),   // край протектора
+    new THREE.Vector2(1.550,  0.000),   // ПЛОСКИЙ протектор
+    new THREE.Vector2(1.550,  0.300),
+    new THREE.Vector2(1.535,  0.338),
+    new THREE.Vector2(1.490,  0.420),
+    new THREE.Vector2(1.400,  0.462),
+    new THREE.Vector2(1.220,  HW),
+    new THREE.Vector2(0.950,  HW)
+  ];
+  const tg=new THREE.LatheGeometry(prof,64); tg.rotateZ(Math.PI/2);
+  g.add(new THREE.Mesh(tg, tireGlass));
+
+  /* --- ОБОД (прозрачный) --- */
+  const rimWidth=0.80, halfW=rimWidth/2;
+
+  const lipGeo=new THREE.TorusGeometry(0.90,0.045,12,48);
+  lipGeo.rotateY(Math.PI/2);
+  const lipF=new THREE.Mesh(lipGeo,wheelGlass); lipF.position.x=halfW; g.add(lipF);
+  const lipB=new THREE.Mesh(lipGeo.clone(),wheelGlass); lipB.position.x=-halfW; g.add(lipB);
+
+  const barrelGeo=new THREE.CylinderGeometry(0.90,0.90,rimWidth,48,1,true);
+  barrelGeo.rotateZ(Math.PI/2);
+  g.add(new THREE.Mesh(barrelGeo,wheelGlass));
+
+  /* --- СПИЦЫ (упрощённые, прозрачные) — ЗЕРКАЛЯТСЯ ПО СТОРОНЕ --- */
+  const spokeGeo=new THREE.BoxGeometry(0.12,0.70,0.10);
+  for(let i=0;i<5;i++){
+    const a=i/5*Math.PI*2;
+    const spoke=new THREE.Mesh(spokeGeo,wheelGlass);
+    spoke.position.set(faceX,Math.cos(a)*0.45,Math.sin(a)*0.45);
+    spoke.rotation.x=a;
+    g.add(spoke);
   }
-  g.add(new THREE.Mesh(cylX(.92,.92,.91,32),M.alloy));
-  [.46,-.46].forEach(x=>{ const t=new THREE.Mesh(new THREE.TorusGeometry(.98,.05,10,40),M.alloy);
-    t.geometry.rotateY(Math.PI/2); t.position.x=x; g.add(t); });
-  const sp=new THREE.BoxGeometry(.50,.62,.13);
-  for(let i=0;i<5;i++){ const a=i/5*Math.PI*2;
-    const s=new THREE.Mesh(sp,M.alloy);
-    s.position.set(0,Math.cos(a)*.61,Math.sin(a)*.61); s.rotation.x=a; g.add(s); }
-  const disc=new THREE.Mesh(cylX(.78,.78,.08,36),M.brake); disc.position.x=-0.24*f; g.add(disc);
-  const hub2=new THREE.Mesh(cylX(.30,.30,.10,20),M.brake); hub2.position.x=-0.24*f; g.add(hub2);
-  g.add(new THREE.Mesh(cylX(.29,.29,.96,20),M.steel));
-  g.add(new THREE.Mesh(cylX(.15,.15,1.04,14),M.dark));
-  for(let i=0;i<5;i++){ const a=i/5*Math.PI*2;
-    const n=new THREE.Mesh(cylX(.05,.05,.06,6),M.steel);
-    n.position.set(.51*f,Math.cos(a)*.21,Math.sin(a)*.21); g.add(n); }
-  return g;
+
+  /* --- СТУПИЦА (вращается) — ЗЕРКАЛИТСЯ ПО СТОРОНЕ --- */
+  const hubGeo=new THREE.CylinderGeometry(0.26,0.26,0.12,24);
+  hubGeo.rotateZ(Math.PI/2);
+  const hubMesh=new THREE.Mesh(hubGeo,wheelGlass); hubMesh.position.x=hubX; g.add(hubMesh);
+
+  /* --- ТОРМОЗНОЙ ДИСК (вращается вместе с колесом) --- */
+  const discGeo=new THREE.CylinderGeometry(0.72,0.72,0.05,48);
+  discGeo.rotateZ(Math.PI/2);
+  const disc=new THREE.Mesh(discGeo,M.brake); disc.position.x=discX; g.add(disc);
+
+  const discHoleGeo=new THREE.CylinderGeometry(0.28,0.28,0.06,32,1,true);
+  discHoleGeo.rotateZ(Math.PI/2);
+  const discHole=new THREE.Mesh(discHoleGeo,M.dark); discHole.position.x=discX; g.add(discHole);
+
+  /* сверления — чтобы было видно, что диск крутится, а суппорт нет */
+  const ventGeo=new THREE.CylinderGeometry(0.045,0.045,0.07,10);
+  ventGeo.rotateZ(Math.PI/2);
+  for(let i=0;i<10;i++){
+    const a=i/10*Math.PI*2;
+    const v=new THREE.Mesh(ventGeo,M.dark);
+    v.position.set(discX,Math.cos(a)*0.56,Math.sin(a)*0.56);
+    g.add(v);
+  }
+
+  /* --- СУППОРТ (НЕПОДВИЖНЫЙ, крепится к assembly) --- */
+  const A0=Math.PI*0.36, A1=Math.PI*0.64, Ro=0.80, Ri=0.60;
+  const caliperShape=new THREE.Shape();
+  caliperShape.absarc(0,0,Ro,A0,A1,false);
+  caliperShape.lineTo(Math.cos(A1)*Ri,Math.sin(A1)*Ri);
+  caliperShape.absarc(0,0,Ri,A1,A0,true);
+  caliperShape.closePath();
+  const caliperGeo=new THREE.ExtrudeGeometry(caliperShape,
+        {depth:0.14,bevelEnabled:true,bevelThickness:0.015,bevelSize:0.015,bevelSegments:1});
+  caliperGeo.translate(0,0,-0.07);
+  caliperGeo.rotateY(Math.PI/2);
+  caliperGeo.translate(discX,0,0);
+  const caliper=new THREE.Mesh(caliperGeo,M.red);
+  assembly.add(caliper);
+
+  /* кронштейн суппорта (неподвижный) */
+  const bracket=new THREE.Mesh(new THREE.BoxGeometry(0.10,0.55,0.16),M.dark);
+  bracket.position.set(discX,0.42,0);
+  assembly.add(bracket);
+
+  /* --- ОСЬ (неподвижная) --- */
+  const axle=new THREE.Mesh(cylX(.29,.29,.96,20),M.steel); assembly.add(axle);
+  const axleIn=new THREE.Mesh(cylX(.15,.15,1.04,14),M.dark); assembly.add(axleIn);
+
+  return assembly;
 }
 const wheel=makeWheel();      wheel.position.set(WX, OUT_Y,0); wheel.scale.setScalar(1.5); scene.add(wheel);
 const wheelL=makeWheel(-1);   wheelL.position.set(LWX,OUT_Y,0); wheelL.scale.setScalar(1.5); scene.add(wheelL);
 
-/* ============ 3D-ТАБЛИЧКИ ОБОРОТОВ (меняющийся размер, как у меток передач) ============ */
+/* ============ 3D-ТАБЛИЧКИ ОБОРОТОВ ============ */
 function roundRectPath(k,x,y,w,h,r){
   k.beginPath();
   k.moveTo(x+r,y);
@@ -523,7 +603,7 @@ function makeRpmLabel(accent){
   const tex=new THREE.CanvasTexture(c);
   tex.minFilter=THREE.LinearFilter;
   const s=new THREE.Sprite(new THREE.SpriteMaterial({map:tex,transparent:true,depthTest:false}));
-  s.scale.set(0.71,0.34,1);   // та же высота, что у меток передач (0.34); размер меняется с зумом
+  s.scale.set(0.71,0.34,1);
   s.renderOrder=10;
   let last=null;
   s.userData.draw=(num)=>{
@@ -779,7 +859,7 @@ const IDLE_RPM=800;
 const IDLE_OMEGA=IDLE_RPM*RPM2O;
 const STALL_OMEGA=700*RPM2O;
 const CRANK_OMEGA=320*RPM2O;
-const GR=1; /* одинаковые шестерни — передача 1:1 */
+const GR=1;
 let thE=0, discAng=0, axleAng=0;
 let engOmega=0, dOmega=0, aOmega=0;
 let gElast=0, blocked=0, lastPct=-1;
@@ -832,7 +912,7 @@ renderer.setAnimationLoop(()=>{
   }
   engOmega=Math.max(0,engOmega);
 
-  /* КПП: переключение только при полностью выжатом сцеплении */
+  /* КПП */
   const blockShift=shiftBlocked();
 
   if(rejectTimer>0){
@@ -883,7 +963,10 @@ renderer.setAnimationLoop(()=>{
   forkG.rotation.z=gf*0.25;
   shifter.position.x=shifterX;
   gA.rotation.x=discAng; gD.rotation.x=-axleAng;
-  wheel.rotation.x=-axleAng; wheelL.rotation.x=-axleAng;
+
+  /* ВРАЩАЕТСЯ ТОЛЬКО РОТОР КОЛЕСА — суппорт остаётся неподвижным */
+  wheel.userData.rotor.rotation.x=-axleAng;
+  wheelL.userData.rotor.rotation.x=-axleAng;
 
   for(let i=0;i<cylXs.length;i++){
     const x=cylXs[i], psi=thE+phases[i];
@@ -901,7 +984,6 @@ renderer.setAnimationLoop(()=>{
     cb.L.intensity=ign*7.5;
   }
 
-  /* пробуксовка сцепления — только при включённой 1-й передаче */
   const slip=Math.abs(engOmega-dOmega);
   const slipN=Math.min(1,slip/14);
   const gearEngaged=gE>0.5;
