@@ -1139,7 +1139,6 @@ function gearFromPointer(cx,cy){
     const np=nodePos(gearSel), dev=0.13;
     goalNX=Math.max(np.x-dev,Math.min(np.x+dev,c.x));
     goalNY=Math.max(np.y-dev,Math.min(np.y+dev,c.y));
-    /* ИСПРАВЛЕНО: ограничиваем цель на схему через constrainToH */
     const clamped=constrainToH(goalNX,goalNY);
     goalNX=clamped.x; goalNY=clamped.y;
     tryGear=intended;
@@ -1366,9 +1365,15 @@ renderer.setAnimationLoop(()=>{
   else aOmega=0;
   dOmega=Math.max(dOmega,0);
 
+  /* ИСПРАВЛЕНО: на нейтрали входной вал вращается с двигателем,
+     чтобы обороты не падали при отпускании сцепления на нейтрали */
   if(e>0.98){
-    const avg=(engOmega+dOmega)/2;
-    engOmega=avg; dOmega=avg;
+    if(String(gearSel)==='N'){
+      dOmega=engOmega;
+    } else {
+      const avg=(engOmega+dOmega)/2;
+      engOmega=avg; dOmega=avg;
+    }
   }
 
   thE+=engOmega*dt; discAng+=dOmega*dt; axleAng+=aOmega*dt;
