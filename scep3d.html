@@ -10,7 +10,7 @@
   #view{position:absolute;inset:0}
   canvas{display:block}
 
-  /* ---------- ПАНЕЛЬ ПРИБОРОВ (левый верхний угол) ---------- */
+  /* ---------- ПАНЕЛЬ ПРИБОРОВ ---------- */
   #topUI{position:fixed;top:calc(8px + env(safe-area-inset-top));left:12px;
        transform-origin:top left;z-index:12;
        display:flex;gap:12px;align-items:center;padding:6px 14px;
@@ -49,7 +49,7 @@
          inset 0 2px 5px rgba(255,255,255,.18),inset 0 -4px 8px rgba(0,0,0,.55),
          0 0 28px rgba(255,90,60,.75),0 6px 14px rgba(0,0,0,.5)}
 
-  /* ---------- ПАНЕЛЬ КПП: БЕЗ РАМОК, НА ВСЮ ПЛОЩАДЬ ---------- */
+  /* ---------- ПАНЕЛЬ КПП: без рамок ---------- */
   #gearUI{position:fixed;top:calc(6px + env(safe-area-inset-top));right:6px;z-index:12;
        display:flex;flex-direction:column;align-items:center;
        background:none;border:none;border-radius:0;
@@ -109,7 +109,7 @@
        padding:12px 22px;border-radius:14px;font-size:15px;font-weight:bold;text-align:center;display:none;max-width:92vw}
   #msg small{display:block;font-weight:normal;font-size:12px;margin-top:5px;opacity:.85}
   #msg.warn{display:block;background:rgba(90,20,20,.82);color:#ffc2b7;border:2px solid rgba(192,57,43,.7);box-shadow:0 4px 20px rgba(192,57,43,.5)}
-  #msg.info{display:block;background:rgba(18,49,79,.82);color:#a8d4ff;border:2px solid rgba(42,111,159,.7);box-shadow:0 4px 20px rgba(42,111,159,.45)}
+  #msg.info{display:block;background:rgba(18,49,79,.82);color:#a8d4ff;border:2px solid rgba(42,111,159,.7);box-shadow:0 4px 24px rgba(42,111,159,.45)}
 
   @media (max-width:760px){
     .pcol{padding:0 8px}
@@ -143,7 +143,6 @@
   </button>
 </div>
 
-<!-- ПАНЕЛЬ КПП: без рамок, схема занимает всю площадь -->
 <div id="gearUI">
   <div id="gearTrack">
     <svg id="gateSvg" viewBox="0 0 100 100"></svg>
@@ -317,17 +316,10 @@ function resize(){
   renderer.setSize(w,h); camera.aspect=w/h; camera.updateProjectionMatrix();
 }
 
-/* ============================================================
-   ИСПРАВЛЕНО: плотная подгонка камеры по ПРОЕКЦИИ габаритов
-   на оси камеры, а не по описанной сфере (диагонали бокса).
-   Раньше radius = size.length()/2 завышал расстояние почти вдвое.
-   Теперь считаем отдельно по вертикали и горизонтали и берём
-   максимум — модель максимально крупная, но целиком в кадре.
-   ============================================================ */
+/* Плотная подгонка камеры по проекции габаритов на оси камеры */
 const FIT_DIR = new THREE.Vector3(0.38, 0.32, 1.0).normalize();
 function fitCameraToScene(){
   scene.updateMatrixWorld(true);
-
   const box = new THREE.Box3();
   const tmp = new THREE.Box3();
   scene.traverse(obj => {
@@ -341,36 +333,27 @@ function fitCameraToScene(){
     box.union(tmp);
   });
   if(box.isEmpty()) return;
-
   const center = box.getCenter(new THREE.Vector3());
-
-  /* ставим камеру предварительно, чтобы получить её базисные векторы */
   camera.position.copy(center).addScaledVector(FIT_DIR, 20);
   camera.up.set(0,1,0);
   camera.lookAt(center);
   camera.updateMatrixWorld();
-
   const camRight = new THREE.Vector3().setFromMatrixColumn(camera.matrixWorld,0).normalize();
   const camUp    = new THREE.Vector3().setFromMatrixColumn(camera.matrixWorld,1).normalize();
-
-  /* максимальный полуразмер проекции бокса на оси right/up */
   const hx=(box.max.x-box.min.x)/2, hy=(box.max.y-box.min.y)/2, hz=(box.max.z-box.min.z)/2;
   const maxRight = hx*Math.abs(camRight.x) + hy*Math.abs(camRight.y) + hz*Math.abs(camRight.z);
   const maxUp    = hx*Math.abs(camUp.x)    + hy*Math.abs(camUp.y)    + hz*Math.abs(camUp.z);
-
   const fovV = camera.fov * Math.PI/180;
   const tanV = Math.tan(fovV/2);
   const tanH = tanV * camera.aspect;
-
-  const distV = maxUp    / tanV;
+  const distV = maxUp / tanV;
   const distH = maxRight / tanH;
-  let dist = Math.max(distV, distH) * 1.05;   /* минимальный запас 5% */
-
+  let dist = Math.max(distV, distH) * 1.05;
   camera.position.copy(center).addScaledVector(FIT_DIR, dist);
   camera.lookAt(center);
   controls.target.copy(center);
-  camera.near = Math.max(0.05, dist * 0.01);
-  camera.far  = dist * 30;
+  camera.near = Math.max(0.05, dist*0.01);
+  camera.far  = dist*30;
   camera.updateProjectionMatrix();
   controls.update();
 }
@@ -390,14 +373,13 @@ function fitTopUI(){
   topUIScale=Math.min(1,(innerWidth-24)/w);
   topUI.style.transform='scale('+topUIScale+')';
 }
-/* панель КПП масштабируется так, чтобы не наезжать на панель приборов */
 function fitGearUI(){
   gearUI.style.transform='scale(1)';
   const w=gearUI.offsetWidth, h=gearUI.offsetHeight;
-  const topW = topUI.offsetWidth * topUIScale;
-  const availW = innerWidth - topW - 40;
-  const sW = Math.min(1, Math.max(0.45, availW / w));
-  const sH = Math.min(1, (innerHeight - 210) / h);
+  const topW = topUI.offsetWidth*topUIScale;
+  const availW = Math.max(120, innerWidth - topW - 40);
+  const sW = Math.min(1, availW/w);
+  const sH = Math.min(1,(innerHeight-210)/h);
   gearUI.style.transform='scale('+Math.min(sW,sH)+')';
 }
 function fitAll(){ resize(); fitBottomUI(); fitTopUI(); fitGearUI(); fitCameraToScene(); }
@@ -414,30 +396,24 @@ function mkEl(name,attrs){
 const GA_A0=-120, GA_A1=120;
 function gaAng(t){ return (GA_A0 + t*(GA_A1-GA_A0))*Math.PI/180; }
 function gaPol(a,r){ return [Math.sin(a)*r, -Math.cos(a)*r]; }
-
 function arcPath(r,t0,t1){
   const a0=gaAng(t0), a1=gaAng(t1);
   const [x0,y0]=gaPol(a0,r), [x1,y1]=gaPol(a1,r);
   const large = Math.abs(a1-a0) > Math.PI ? 1 : 0;
   return `M ${x0.toFixed(2)} ${y0.toFixed(2)} A ${r} ${r} 0 ${large} 1 ${x1.toFixed(2)} ${y1.toFixed(2)}`;
 }
-
 function buildGauge(svg,cfg){
   while(svg.firstChild) svg.removeChild(svg.firstChild);
   svg.appendChild(mkEl('circle',{cx:0,cy:0,r:56,fill:'#0b121b',stroke:'#2b3d52','stroke-width':2.5}));
   svg.appendChild(mkEl('circle',{cx:0,cy:0,r:52,fill:'#0e1723',stroke:'#1b2a3a','stroke-width':1}));
-
   if(cfg.greenFrom!=null && cfg.greenTo!=null){
-    svg.appendChild(mkEl('path',{
-      d:arcPath(46, cfg.greenFrom/cfg.max, cfg.greenTo/cfg.max),
+    svg.appendChild(mkEl('path',{d:arcPath(46,cfg.greenFrom/cfg.max,cfg.greenTo/cfg.max),
       fill:'none',stroke:'#2fae5f','stroke-width':5,opacity:.95}));
   }
   if(cfg.redFrom!=null){
-    svg.appendChild(mkEl('path',{
-      d:arcPath(46, cfg.redFrom/cfg.max, 1),
+    svg.appendChild(mkEl('path',{d:arcPath(46,cfg.redFrom/cfg.max,1),
       fill:'none',stroke:'#d6402c','stroke-width':5,opacity:.9}));
   }
-
   const n=Math.round(cfg.max/cfg.step);
   for(let i=0;i<=n;i++){
     const v=i*cfg.step, t=v/cfg.max, a=gaAng(t);
@@ -449,15 +425,13 @@ function buildGauge(svg,cfg){
     let tickCol='#6f8298';
     if(maj) tickCol = inRed ? '#ff8d7a' : (inGreen ? '#7dffa8' : '#d8e6f5');
     else if(inGreen) tickCol='#3f8f5f';
-    svg.appendChild(mkEl('line',{
-      x1:x1.toFixed(2),y1:y1.toFixed(2),x2:x2.toFixed(2),y2:y2.toFixed(2),
-      stroke: tickCol,
-      'stroke-width': maj?2.2:1.1,'stroke-linecap':'round'}));
+    svg.appendChild(mkEl('line',{x1:x1.toFixed(2),y1:y1.toFixed(2),x2:x2.toFixed(2),y2:y2.toFixed(2),
+      stroke:tickCol,'stroke-width':maj?2.2:1.1,'stroke-linecap':'round'}));
     if(maj){
       const [tx,ty]=gaPol(a,28);
       const txt=mkEl('text',{x:tx.toFixed(2),y:(ty+3.2).toFixed(2),
         'text-anchor':'middle','font-size':cfg.numSize||10,'font-weight':'bold',
-        fill: inRed?'#ff9d8f':(inGreen?'#7dffa8':cfg.color),'font-family':'Arial'});
+        fill:inRed?'#ff9d8f':(inGreen?'#7dffa8':cfg.color),'font-family':'Arial'});
       txt.textContent=String(Math.round(v/cfg.divider));
       svg.appendChild(txt);
     }
@@ -480,33 +454,22 @@ function setGauge(g,value){
   const t=Math.max(0,Math.min(1,value/g.max));
   g.needle.setAttribute('transform','rotate('+(GA_A0 + t*(GA_A1-GA_A0)).toFixed(2)+')');
 }
-
 const tacho=buildGauge(document.getElementById('tachoSvg'),{
-  max:5000, step:250, major:1000, redFrom:4000,
-  greenFrom:1500, greenTo:2500,
-  divider:1000,
-  color:'#ffd166', needle:'#ff6b4a', unit:'об/мин ×1000'
-});
+  max:5000, step:250, major:1000, redFrom:4000, greenFrom:1500, greenTo:2500,
+  divider:1000, color:'#ffd166', needle:'#ff6b4a', unit:'об/мин ×1000'});
 const speedo=buildGauge(document.getElementById('speedoSvg'),{
   max:180, step:10, major:20, divider:1, numSize:8,
-  color:'#6cf09c', needle:'#6cf09c', unit:'км/ч'
-});
+  color:'#6cf09c', needle:'#6cf09c', unit:'км/ч'});
 
 /* ============ СХЕМА «Ж» ============ */
 const GATE_X=[0.20,0.50,0.80];
 const ROW_Y =[0.22,0.50,0.78];
 const ENGAGE_DIST=0.17;
 const BAR_THRESH=0.10;
-
 const GEAR_NODES=[
-  {id:1,  gx:0, row:0},
-  {id:2,  gx:0, row:2},
-  {id:3,  gx:1, row:0},
-  {id:4,  gx:1, row:2},
-  {id:5,  gx:2, row:0},
-  {id:'R',gx:2, row:2},
+  {id:1,gx:0,row:0},{id:2,gx:0,row:2},{id:3,gx:1,row:0},
+  {id:4,gx:1,row:2},{id:5,gx:2,row:0},{id:'R',gx:2,row:2},
 ];
-
 const GEAR_RATIO={1:1, 2:2, 3:3, 4:4, 5:5, 'R':-1, 'N':1};
 const SPEED_K = 0.008;
 
@@ -515,18 +478,16 @@ function nodePos(g){
   const n=GEAR_NODES.find(n=>String(n.id)===String(g));
   return {x:GATE_X[n.gx], y:ROW_Y[n.row]};
 }
-
-/* ручка ходит строго по пазам; смена кулисы только через нейтраль */
-let curGate = 1;
+let curGate=1;
 function constrainToH(nx,ny){
-  const onBarZone = Math.abs(ny - ROW_Y[1]) < BAR_THRESH;
+  const onBarZone = Math.abs(ny-ROW_Y[1])<BAR_THRESH;
   if(onBarZone){
     let gi=0,bd=Infinity;
     for(let i=0;i<3;i++){ const d=Math.abs(nx-GATE_X[i]); if(d<bd){bd=d;gi=i;} }
-    curGate = gi;
-    return {x: Math.max(GATE_X[0],Math.min(GATE_X[2],nx)), y: ROW_Y[1]};
+    curGate=gi;
+    return {x:Math.max(GATE_X[0],Math.min(GATE_X[2],nx)), y:ROW_Y[1]};
   }
-  return {x: GATE_X[curGate], y: Math.max(ROW_Y[0],Math.min(ROW_Y[2],ny))};
+  return {x:GATE_X[curGate], y:Math.max(ROW_Y[0],Math.min(ROW_Y[2],ny))};
 }
 function snapGear(nx,ny){
   if(Math.abs(ny-ROW_Y[1])<0.02) return 'N';
@@ -538,73 +499,55 @@ function snapGear(nx,ny){
   }
   return best;
 }
-
-/* ---------- отрисовка схемы БЕЗ рамки-подложки, на всю площадь ---------- */
 const gateSvg=document.getElementById('gateSvg');
 const gateLabelEls={};
 (function buildGate(){
   const X=i=>GATE_X[i]*100, Y=r=>ROW_Y[r]*100;
-  const segs=[
-    [X(0),Y(1),X(2),Y(1)],
-    [X(0),Y(0),X(0),Y(2)],
-    [X(1),Y(0),X(1),Y(2)],
-    [X(2),Y(0),X(2),Y(2)],
-  ];
-  /* пазы: тёмная канавка + внутренняя часть + блик */
+  const segs=[[X(0),Y(1),X(2),Y(1)],[X(0),Y(0),X(0),Y(2)],[X(1),Y(0),X(1),Y(2)],[X(2),Y(0),X(2),Y(2)]];
   for(const [x1,y1,x2,y2] of segs)
     gateSvg.appendChild(mkEl('line',{x1,y1,x2,y2,stroke:'#05080d','stroke-width':16,'stroke-linecap':'round',opacity:.92}));
   for(const [x1,y1,x2,y2] of segs)
     gateSvg.appendChild(mkEl('line',{x1,y1,x2,y2,stroke:'#1b2b3d','stroke-width':9.5,'stroke-linecap':'round'}));
   for(const [x1,y1,x2,y2] of segs)
     gateSvg.appendChild(mkEl('line',{x1,y1,x2,y2,stroke:'#3b5872','stroke-width':2,'stroke-linecap':'round',opacity:.5}));
-
-  gateSvg.appendChild(mkEl('line',{
-    x1:X(0)+7,y1:Y(1),x2:X(2)-7,y2:Y(1),
+  gateSvg.appendChild(mkEl('line',{x1:X(0)+7,y1:Y(1),x2:X(2)-7,y2:Y(1),
     stroke:'#2fae5f','stroke-width':2.5,'stroke-linecap':'round',opacity:.5}));
-
-  /* подписи с тёмной обводкой — читаются на любом фоне (рамки больше нет) */
   const mkLabel=(t,x,y,size,color)=>{
     const el=mkEl('text',{x,y,'text-anchor':'middle','dominant-baseline':'middle',
       'font-size':size,'font-weight':'bold',fill:color,'font-family':'Arial',
-      stroke:'#060b12','stroke-width':3.2,'paint-order':'stroke',
-      'stroke-linejoin':'round'});
-    el.textContent=t;
-    gateSvg.appendChild(el);
-    return el;
+      stroke:'#060b12','stroke-width':3.2,'paint-order':'stroke','stroke-linejoin':'round'});
+    el.textContent=t; gateSvg.appendChild(el); return el;
   };
   const labels=[
-    {t:'1',x:X(0),y:Y(0)-10}, {t:'3',x:X(1),y:Y(0)-10}, {t:'5',x:X(2),y:Y(0)-10},
+    {t:'1',x:X(0),y:Y(0)-10},{t:'3',x:X(1),y:Y(0)-10},{t:'5',x:X(2),y:Y(0)-10},
     {t:'2',x:X(0),y:Y(2)+16},{t:'4',x:X(1),y:Y(2)+16},{t:'R',x:X(2),y:Y(2)+16},
   ];
-  for(const L of labels) gateLabelEls[String(L.t)] = mkLabel(L.t,L.x,L.y,13,'#93a6bb');
+  for(const L of labels) gateLabelEls[String(L.t)]=mkLabel(L.t,L.x,L.y,13,'#93a6bb');
   mkLabel('N',(X(0)+X(1))/2,Y(1)-10,11,'#5cb87f');
 })();
 
 /* ============ МАТЕРИАЛЫ ============ */
-const M = {
-  red  : new THREE.MeshStandardMaterial({color:0xc0503c,metalness:.65,roughness:.35}),
-  steel: new THREE.MeshStandardMaterial({color:0xb9c4cf,metalness:.8, roughness:.3}),
-  dark : new THREE.MeshStandardMaterial({color:0x3a434f,metalness:.6, roughness:.5}),
-  orange:new THREE.MeshStandardMaterial({color:0xd9822b,metalness:.5, roughness:.45,emissive:0xff5500,emissiveIntensity:0}),
-  blue : new THREE.MeshStandardMaterial({color:0x54a8dc,metalness:.7, roughness:.3}),
-  green: new THREE.MeshStandardMaterial({color:0x4fc98a,metalness:.6, roughness:.35}),
-  tire : new THREE.MeshStandardMaterial({color:0x17181c,metalness:.05,roughness:.95}),
-  tread: new THREE.MeshStandardMaterial({color:0x0a0b0d,metalness:.0, roughness:1.0}),
-  alloy: new THREE.MeshStandardMaterial({color:0x93a7bc,metalness:.9, roughness:.22}),
-  brake: new THREE.MeshStandardMaterial({color:0x6a727c,metalness:.85,roughness:.4}),
-  brakeHot: new THREE.MeshStandardMaterial({color:0x6a727c,metalness:.85,roughness:.4,
-             emissive:0xff4a10,emissiveIntensity:0}),
-  caliper: new THREE.MeshStandardMaterial({color:0xc0503c,metalness:.65,roughness:.35,
-             emissive:0xff2200,emissiveIntensity:0}),
+const M={
+  red:new THREE.MeshStandardMaterial({color:0xc0503c,metalness:.65,roughness:.35}),
+  steel:new THREE.MeshStandardMaterial({color:0xb9c4cf,metalness:.8,roughness:.3}),
+  dark:new THREE.MeshStandardMaterial({color:0x3a434f,metalness:.6,roughness:.5}),
+  orange:new THREE.MeshStandardMaterial({color:0xd9822b,metalness:.5,roughness:.45,emissive:0xff5500,emissiveIntensity:0}),
+  blue:new THREE.MeshStandardMaterial({color:0x54a8dc,metalness:.7,roughness:.3}),
+  green:new THREE.MeshStandardMaterial({color:0x4fc98a,metalness:.6,roughness:.35}),
+  tire:new THREE.MeshStandardMaterial({color:0x17181c,metalness:.05,roughness:.95}),
+  tread:new THREE.MeshStandardMaterial({color:0x0a0b0d,metalness:.0,roughness:1.0}),
+  alloy:new THREE.MeshStandardMaterial({color:0x93a7bc,metalness:.9,roughness:.22}),
+  brake:new THREE.MeshStandardMaterial({color:0x6a727c,metalness:.85,roughness:.4}),
+  brakeHot:new THREE.MeshStandardMaterial({color:0x6a727c,metalness:.85,roughness:.4,emissive:0xff4a10,emissiveIntensity:0}),
+  caliper:new THREE.MeshStandardMaterial({color:0xc0503c,metalness:.65,roughness:.35,emissive:0xff2200,emissiveIntensity:0}),
   journal:new THREE.MeshStandardMaterial({color:0xd9dfe6,metalness:.95,roughness:.18}),
-  web    :new THREE.MeshStandardMaterial({color:0x7d848d,metalness:.85,roughness:.42}),
-  iron   :new THREE.MeshStandardMaterial({color:0x2e333a,metalness:.6, roughness:.5}),
-  cable  :new THREE.MeshStandardMaterial({color:0x15171c,metalness:.7, roughness:.55}),
-  pedal  : new THREE.MeshStandardMaterial({color:0xf2c14e,metalness:.4, roughness:.5}),
+  web:new THREE.MeshStandardMaterial({color:0x7d848d,metalness:.85,roughness:.42}),
+  iron:new THREE.MeshStandardMaterial({color:0x2e333a,metalness:.6,roughness:.5}),
+  cable:new THREE.MeshStandardMaterial({color:0x15171c,metalness:.7,roughness:.55}),
+  pedal:new THREE.MeshStandardMaterial({color:0xf2c14e,metalness:.4,roughness:.5}),
 };
 const DISC_COLD=new THREE.Color(0x6a727c);
-const DISC_HOT =new THREE.Color(0xffd0a0);
-
+const DISC_HOT=new THREE.Color(0xffd0a0);
 function glass(){ return new THREE.MeshStandardMaterial({color:0x9fb4c8,metalness:.1,roughness:.05,transparent:true,opacity:.13,side:THREE.DoubleSide,depthWrite:false}); }
 const housings=[];
 function addHousing(mesh){ housings.push(mesh); scene.add(mesh); return mesh; }
@@ -616,10 +559,9 @@ const CR=0.42, RL=1.05;
 addHousing(new THREE.Mesh(new THREE.BoxGeometry(2.1,2.75,2.0),glass())).position.set(-2.75,0.625,0);
 const head=new THREE.Mesh(new THREE.BoxGeometry(2.1,.25,2.05),M.dark); head.position.set(-2.75,2.145,0); scene.add(head);
 cylXs.forEach(x=>{ const s=new THREE.Mesh(new THREE.CylinderGeometry(.47,.47,1.6,24,1,true),glass()); s.position.set(x,1.25,0); housings.push(s); scene.add(s); });
-
 const crank=new THREE.Group(); scene.add(crank);
 function makeWebGeo(thick){
-  const rW=0.40, rC=0.52, d2r=Math.PI/180;
+  const rW=0.40,rC=0.52,d2r=Math.PI/180;
   const s=new THREE.Shape();
   s.absarc(0,0,rC,200*d2r,340*d2r,false);
   s.lineTo(Math.cos(340*d2r)*rW,Math.sin(340*d2r)*rW);
@@ -638,12 +580,11 @@ const webGeo=makeWebGeo(0.13);
 cylXs.forEach((x,i)=>{
   const th=new THREE.Group(); th.position.x=x; th.rotation.x=phases[i]; crank.add(th);
   const w1=new THREE.Mesh(webGeo,M.web); w1.position.x=-0.34; th.add(w1);
-  const w2=new THREE.Mesh(webGeo,M.web); w2.position.x= 0.23; th.add(w2);
+  const w2=new THREE.Mesh(webGeo,M.web); w2.position.x=0.23; th.add(w2);
   const b1=new THREE.Mesh(cylX(.19,.19,.16,16),M.web); b1.position.set(-0.285,CR,0); th.add(b1);
-  const b2=new THREE.Mesh(cylX(.19,.19,.16,16),M.web); b2.position.set( 0.285,CR,0); th.add(b2);
+  const b2=new THREE.Mesh(cylX(.19,.19,.16,16),M.web); b2.position.set(0.285,CR,0); th.add(b2);
   const pin=new THREE.Mesh(cylX(.13,.13,.46,16),M.journal); pin.position.set(0,CR,0); th.add(pin);
 });
-
 const pistons=[],rods=[],bigEnds=[];
 cylXs.forEach(x=>{
   const p=new THREE.Group(); scene.add(p);
@@ -653,7 +594,6 @@ cylXs.forEach(x=>{
   const rod=new THREE.Mesh(new THREE.BoxGeometry(.11,RL,.17),M.steel); scene.add(rod); rods.push(rod);
   const be=new THREE.Mesh(cylX(.21,.21,.2),M.dark); scene.add(be); bigEnds.push(be);
 });
-
 function combustionTexture(){
   const c=document.createElement('canvas'); c.width=c.height=64;
   const k=c.getContext('2d');
@@ -677,15 +617,13 @@ cylXs.forEach(x=>{
 /* ============ СЦЕПЛЕНИЕ ============ */
 { const g=new THREE.CylinderGeometry(1.45,1.45,1.4,32,1,true); g.rotateZ(Math.PI/2);
   const bell=new THREE.Mesh(g,glass()); bell.position.set(-0.7,0,0); addHousing(bell); }
-
 const flywheel=new THREE.Group(); flywheel.position.x=-1.15; scene.add(flywheel);
 flywheel.add(new THREE.Mesh(cylX(1.25,1.25,.22,40),M.red));
-{ const n=40, tg2=new THREE.BoxGeometry(.18,.07,.16);
+{ const n=40,tg2=new THREE.BoxGeometry(.18,.07,.16);
   for(let i=0;i<n;i++){ const a=i/n*Math.PI*2, t=new THREE.Mesh(tg2,M.dark);
     t.position.set(0,Math.cos(a)*1.285,Math.sin(a)*1.285); t.rotation.x=a; flywheel.add(t);} }
 for(let i=0;i<6;i++){ const a=i/6*Math.PI*2, b=new THREE.Mesh(cylX(.06,.06,.1),M.steel);
   b.position.set(-0.16,Math.cos(a)*.95,Math.sin(a)*.95); b.visible=false; flywheel.add(b); }
-
 const clutchDisc=new THREE.Group(); scene.add(clutchDisc);
 clutchDisc.add(new THREE.Mesh(cylX(1.12,1.12,.08,36),M.orange));
 { const mk=new THREE.BoxGeometry(.05,.02,.1);
@@ -694,9 +632,7 @@ clutchDisc.add(new THREE.Mesh(cylX(1.12,1.12,.08,36),M.orange));
 const chub=new THREE.Mesh(cylX(.3,.3,.24),M.dark); chub.position.x=.12; clutchDisc.add(chub);
 for(let i=0;i<6;i++){ const a=i/6*Math.PI*2, s=new THREE.Mesh(new THREE.BoxGeometry(.05,.16,.22),M.steel);
   s.position.set(.025,Math.cos(a)*.62,Math.sin(a)*.62); s.rotation.x=a; clutchDisc.add(s); }
-
 const inputShaft=new THREE.Mesh(cylX(.11,.11,1.45),M.blue); inputShaft.position.set(-0.275,0,0); scene.add(inputShaft);
-
 const forkPivot=new THREE.Vector3(-0.30,1.20,0);
 const pivotPin=new THREE.Mesh(new THREE.CylinderGeometry(.06,.06,.4,16),M.steel); pivotPin.geometry.rotateX(Math.PI/2);
 pivotPin.position.copy(forkPivot); scene.add(pivotPin);
@@ -729,47 +665,43 @@ const sparkMat=new THREE.PointsMaterial({size:.18,map:sparkTexture(),vertexColor
 const sparks=new THREE.Points(sparkGeo,sparkMat); sparks.frustumCulled=false; scene.add(sparks);
 const sparkLight=new THREE.PointLight(0xff7722,0,4.5); scene.add(sparkLight);
 let sparkHead=0, emitAcc=0, grindAcc=0, brakeEmitAcc=0;
-
 function spawnSpark(gx){
   const i=sparkHead; sparkHead=(sparkHead+1)%SPARK_N;
   const a=Math.random()*Math.PI*2, r=0.60+Math.random()*0.42;
-  sparkPos[i*3]  =gx+(Math.random()-0.5)*0.03;
+  sparkPos[i*3]=gx+(Math.random()-0.5)*0.03;
   sparkPos[i*3+1]=Math.cos(a)*r;
   sparkPos[i*3+2]=Math.sin(a)*r;
   const tv=1.4+Math.random()*2.6;
-  sparkVel[i*3]  =(Math.random()-0.5)*0.9;
+  sparkVel[i*3]=(Math.random()-0.5)*0.9;
   sparkVel[i*3+1]=-Math.sin(a)*tv+Math.cos(a)*Math.random()*1.2;
-  sparkVel[i*3+2]= Math.cos(a)*tv+Math.sin(a)*Math.random()*1.2;
+  sparkVel[i*3+2]=Math.cos(a)*tv+Math.sin(a)*Math.random()*1.2;
   sparkMax[i]=sparkLife[i]=0.24+Math.random()*0.42;
 }
-/* точка хруста — в месте зацепления двух шестерён */
 const MESH={x:0.30,y:-0.75,z:0};
 function spawnGearSpark(){
   const i=sparkHead; sparkHead=(sparkHead+1)%SPARK_N;
-  sparkPos[i*3]  =MESH.x+(Math.random()-0.5)*0.30;
+  sparkPos[i*3]=MESH.x+(Math.random()-0.5)*0.30;
   sparkPos[i*3+1]=MESH.y+(Math.random()-0.5)*0.30;
   sparkPos[i*3+2]=MESH.z+(Math.random()-0.5)*0.30;
   const sp=1.8+Math.random()*3.2, a=Math.random()*Math.PI*2;
-  sparkVel[i*3]  =Math.cos(a)*sp*0.7;
+  sparkVel[i*3]=Math.cos(a)*sp*0.7;
   sparkVel[i*3+1]=-Math.random()*sp-0.5;
   sparkVel[i*3+2]=Math.sin(a)*sp*0.7;
   sparkMax[i]=sparkLife[i]=0.18+Math.random()*0.32;
 }
 const grindLight=new THREE.PointLight(0xffcc66,0,2.6); grindLight.position.set(MESH.x,MESH.y,MESH.z); scene.add(grindLight);
-
 function spawnBrakeSpark(b){
   const i=sparkHead; sparkHead=(sparkHead+1)%SPARK_N;
   const a=Math.random()*Math.PI*2;
-  sparkPos[i*3]  =b.x+(Math.random()-0.5)*0.12;
+  sparkPos[i*3]=b.x+(Math.random()-0.5)*0.12;
   sparkPos[i*3+1]=b.y+(Math.random()-0.5)*0.12;
   sparkPos[i*3+2]=b.z+(Math.random()-0.5)*0.26;
   const sp=1.6+Math.random()*3.6;
-  sparkVel[i*3]  =Math.cos(a)*sp*0.30;
+  sparkVel[i*3]=Math.cos(a)*sp*0.30;
   sparkVel[i*3+1]=-0.7-Math.random()*sp*0.45;
   sparkVel[i*3+2]=Math.sin(a)*sp*0.85;
   sparkMax[i]=sparkLife[i]=0.16+Math.random()*0.34;
 }
-
 function glowTexture(){
   const c=document.createElement('canvas'); c.width=c.height=256;
   const k=c.getContext('2d');
@@ -787,16 +719,13 @@ function glowTexture(){
 const glowMat=new THREE.MeshBasicMaterial({map:glowTexture(),transparent:true,opacity:0,
   blending:THREE.AdditiveBlending,depthWrite:false,side:THREE.DoubleSide});
 const glowRing=new THREE.Mesh(new THREE.PlaneGeometry(2.6,2.6),glowMat);
-glowRing.geometry.rotateY(Math.PI/2);
-scene.add(glowRing);
+glowRing.geometry.rotateY(Math.PI/2); scene.add(glowRing);
 
 /* ============ КПП ============ */
 addHousing(new THREE.Mesh(new THREE.BoxGeometry(0.82,3.1,1.7),glass())).position.set(0.41,-0.75,0);
 const OUT_Y=-1.50;
 const outShaft=new THREE.Mesh(cylX(.12,.12,8.2,24),M.blue); outShaft.position.set(-1.49,OUT_Y,0); scene.add(outShaft);
-
-const GA_X = 0.30;
-
+const GA_X=0.30;
 function makeGear(teeth,r,thick,mat){
   const g=new THREE.Group();
   g.add(new THREE.Mesh(cylX(r,r,thick,30),mat));
@@ -806,12 +735,11 @@ function makeGear(teeth,r,thick,mat){
     t.position.set(0,Math.cos(a)*(r+.02),Math.sin(a)*(r+.02)); t.rotation.x=a; g.add(t); }
   return g;
 }
-const gA=makeGear(16,.75,.2,M.blue); gA.position.set(GA_X, 0,  0); scene.add(gA);
-
+const gA=makeGear(16,.75,.2,M.blue); gA.position.set(GA_X,0,0); scene.add(gA);
 const shifter=new THREE.Group(); scene.add(shifter);
 const gD=makeGear(16,.75,.2,M.blue); gD.position.y=OUT_Y; shifter.add(gD);
 const prongGeo=new THREE.BoxGeometry(.06,.5,.12);
-const pr1=new THREE.Mesh(prongGeo,M.dark); pr1.position.set(-.16,OUT_Y, .18); shifter.add(pr1);
+const pr1=new THREE.Mesh(prongGeo,M.dark); pr1.position.set(-.16,OUT_Y,.18); shifter.add(pr1);
 const pr2=new THREE.Mesh(prongGeo,M.dark); pr2.position.set(-.16,OUT_Y,-.18); shifter.add(pr2);
 const cross=new THREE.Mesh(new THREE.BoxGeometry(.1,.1,.5),M.dark); cross.position.set(-.16,OUT_Y+.25,0); shifter.add(cross);
 
@@ -827,7 +755,6 @@ const leverStick=new THREE.Mesh(new THREE.CylinderGeometry(0.045,0.06,1.0,12),M.
 leverStick.position.y=0.5; gearLever3D.add(leverStick);
 const leverKnob=new THREE.Mesh(new THREE.SphereGeometry(0.15,20,14),M.dark);
 leverKnob.position.y=1.0; gearLever3D.add(leverKnob);
-
 const CABLE_SEGS=10;
 const cableSegs=[];
 for(let i=0;i<CABLE_SEGS;i++){
@@ -855,48 +782,45 @@ function updateShiftCable(from,mid,to){
 }
 
 /* ============ 3D ПЕДАЛИ ============ */
-const PEDALS_POS = new THREE.Vector3(-3.0, -2.15, 2.6);
-const PEDALS_TILT = -Math.PI/4;
-const pedals3D = new THREE.Group();
-pedals3D.position.copy(PEDALS_POS); pedals3D.rotation.x = PEDALS_TILT; scene.add(pedals3D);
-const pedalsBracket = new THREE.Mesh(new THREE.BoxGeometry(2.7, 0.18, 1.0), glass());
-pedalsBracket.position.set(0, 0.55, 0); pedals3D.add(pedalsBracket);
-
-const padClutchMat = new THREE.MeshStandardMaterial({color:0x5490d0, metalness:.4, roughness:.5});
-const padBrakeMat  = new THREE.MeshStandardMaterial({color:0xd0402e, metalness:.4, roughness:.5});
-const padGasMat    = new THREE.MeshStandardMaterial({color:0xf2c14e, metalness:.4, roughness:.5});
-
-function makeRoundedSquareGeo(size, radius, depth){
-  const s = new THREE.Shape();
-  const h = size/2, r = Math.min(radius, h);
-  s.moveTo(-h+r, -h); s.lineTo( h-r, -h);
-  s.absarc( h-r, -h+r, r, -Math.PI/2, 0, false);
-  s.lineTo( h, h-r);
-  s.absarc( h-r, h-r, r, 0, Math.PI/2, false);
-  s.lineTo(-h+r, h);
-  s.absarc(-h+r, h-r, r, Math.PI/2, Math.PI, false);
-  s.lineTo(-h, -h+r);
-  s.absarc(-h+r, -h+r, r, Math.PI, Math.PI*1.5, false);
-  const g = new THREE.ExtrudeGeometry(s,{depth,bevelEnabled:true,bevelThickness:0.015,bevelSize:0.015,bevelSegments:2});
+const PEDALS_POS=new THREE.Vector3(-3.0,-2.15,2.6);
+const PEDALS_TILT=-Math.PI/4;
+const pedals3D=new THREE.Group();
+pedals3D.position.copy(PEDALS_POS); pedals3D.rotation.x=PEDALS_TILT; scene.add(pedals3D);
+const pedalsBracket=new THREE.Mesh(new THREE.BoxGeometry(2.7,0.18,1.0),glass());
+pedalsBracket.position.set(0,0.55,0); pedals3D.add(pedalsBracket);
+const padClutchMat=new THREE.MeshStandardMaterial({color:0x5490d0,metalness:.4,roughness:.5});
+const padBrakeMat=new THREE.MeshStandardMaterial({color:0xd0402e,metalness:.4,roughness:.5});
+const padGasMat=new THREE.MeshStandardMaterial({color:0xf2c14e,metalness:.4,roughness:.5});
+function makeRoundedSquareGeo(size,radius,depth){
+  const s=new THREE.Shape();
+  const h=size/2, r=Math.min(radius,h);
+  s.moveTo(-h+r,-h); s.lineTo(h-r,-h);
+  s.absarc(h-r,-h+r,r,-Math.PI/2,0,false);
+  s.lineTo(h,h-r);
+  s.absarc(h-r,h-r,r,0,Math.PI/2,false);
+  s.lineTo(-h+r,h);
+  s.absarc(-h+r,h-r,r,Math.PI/2,Math.PI,false);
+  s.lineTo(-h,-h+r);
+  s.absarc(-h+r,-h+r,r,Math.PI,Math.PI*1.5,false);
+  const g=new THREE.ExtrudeGeometry(s,{depth,bevelEnabled:true,bevelThickness:0.015,bevelSize:0.015,bevelSegments:2});
   g.translate(0,0,-depth/2); return g;
 }
-const padGeo = makeRoundedSquareGeo(0.40, 0.06, 0.10);
-
-function makePedal3D(padMat, xOff){
-  const holder = new THREE.Group();
-  holder.position.set(xOff, 0.45, 0.15); pedals3D.add(holder);
-  const pivot = new THREE.Group(); holder.add(pivot);
-  const axle = new THREE.Mesh(new THREE.CylinderGeometry(0.05,0.05,0.55,12), M.dark);
-  axle.rotation.z = Math.PI/2; pivot.add(axle);
-  const arm = new THREE.Mesh(new THREE.BoxGeometry(0.09, 0.93, 0.09), M.steel);
-  arm.position.set(0, -0.465, 0); pivot.add(arm);
-  const pad = new THREE.Mesh(padGeo, padMat);
-  pad.position.set(0, -0.99, 0); pivot.add(pad);
+const padGeo=makeRoundedSquareGeo(0.40,0.06,0.10);
+function makePedal3D(padMat,xOff){
+  const holder=new THREE.Group();
+  holder.position.set(xOff,0.45,0.15); pedals3D.add(holder);
+  const pivot=new THREE.Group(); holder.add(pivot);
+  const axle=new THREE.Mesh(new THREE.CylinderGeometry(0.05,0.05,0.55,12),M.dark);
+  axle.rotation.z=Math.PI/2; pivot.add(axle);
+  const arm=new THREE.Mesh(new THREE.BoxGeometry(0.09,0.93,0.09),M.steel);
+  arm.position.set(0,-0.465,0); pivot.add(arm);
+  const pad=new THREE.Mesh(padGeo,padMat);
+  pad.position.set(0,-0.99,0); pivot.add(pad);
   return pivot;
 }
-const pedal3D_clutch = makePedal3D(padClutchMat, -0.85);
-const pedal3D_brake  = makePedal3D(padBrakeMat,   0.0);
-const pedal3D_gas    = makePedal3D(padGasMat,     0.85);
+const pedal3D_clutch=makePedal3D(padClutchMat,-0.85);
+const pedal3D_brake=makePedal3D(padBrakeMat,0.0);
+const pedal3D_gas=makePedal3D(padGasMat,0.85);
 
 /* ============ КОЛЕСО ============ */
 const WX=2.6, LWX=-5.58;
@@ -907,30 +831,26 @@ function makeWheel(flip){
   const g=new THREE.Group();
   assembly.add(g); assembly.userData.rotor=g;
   const discX=-0.25*f, faceX=0.25*f, hubX=0.30*f;
-
-  const wheelGlass = new THREE.MeshStandardMaterial({color:0x88aacc,metalness:.2,roughness:.1,
+  const wheelGlass=new THREE.MeshStandardMaterial({color:0x88aacc,metalness:.2,roughness:.1,
     transparent:true,opacity:.18,side:THREE.DoubleSide,depthWrite:false});
-  const tireGlass = new THREE.MeshStandardMaterial({color:0x2c3947,metalness:.05,roughness:.45,
+  const tireGlass=new THREE.MeshStandardMaterial({color:0x2c3947,metalness:.05,roughness:.45,
     transparent:true,opacity:.26,side:THREE.DoubleSide,depthWrite:false});
-
   const HW=0.47;
   const prof=[
-    new THREE.Vector2(0.950,-HW), new THREE.Vector2(1.220,-HW), new THREE.Vector2(1.400,-0.462),
-    new THREE.Vector2(1.490,-0.420), new THREE.Vector2(1.535,-0.338), new THREE.Vector2(1.550,-0.300),
-    new THREE.Vector2(1.550, 0.000), new THREE.Vector2(1.550, 0.300), new THREE.Vector2(1.535, 0.338),
-    new THREE.Vector2(1.490, 0.420), new THREE.Vector2(1.400, 0.462), new THREE.Vector2(1.220, HW),
-    new THREE.Vector2(0.950, HW)
+    new THREE.Vector2(0.950,-HW),new THREE.Vector2(1.220,-HW),new THREE.Vector2(1.400,-0.462),
+    new THREE.Vector2(1.490,-0.420),new THREE.Vector2(1.535,-0.338),new THREE.Vector2(1.550,-0.300),
+    new THREE.Vector2(1.550,0.000),new THREE.Vector2(1.550,0.300),new THREE.Vector2(1.535,0.338),
+    new THREE.Vector2(1.490,0.420),new THREE.Vector2(1.400,0.462),new THREE.Vector2(1.220,HW),
+    new THREE.Vector2(0.950,HW)
   ];
   const tg3=new THREE.LatheGeometry(prof,64); tg3.rotateZ(Math.PI/2);
-  g.add(new THREE.Mesh(tg3, tireGlass));
-
+  g.add(new THREE.Mesh(tg3,tireGlass));
   const rimWidth=0.80, halfW=rimWidth/2;
   const lipGeo=new THREE.TorusGeometry(0.90,0.045,12,48); lipGeo.rotateY(Math.PI/2);
   const lipF=new THREE.Mesh(lipGeo,wheelGlass); lipF.position.x=halfW; g.add(lipF);
   const lipB=new THREE.Mesh(lipGeo.clone(),wheelGlass); lipB.position.x=-halfW; g.add(lipB);
   const barrelGeo=new THREE.CylinderGeometry(0.90,0.90,rimWidth,48,1,true);
   barrelGeo.rotateZ(Math.PI/2); g.add(new THREE.Mesh(barrelGeo,wheelGlass));
-
   const spokeGeo=new THREE.BoxGeometry(0.12,0.70,0.10);
   for(let i=0;i<5;i++){
     const a=i/5*Math.PI*2;
@@ -940,19 +860,16 @@ function makeWheel(flip){
   }
   const hubGeo=new THREE.CylinderGeometry(0.26,0.26,0.12,24); hubGeo.rotateZ(Math.PI/2);
   const hubMesh=new THREE.Mesh(hubGeo,wheelGlass); hubMesh.position.x=hubX; g.add(hubMesh);
-
   const discGeo=new THREE.CylinderGeometry(0.72,0.72,0.05,48); discGeo.rotateZ(Math.PI/2);
   const disc=new THREE.Mesh(discGeo,M.brakeHot); disc.position.x=discX; g.add(disc);
   const discHoleGeo=new THREE.CylinderGeometry(0.28,0.28,0.06,32,1,true); discHoleGeo.rotateZ(Math.PI/2);
   const discHole=new THREE.Mesh(discHoleGeo,M.dark); discHole.position.x=discX; g.add(discHole);
-
   const ventGeo=new THREE.CylinderGeometry(0.045,0.045,0.07,10); ventGeo.rotateZ(Math.PI/2);
   for(let i=0;i<10;i++){
     const a=i/10*Math.PI*2;
     const v=new THREE.Mesh(ventGeo,M.dark);
     v.position.set(discX,Math.cos(a)*0.56,Math.sin(a)*0.56); g.add(v);
   }
-
   const A0=Math.PI*0.36, A1=Math.PI*0.64, Ro=0.80, Ri=0.60;
   const caliperShape=new THREE.Shape();
   caliperShape.absarc(0,0,Ro,A0,A1,false);
@@ -963,16 +880,14 @@ function makeWheel(flip){
     {depth:0.14,bevelEnabled:true,bevelThickness:0.015,bevelSize:0.015,bevelSegments:1});
   caliperGeo.translate(0,0,-0.07); caliperGeo.rotateY(Math.PI/2); caliperGeo.translate(discX,0,0);
   assembly.add(new THREE.Mesh(caliperGeo,M.caliper));
-
   const bracket=new THREE.Mesh(new THREE.BoxGeometry(0.10,0.55,0.16),M.dark);
   bracket.position.set(discX,0.42,0); assembly.add(bracket);
   assembly.add(new THREE.Mesh(cylX(.29,.29,.96,20),M.steel));
   assembly.add(new THREE.Mesh(cylX(.15,.15,1.04,14),M.dark));
   return assembly;
 }
-const wheel=makeWheel();    wheel.position.set(WX, OUT_Y,0); wheel.scale.setScalar(WSCALE); scene.add(wheel);
+const wheel=makeWheel(); wheel.position.set(WX,OUT_Y,0); wheel.scale.setScalar(WSCALE); scene.add(wheel);
 const wheelL=makeWheel(-1); wheelL.position.set(LWX,OUT_Y,0); wheelL.scale.setScalar(WSCALE); scene.add(wheelL);
-
 const brakes=[];
 [[WX,1],[LWX,-1]].forEach(([wx,f])=>{
   const dx=-0.25*f*WSCALE;
@@ -1031,7 +946,7 @@ function makeSpeedLabel(accent){
   };
   return s;
 }
-const engLabel=makeRpmLabel('#ffd166');  engLabel.position.set(-2.75,2.8,0); scene.add(engLabel); engLabel.userData.draw(0);
+const engLabel=makeRpmLabel('#ffd166'); engLabel.position.set(-2.75,2.8,0); scene.add(engLabel); engLabel.userData.draw(0);
 const whlLabel=makeSpeedLabel('#6cf09c'); whlLabel.position.set(WX,OUT_Y+2.94,0); scene.add(whlLabel); whlLabel.userData.draw(0);
 
 /* ============ ЗВУК ============ */
@@ -1091,7 +1006,7 @@ function setSoundOn(){
   if(!audio) audio=initAudio();
   if(audio.ctx.state==='suspended') audio.ctx.resume();
   soundOn=true;
-  audio.master.gain.setTargetAtTime(1.0, audio.ctx.currentTime, 0.05);
+  audio.master.gain.setTargetAtTime(1.0,audio.ctx.currentTime,0.05);
 }
 function updateSound(rpmNorm,f,sparkLevel,clash,brakeLvl){
   if(!audio||!soundOn) return;
@@ -1143,7 +1058,6 @@ function playStarter(dur){
 /* ============ ПЕДАЛИ ============ */
 let p=0, gasP=0, brakeP=0, rpmTarget=800;
 const REST_ANG=28, PRESS_ANG=32, PIVOT_K=14/150;
-
 const pedalTrack=document.getElementById('pedalTrack');
 const pedalArm=document.getElementById('pedalArm');
 const scaleMarker=document.getElementById('scaleMarker');
@@ -1161,7 +1075,6 @@ pedalTrack.addEventListener('pointerdown',e=>{ pedalDrag=true; try{pedalTrack.se
 pedalTrack.addEventListener('pointermove',e=>{ if(pedalDrag) pedalFromPointer(e.clientX,e.clientY); });
 pedalTrack.addEventListener('pointerup',()=>{ pedalDrag=false; });
 pedalTrack.addEventListener('pointercancel',()=>{ pedalDrag=false; });
-
 const brakeTrack=document.getElementById('brakeTrack');
 const brakeArm=document.getElementById('brakeArm');
 const brakeMarker=document.getElementById('brakeMarker');
@@ -1179,7 +1092,6 @@ brakeTrack.addEventListener('pointerdown',e=>{ brakeDrag=true; try{brakeTrack.se
 brakeTrack.addEventListener('pointermove',e=>{ if(brakeDrag) brakeFromPointer(e.clientX,e.clientY); });
 brakeTrack.addEventListener('pointerup',()=>{ brakeDrag=false; });
 brakeTrack.addEventListener('pointercancel',()=>{ brakeDrag=false; });
-
 const gasTrack=document.getElementById('gasTrack');
 const gasArm=document.getElementById('gasArm');
 const gasMarker=document.getElementById('gasMarker');
@@ -1202,7 +1114,6 @@ gasTrack.addEventListener('pointercancel',()=>{ gasDrag=false; });
 /* ============ РЫЧАГ КПП ============ */
 const gearTrack=document.getElementById('gearTrack');
 const gearKnob=document.getElementById('gearKnob');
-
 let gearSel='N';
 let leverNX=GATE_X[1], leverNY=ROW_Y[1];
 let goalNX=GATE_X[1], goalNY=ROW_Y[1];
@@ -1212,10 +1123,9 @@ let gearDrag=false;
 let rejectTimer=0;
 const REJECT_DUR=1.0;
 const FULL_DEPRESS=0.95;
-
-let shifterTargetX = 0.55;
-shifter.position.x = shifterTargetX;
-let wasAtNeutral = true;
+let shifterTargetX=0.55;
+shifter.position.x=shifterTargetX;
+let wasAtNeutral=true;
 
 function shiftBlocked(){ return (engineState==='running') && p<FULL_DEPRESS; }
 
@@ -1225,12 +1135,12 @@ function gearFromPointer(cx,cy){
   nx=Math.max(0,Math.min(1,nx)); ny=Math.max(0,Math.min(1,ny));
   const c=constrainToH(nx,ny);
   const intended=snapGear(c.x,c.y);
-
   if(shiftBlocked() && String(intended)!==String(gearSel)){
     const np=nodePos(gearSel), dev=0.13;
     goalNX=Math.max(np.x-dev,Math.min(np.x+dev,c.x));
     goalNY=Math.max(np.y-dev,Math.min(np.y+dev,c.y));
     tryGear=intended;
+    noClutchShiftTimer=1.5;   /* не глохнуть при попытке переключения без сцепления */
   } else {
     goalNX=c.x; goalNY=c.y;
     gearSel=intended;
@@ -1245,6 +1155,7 @@ function gearRelease(){
     pendingGear=g;
     tryGear=g;
     rejectTimer=REJECT_DUR;
+    noClutchShiftTimer=1.5;   /* защита от ложного глохания после отпускания рычага */
   } else {
     gearSel=g; tryGear=null; pendingGear=null; rejectTimer=0;
     const np=nodePos(g); goalNX=np.x; goalNY=np.y;
@@ -1293,8 +1204,8 @@ startBtn.addEventListener('click',()=>{
     return;
   }
   if(engineState==='cranking') return;
-  const clutchOut = p < 0.5;
-  const gearOn    = String(gearSel)!=='N';
+  const clutchOut=p<0.5;
+  const gearOn=String(gearSel)!=='N';
   if(clutchOut && gearOn){
     showMsg('⚠️ Для запуска выжмите сцепление или включите нейтраль<small>Стартер крутит, но двигатель не запускается — включена передача</small>','warn','startlock');
     playStarter(FAIL_DUR); failCrankT=FAIL_DUR; return;
@@ -1319,6 +1230,7 @@ let engOmega=0, dOmega=0, aOmega=0;
 let gElast=0, curGR=1, blocked=0, lastPct=-1;
 let brakeHeat=0;
 let tachoShown=0, speedoShown=0;
+let noClutchShiftTimer=0;   /* защита: не глохнуть после попытки переключения без сцепления */
 
 fitAll();
 
@@ -1327,6 +1239,7 @@ renderer.setAnimationLoop(()=>{
   let dt=Math.min(clock.getDelta(),.05);
 
   if(!brakeDrag) brakeP += (brakeKey - brakeP)*Math.min(1,dt*7);
+  if(noClutchShiftTimer>0) noClutchShiftTimer-=dt;
 
   const armAng=REST_ANG-p*(REST_ANG+PRESS_ANG);
   pedalArm.style.transform='rotate('+(-armAng).toFixed(1)+'deg)';
@@ -1337,13 +1250,11 @@ renderer.setAnimationLoop(()=>{
     pwPct.textContent=pctNow+'%';
     pwPct.style.color=(pctNow>=40&&pctNow<=60)?'#6cf09c':'#8fd0ff';
   }
-
   const brakeArmAng=REST_ANG-brakeP*(REST_ANG+PRESS_ANG);
   brakeArm.style.transform='rotate('+(-brakeArmAng).toFixed(1)+'deg)';
   brakeMarker.style.left=((1-brakeP)*100).toFixed(1)+'%';
   const brkPctNow=Math.round(brakeP*100);
   if(brkPctNow!==lastBrakePct){ lastBrakePct=brkPctNow; brakePctTxt.textContent=brkPctNow+'%'; }
-
   const gasArmAng=REST_ANG-gasP*(REST_ANG+PRESS_ANG);
   gasArm.style.transform='rotate('+(-gasArmAng).toFixed(1)+'deg)';
   gasMarker.style.left=((1-gasP)*100).toFixed(1)+'%';
@@ -1381,23 +1292,26 @@ renderer.setAnimationLoop(()=>{
     let t=1-Math.min(1,d/ENGAGE_DIST);
     gE=t*t*(3-2*t);
   }
-  curGR = GEAR_RATIO[gearSel] || 1;
+  curGR=GEAR_RATIO[gearSel]||1;
 
-  const clashGear = tryGear!=null ? tryGear : gearSel;
-  const mismatchNow = Math.abs(dOmega*(GEAR_RATIO[clashGear]||1) - aOmega);
-  const clashActive = blockShift && tryGear!=null && String(tryGear)!==String(gearSel)
-                      && gE<0.9 && mismatchNow>0.4;
+  const clashGear=tryGear!=null?tryGear:gearSel;
+  const mismatchNow=Math.abs(dOmega*(GEAR_RATIO[clashGear]||1)-aOmega);
+  const clashActive=blockShift && tryGear!=null && String(tryGear)!==String(gearSel)
+                    && gE<0.9 && mismatchNow>0.4;
   if(clashActive) gE=0;
   gElast=gE;
 
-  const govFactor = e > 0.5 ? (1.0 - brakeP * brakeP * 0.9) : 1.0;
+  const govFactor = e>0.5 ? (1.0 - brakeP*brakeP*0.9) : 1.0;
 
   if(engineState==='running'){
-    const gearMult = 1 + gElast*GEAR_LOAD;
+    const gearMult=1+gElast*GEAR_LOAD;
     engOmega += st*( GOV*govFactor*(eOmegaTarget-engOmega) - clutchT*gearMult/Ie );
-    /* мотор не глохнет при попытке переключения без выжатого сцепления */
+
+    /* ИСПРАВЛЕНО: двигатель НЕ глохнет при попытке выключить передачу без сцепления.
+       Условие глохания дополнено проверкой: если сцепление отпущено и пользователь
+       тянет/отпустил рычаг (попытка переключения), таймер запрещает глохнуть. */
     const isShiftingWithoutClutch = blockShift && tryGear!=null;
-    if(engOmega < STALL_OMEGA && gElast > 0.2 && !isShiftingWithoutClutch){
+    if(engOmega < STALL_OMEGA && gElast > 0.2 && !isShiftingWithoutClutch && noClutchShiftTimer<=0){
       engineState='stalled'; rpmTarget=IDLE_RPM; gasP=0;
       if(brakeP > 0.25){
         showMsg('⚠️ Двигатель заглох — резкое торможение на включённой передаче!<small>Перед торможением выжмите сцепление или выключите передачу, затем нажмите кнопку START</small>','warn','stall');
@@ -1408,11 +1322,11 @@ renderer.setAnimationLoop(()=>{
   } else if(engineState==='cranking'){
     crankT+=dt;
     engOmega += (CRANK_OMEGA-engOmega)*Math.min(1,dt*5);
-    if(crankT>1.25){ engineState='running'; engOmega=Math.max(engOmega, IDLE_OMEGA); }
+    if(crankT>1.25){ engineState='running'; engOmega=Math.max(engOmega,IDLE_OMEGA); }
   } else {
     if(failCrankT>0){
       failCrankT-=dt;
-      engOmega = 0.55 + Math.abs(Math.sin(performance.now()*0.035))*0.75;
+      engOmega=0.55+Math.abs(Math.sin(performance.now()*0.035))*0.75;
     } else {
       engOmega += st*(-5*engOmega);
       if(engOmega<0.01) engOmega=0;
@@ -1420,7 +1334,7 @@ renderer.setAnimationLoop(()=>{
   }
   engOmega=Math.max(0,engOmega);
 
-  const blockMsg = clashActive ? 1 : 0;
+  const blockMsg=clashActive?1:0;
   if(blockMsg && blocked!==blockMsg){
     blocked=blockMsg;
     showMsg('⚠️ Передача не включается — выжмите сцепление полностью!<small>Передачи переключаются только при полностью выжатом сцеплении</small>','warn','block');
@@ -1429,73 +1343,64 @@ renderer.setAnimationLoop(()=>{
     if(msgKind==='block') hideMsg();
   }
 
-  const brkVisc = BRK_VISC*brakeP;
-  const coastDrag = (1-gE)*RR + brkVisc;
+  const brkVisc=BRK_VISC*brakeP;
+  const coastDrag=(1-gE)*RR+brkVisc;
   const NSUB=32, h=st/NSUB;
   for(let s=0;s<NSUB;s++){
-    const err = dOmega*curGR - aOmega;
+    const err=dOmega*curGR-aOmega;
     dOmega += h*( clutchT - gE*curGR*GS*err - cutDrag*dOmega );
     aOmega += h*( gE*GS*err - coastDrag*aOmega );
   }
-  const staticDec = st*(0.4*(1-gE) + BRK_LOCK*brakeP);
-  if(aOmega >  staticDec) aOmega -= staticDec;
-  else if(aOmega < -staticDec) aOmega += staticDec;
-  else aOmega = 0;
+  const staticDec=st*(0.4*(1-gE)+BRK_LOCK*brakeP);
+  if(aOmega>staticDec) aOmega-=staticDec;
+  else if(aOmega<-staticDec) aOmega+=staticDec;
+  else aOmega=0;
   dOmega=Math.max(dOmega,0);
 
-  if(e > 0.98){
-    const avg = (engOmega + dOmega)/2;
-    engOmega = avg;
-    dOmega = avg;
+  if(e>0.98){
+    const avg=(engOmega+dOmega)/2;
+    engOmega=avg; dOmega=avg;
   }
 
-  thE += engOmega*dt; discAng += dOmega*dt; axleAng += aOmega*dt;
-
+  thE+=engOmega*dt; discAng+=dOmega*dt; axleAng+=aOmega*dt;
   crank.rotation.x=thE; flywheel.rotation.x=thE;
   clutchDisc.position.x=-1.00+gf*0.25;
   clutchDisc.rotation.x=discAng;
   forkG.rotation.z=gf*0.25;
   gA.rotation.x=discAng; gD.rotation.x=-axleAng;
 
-  const gateT = (leverNX - GATE_X[0])/(GATE_X[2]-GATE_X[0]);
-  const rowT  = (leverNY - ROW_Y[0])/(ROW_Y[2]-ROW_Y[0]);
-
-  const isAtNeutral = Math.abs(leverNY - ROW_Y[1]) < 0.03;
-  const isMovingToGear = Math.abs(leverNY - ROW_Y[1]) > 0.05;
-
-  if (isMovingToGear && !isAtNeutral) {
-    shifterTargetX = 0.30;
-    wasAtNeutral = false;
-  } else if (isAtNeutral && !wasAtNeutral) {
-    shifterTargetX = 0.55;
-    wasAtNeutral = true;
+  const gateT=(leverNX-GATE_X[0])/(GATE_X[2]-GATE_X[0]);
+  const rowT=(leverNY-ROW_Y[0])/(ROW_Y[2]-ROW_Y[0]);
+  const isAtNeutral=Math.abs(leverNY-ROW_Y[1])<0.03;
+  const isMovingToGear=Math.abs(leverNY-ROW_Y[1])>0.05;
+  if(isMovingToGear && !isAtNeutral){
+    shifterTargetX=0.30; wasAtNeutral=false;
+  } else if(isAtNeutral && !wasAtNeutral){
+    shifterTargetX=0.55; wasAtNeutral=true;
   }
-
-  shifter.position.x += (shifterTargetX - shifter.position.x) * Math.min(1, dt * 10);
-
-  gearLever3D.rotation.x = (rowT - 0.5) * 0.9;
-  gearLever3D.rotation.z = (0.5 - gateT) * 0.7;
+  shifter.position.x += (shifterTargetX-shifter.position.x)*Math.min(1,dt*10);
+  gearLever3D.rotation.x=(rowT-0.5)*0.9;
+  gearLever3D.rotation.z=(0.5-gateT)*0.7;
 
   {
-    _cFrom.set(SHIFTER_POS.x, SHIFTER_POS.y+0.10, SHIFTER_POS.z-0.28);
-    _cTo.set(shifter.position.x - 0.16, OUT_Y+0.25, 0);
-    _cMid.set((_cFrom.x+_cTo.x)*0.5, Math.min(_cFrom.y,_cTo.y)-0.20, (_cFrom.z+_cTo.z)*0.5);
+    _cFrom.set(SHIFTER_POS.x,SHIFTER_POS.y+0.10,SHIFTER_POS.z-0.28);
+    _cTo.set(shifter.position.x-0.16,OUT_Y+0.25,0);
+    _cMid.set((_cFrom.x+_cTo.x)*0.5,Math.min(_cFrom.y,_cTo.y)-0.20,(_cFrom.z+_cTo.z)*0.5);
     updateShiftCable(_cFrom,_cMid,_cTo);
   }
 
-  /* искры — в точке зацепления шестерён gA и gD */
-  MESH.x = (GA_X + shifter.position.x) / 2;
-  MESH.y = (0 + OUT_Y) / 2;
-  MESH.z = 0;
+  MESH.x=(GA_X+shifter.position.x)/2;
+  MESH.y=(0+OUT_Y)/2;
+  MESH.z=0;
   grindLight.position.set(MESH.x,MESH.y,MESH.z);
 
   gearKnob.style.left=(leverNX*100).toFixed(2)+'%';
-  gearKnob.style.top =(leverNY*100).toFixed(2)+'%';
+  gearKnob.style.top=(leverNY*100).toFixed(2)+'%';
 
-  const PEDAL_ANGLE = 0.5 + Math.PI/4 - 20*Math.PI/180;
-  pedal3D_clutch.rotation.x = p * PEDAL_ANGLE;
-  pedal3D_brake.rotation.x  = brakeP * PEDAL_ANGLE;
-  pedal3D_gas.rotation.x    = gasP * PEDAL_ANGLE;
+  const PEDAL_ANGLE=0.5+Math.PI/4-20*Math.PI/180;
+  pedal3D_clutch.rotation.x=p*PEDAL_ANGLE;
+  pedal3D_brake.rotation.x=brakeP*PEDAL_ANGLE;
+  pedal3D_gas.rotation.x=gasP*PEDAL_ANGLE;
 
   wheel.userData.rotor.rotation.x=-axleAng;
   wheelL.userData.rotor.rotation.x=-axleAng;
@@ -1519,21 +1424,19 @@ renderer.setAnimationLoop(()=>{
   const absOmega=Math.abs(aOmega);
   const speedN=Math.min(1,absOmega/6);
   const brakeLevel=brakeP*speedN;
-  brakeHeat += st*( brakeLevel*3.4 - brakeHeat*0.45 );
-  brakeHeat = Math.max(0, Math.min(1, brakeHeat));
-  const hh=Math.min(1, brakeHeat*1.15 + brakeLevel*0.25);
+  brakeHeat += st*(brakeLevel*3.4-brakeHeat*0.45);
+  brakeHeat=Math.max(0,Math.min(1,brakeHeat));
+  const hh=Math.min(1,brakeHeat*1.15+brakeLevel*0.25);
   M.brakeHot.color.copy(DISC_COLD).lerp(DISC_HOT,hh);
-  M.brakeHot.emissiveIntensity = hh*hh*3.0;
-  M.brakeHot.roughness = 0.40 - hh*0.22;
-  M.caliper.emissiveIntensity = brakeP*(0.65 + 0.55*speedN)*2.3;
-
+  M.brakeHot.emissiveIntensity=hh*hh*3.0;
+  M.brakeHot.roughness=0.40-hh*0.22;
+  M.caliper.emissiveIntensity=brakeP*(0.65+0.55*speedN)*2.3;
   if(brakeLevel>0.01){
     brakeEmitAcc += dt*(110+1700*brakeLevel)*brakeLevel;
     while(brakeEmitAcc>=1){ brakeEmitAcc-=1; spawnBrakeSpark(brakes[(Math.random()<0.5)?0:1]); }
   } else brakeEmitAcc=0;
-
   const flick=brakeLevel>0.01 ? brakeLevel*(5.0+Math.random()*3.5) : 0;
-  for(let i=0;i<brakes.length;i++) brakes[i].L.intensity = flick + brakeHeat*brakeHeat*1.8;
+  for(let i=0;i<brakes.length;i++) brakes[i].L.intensity=flick+brakeHeat*brakeHeat*1.8;
 
   const slip=Math.abs(engOmega-dOmega);
   const slipN=Math.min(1,slip/14);
@@ -1545,22 +1448,22 @@ renderer.setAnimationLoop(()=>{
   emitAcc+=dt*(60+700*sparkLevel)*sparkLevel;
   while(emitAcc>=1){ emitAcc-=1; spawnSpark(gx); }
 
-  const clash = clashActive ? Math.min(1, mismatchNow*1.2) : 0;
+  const clash=clashActive?Math.min(1,mismatchNow*1.2):0;
   if(clash>0.02){
     grindAcc+=dt*(300+1300*clash)*clash;
     while(grindAcc>=1){ grindAcc-=1; spawnGearSpark(); }
   } else grindAcc=0;
-  grindLight.intensity = clash>0 ? clash*(6.0+Math.random()*4.5) : 0;
+  grindLight.intensity=clash>0?clash*(6.0+Math.random()*4.5):0;
 
   for(let i=0;i<SPARK_N;i++){
     if(sparkLife[i]>0){
       sparkLife[i]-=dt;
       sparkVel[i*3+1]-=2.2*dt;
-      sparkPos[i*3]  +=sparkVel[i*3]*dt;
+      sparkPos[i*3]+=sparkVel[i*3]*dt;
       sparkPos[i*3+1]+=sparkVel[i*3+1]*dt;
       sparkPos[i*3+2]+=sparkVel[i*3+2]*dt;
       const f0=Math.max(0,sparkLife[i]/sparkMax[i]);
-      sparkCol[i*3]  =Math.min(1,f0*2.6);
+      sparkCol[i*3]=Math.min(1,f0*2.6);
       sparkCol[i*3+1]=Math.min(1,f0*2.1);
       sparkCol[i*3+2]=Math.min(1,f0*1.4);
       if(sparkLife[i]<=0){ sparkPos[i*3+1]=-999; sparkCol[i*3]=sparkCol[i*3+1]=sparkCol[i*3+2]=0; }
@@ -1570,39 +1473,37 @@ renderer.setAnimationLoop(()=>{
   sparkGeo.attributes.color.needsUpdate=true;
 
   glowRing.position.x=gx;
-  glowMat.opacity = sparkLevel>0 ? Math.min(1,sparkLevel*1.5)*(0.85+Math.random()*0.25) : 0;
+  glowMat.opacity=sparkLevel>0?Math.min(1,sparkLevel*1.5)*(0.85+Math.random()*0.25):0;
   const gsc=0.9+sparkLevel*0.35; glowRing.scale.set(gsc,gsc,gsc);
   sparkLight.position.set(gx,0.4,0.4);
-  sparkLight.intensity=sparkLevel>0 ? sparkLevel*(4.5+Math.random()*3.0) : 0;
-  const slipGlow=clutchSlipping ? (e*Math.pow(slip,1.5)*0.03 + sparkLevel*1.2) : 0;
-  M.orange.emissiveIntensity=Math.min(2.0, slipGlow);
+  sparkLight.intensity=sparkLevel>0?sparkLevel*(4.5+Math.random()*3.0):0;
+  const slipGlow=clutchSlipping?(e*Math.pow(slip,1.5)*0.03+sparkLevel*1.2):0;
+  M.orange.emissiveIntensity=Math.min(2.0,slipGlow);
 
   const rpmNow=engOmega/SLOW*9.549;
-  updateSound(Math.max(0,(rpmNow-800)/3200), rpmNow/60, sparkLevel, clash, brakeLevel);
+  updateSound(Math.max(0,(rpmNow-800)/3200),rpmNow/60,sparkLevel,clash,brakeLevel);
 
-  const wheelRpm = aOmega/SLOW * 9.549;
-  const speedKmh = wheelRpm * SPEED_K;
-  const absSpeed = Math.abs(speedKmh);
-  tachoShown  += (rpmNow  - tachoShown )*Math.min(1,dt*9);
-  speedoShown += (absSpeed- speedoShown)*Math.min(1,dt*9);
-  setGauge(tacho,  tachoShown);
-  setGauge(speedo, speedoShown);
+  const wheelRpm=aOmega/SLOW*9.549;
+  const speedKmh=wheelRpm*SPEED_K;
+  const absSpeed=Math.abs(speedKmh);
+  tachoShown += (rpmNow-tachoShown)*Math.min(1,dt*9);
+  speedoShown += (absSpeed-speedoShown)*Math.min(1,dt*9);
+  setGauge(tacho,tachoShown);
+  setGauge(speedo,speedoShown);
 
   hudT+=dt;
   if(hudT>0.08){
     hudT=0;
-    tacho.dig.textContent  = Math.round(tachoShown);
-    speedo.dig.textContent = Math.round(speedoShown);
+    tacho.dig.textContent=Math.round(tachoShown);
+    speedo.dig.textContent=Math.round(speedoShown);
     engLabel.userData.draw(Math.round(rpmNow));
     whlLabel.userData.draw(Math.round(absSpeed));
     gasRpmTxt.textContent=Math.round(rpmNow)+' об/мин';
-
     for(const k in gateLabelEls){
       const on=(k===String(gearSel));
-      gateLabelEls[k].setAttribute('fill', on ? (k==='R'?'#ff9d8f':'#6cf09c') : '#93a6bb');
-      gateLabelEls[k].setAttribute('font-size', on ? '16' : '13');
+      gateLabelEls[k].setAttribute('fill',on?(k==='R'?'#ff9d8f':'#6cf09c'):'#93a6bb');
+      gateLabelEls[k].setAttribute('font-size',on?'16':'13');
     }
-
     if(engineState==='running'){
       startBtnTxt.textContent='СТОП';
       startBtn.classList.add('kill');
@@ -1610,7 +1511,7 @@ renderer.setAnimationLoop(()=>{
     } else {
       startBtnTxt.textContent='СТАРТ';
       startBtn.classList.remove('kill');
-      startBtn.classList.toggle('dis', engineState==='cranking');
+      startBtn.classList.toggle('dis',engineState==='cranking');
     }
   }
 
