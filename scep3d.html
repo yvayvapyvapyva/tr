@@ -10,20 +10,21 @@
   #view{position:absolute;inset:0}
   canvas{display:block}
 
+  /* ---------- ПАНЕЛЬ ПРИБОРОВ (левый верхний угол) ---------- */
   #topUI{position:fixed;top:calc(8px + env(safe-area-inset-top));left:12px;
        transform-origin:top left;z-index:12;
-       display:flex;gap:14px;align-items:center;padding:10px 16px;
+       display:flex;gap:12px;align-items:center;padding:6px 14px;
        background:rgba(10,16,26,.88);border:1px solid #26374d;border-radius:20px;
        backdrop-filter:blur(4px);box-shadow:0 6px 24px rgba(0,0,0,.45);
        user-select:none;-webkit-user-select:none;pointer-events:none}
-  .gauge{width:104px;flex:0 0 auto}
+  .gauge{width:116px;flex:0 0 auto;align-self:stretch;display:flex;align-items:center}
   .gauge svg{display:block;width:100%;height:auto;filter:drop-shadow(0 2px 8px rgba(0,0,0,.5))}
 
   #startBtn{position:relative;flex:0 0 auto;
-       width:80px;height:80px;border-radius:50%;border:none;cursor:pointer;padding:0;margin:0;
+       width:66px;height:66px;border-radius:50%;border:none;cursor:pointer;padding:0;margin:0;
        background:radial-gradient(circle at 34% 28%, #46586c 0%, #243141 46%, #0e1620 100%);
        color:#6cf09c;
-       display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;
+       display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;
        pointer-events:auto;touch-action:manipulation;
        box-shadow:0 0 0 3px #33465c,0 0 0 5px #131c26,
          inset 0 2px 5px rgba(255,255,255,.18),inset 0 -4px 8px rgba(0,0,0,.55),
@@ -31,8 +32,8 @@
        transition:transform .08s ease, box-shadow .25s ease, color .25s ease;
        -webkit-tap-highlight-color:transparent}
   #startBtn .pwr{display:block;filter:drop-shadow(0 0 5px currentColor)}
-  #startBtnTxt{font-family:Arial,sans-serif;font-size:10.5px;font-weight:bold;
-       letter-spacing:1.1px;text-shadow:0 0 8px currentColor}
+  #startBtnTxt{font-family:Arial,sans-serif;font-size:9.5px;font-weight:bold;
+       letter-spacing:.9px;text-shadow:0 0 8px currentColor}
   #startBtn:hover{box-shadow:0 0 0 3px #3d5570,0 0 0 5px #131c26,
          inset 0 2px 5px rgba(255,255,255,.22),inset 0 -4px 8px rgba(0,0,0,.55),
          0 0 24px rgba(108,240,156,.55),0 6px 14px rgba(0,0,0,.5)}
@@ -48,24 +49,28 @@
          inset 0 2px 5px rgba(255,255,255,.18),inset 0 -4px 8px rgba(0,0,0,.55),
          0 0 28px rgba(255,90,60,.75),0 6px 14px rgba(0,0,0,.5)}
 
-  #gearUI{position:fixed;top:calc(8px + env(safe-area-inset-top));right:12px;z-index:12;
+  /* ---------- ПАНЕЛЬ КПП: БЕЗ РАМОК, НА ВСЮ ПЛОЩАДЬ ---------- */
+  #gearUI{position:fixed;top:calc(6px + env(safe-area-inset-top));right:6px;z-index:12;
        display:flex;flex-direction:column;align-items:center;
-       background:rgba(10,16,26,.88);border:1px solid #26374d;border-radius:18px;
-       padding:8px 10px 10px;backdrop-filter:blur(4px);
-       box-shadow:0 6px 24px rgba(0,0,0,.45);
+       background:none;border:none;border-radius:0;
+       padding:0;margin:0;box-shadow:none;backdrop-filter:none;
        user-select:none;-webkit-user-select:none;touch-action:none;
-       pointer-events:auto;transform-origin:top right}
-  #gearTrack{position:relative;width:120px;height:120px;cursor:grab;overflow:hidden;flex:0 0 auto;
-       background:linear-gradient(#16222f,#0d1720);border-radius:12px;border:1px solid #24384d;
-       box-shadow:inset 0 2px 12px rgba(0,0,0,.55)}
+       pointer-events:none;transform-origin:top right}
+  #gearTrack{position:relative;width:152px;height:152px;cursor:grab;
+       overflow:visible;flex:0 0 auto;
+       background:none;border:none;border-radius:0;box-shadow:none;
+       pointer-events:auto}
   #gearTrack:active{cursor:grabbing}
-  #gateSvg{position:absolute;inset:0;width:100%;height:100%;display:block;pointer-events:none}
-  #gearKnob{position:absolute;left:50%;top:50%;width:28px;height:28px;margin:-14px 0 0 -14px;
+  #gateSvg{position:absolute;inset:0;width:100%;height:100%;display:block;
+       pointer-events:none;overflow:visible;
+       filter:drop-shadow(0 3px 10px rgba(0,0,0,.65))}
+  #gearKnob{position:absolute;left:50%;top:50%;width:30px;height:30px;margin:-15px 0 0 -15px;
        border-radius:50%;pointer-events:none;z-index:5;
-       background:radial-gradient(circle at 34% 28%, #8d98a6, #39424d 62%, #1b222a 100%);
-       border:2px solid #6b7684;
-       box-shadow:0 3px 10px rgba(0,0,0,.65),inset 0 2px 4px rgba(255,255,255,.28)}
+       background:radial-gradient(circle at 34% 28%, #9aa5b3, #3d4650 62%, #1b222a 100%);
+       border:2px solid #77828f;
+       box-shadow:0 4px 14px rgba(0,0,0,.8),inset 0 2px 4px rgba(255,255,255,.32)}
 
+  /* ---------- НИЖНЯЯ ПАНЕЛЬ (педали) ---------- */
   #bottomUI{position:fixed;bottom:calc(8px + env(safe-area-inset-bottom));left:12px;z-index:10;
        display:flex;align-items:stretch;width:max-content;transform-origin:bottom left;
        background:rgba(10,16,26,.86);border:1px solid #26374d;border-radius:16px;padding:8px 4px 8px;
@@ -98,7 +103,8 @@
   #gasRpm{font-size:12px;font-weight:bold;color:#ffd166;font-variant-numeric:tabular-nums;white-space:nowrap}
   #brakePct{font-size:14px;font-weight:bold;color:#ff6b5a;font-variant-numeric:tabular-nums}
 
-  #msg{position:fixed;top:calc(118px + env(safe-area-inset-top));left:50%;
+  /* ---------- ИНФОРМАЦИОННЫЕ ТАБЛИЧКИ ---------- */
+  #msg{position:fixed;top:calc(142px + env(safe-area-inset-top));left:50%;
        transform:translateX(-50%);z-index:20;
        padding:12px 22px;border-radius:14px;font-size:15px;font-weight:bold;text-align:center;display:none;max-width:92vw}
   #msg small{display:block;font-weight:normal;font-size:12px;margin-top:5px;opacity:.85}
@@ -108,16 +114,16 @@
   @media (max-width:760px){
     .pcol{padding:0 8px}
     #bottomUI{padding:6px 2px 6px}
-    #msg{font-size:13px;padding:10px 14px;top:calc(92px + env(safe-area-inset-top));max-width:94vw}
+    #msg{font-size:13px;padding:10px 14px;top:calc(106px + env(safe-area-inset-top));max-width:94vw}
     #msg small{font-size:11px}
-    .gauge{width:82px}
-    #topUI{gap:10px;padding:8px 12px}
-    #startBtn{width:64px;height:64px}
-    #startBtnTxt{font-size:9px;letter-spacing:.8px}
-    #startBtn .pwr{width:17px;height:17px}
-    #gearUI{padding:6px 8px 8px}
-    #gearTrack{width:96px;height:96px}
-    #gearKnob{width:22px;height:22px;margin:-11px 0 0 -11px}
+    .gauge{width:86px}
+    #topUI{gap:8px;padding:5px 10px}
+    #startBtn{width:54px;height:54px}
+    #startBtnTxt{font-size:8px;letter-spacing:.6px}
+    #startBtn .pwr{width:15px;height:15px}
+    #gearUI{top:calc(4px + env(safe-area-inset-top));right:4px}
+    #gearTrack{width:112px;height:112px}
+    #gearKnob{width:24px;height:24px;margin:-12px 0 0 -12px}
   }
 </style>
 </head>
@@ -128,7 +134,7 @@
   <div class="gauge"><svg id="tachoSvg"  viewBox="-60 -60 120 120"></svg></div>
   <div class="gauge"><svg id="speedoSvg" viewBox="-60 -60 120 120"></svg></div>
   <button id="startBtn" type="button" aria-label="Старт / Стоп двигателя">
-    <svg class="pwr" viewBox="0 0 24 24" width="21" height="21" aria-hidden="true">
+    <svg class="pwr" viewBox="0 0 24 24" width="19" height="19" aria-hidden="true">
       <path d="M12 3.2v8.4" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" fill="none"/>
       <path d="M6.6 6.9a7.9 7.9 0 1 0 10.8 0" stroke="currentColor" stroke-width="2.5"
             stroke-linecap="round" fill="none"/>
@@ -137,6 +143,7 @@
   </button>
 </div>
 
+<!-- ПАНЕЛЬ КПП: без рамок, схема занимает всю площадь -->
 <div id="gearUI">
   <div id="gearTrack">
     <svg id="gateSvg" viewBox="0 0 100 100"></svg>
@@ -310,9 +317,19 @@ function resize(){
   renderer.setSize(w,h); camera.aspect=w/h; camera.updateProjectionMatrix();
 }
 
+/* ============================================================
+   ИСПРАВЛЕНО: плотная подгонка камеры по ПРОЕКЦИИ габаритов
+   на оси камеры, а не по описанной сфере (диагонали бокса).
+   Раньше radius = size.length()/2 завышал расстояние почти вдвое.
+   Теперь считаем отдельно по вертикали и горизонтали и берём
+   максимум — модель максимально крупная, но целиком в кадре.
+   ============================================================ */
+const FIT_DIR = new THREE.Vector3(0.38, 0.32, 1.0).normalize();
 function fitCameraToScene(){
   scene.updateMatrixWorld(true);
+
   const box = new THREE.Box3();
+  const tmp = new THREE.Box3();
   scene.traverse(obj => {
     if(obj.isGridHelper) return;
     if(obj.isLight) return;
@@ -320,23 +337,39 @@ function fitCameraToScene(){
     if(obj.isPoints) return;
     if(!obj.geometry) return;
     if(!obj.geometry.boundingBox) obj.geometry.computeBoundingBox();
-    const b = obj.geometry.boundingBox.clone();
-    b.applyMatrix4(obj.matrixWorld);
-    box.union(b);
+    tmp.copy(obj.geometry.boundingBox).applyMatrix4(obj.matrixWorld);
+    box.union(tmp);
   });
   if(box.isEmpty()) return;
-  const size = box.getSize(new THREE.Vector3());
+
   const center = box.getCenter(new THREE.Vector3());
+
+  /* ставим камеру предварительно, чтобы получить её базисные векторы */
+  camera.position.copy(center).addScaledVector(FIT_DIR, 20);
+  camera.up.set(0,1,0);
+  camera.lookAt(center);
+  camera.updateMatrixWorld();
+
+  const camRight = new THREE.Vector3().setFromMatrixColumn(camera.matrixWorld,0).normalize();
+  const camUp    = new THREE.Vector3().setFromMatrixColumn(camera.matrixWorld,1).normalize();
+
+  /* максимальный полуразмер проекции бокса на оси right/up */
+  const hx=(box.max.x-box.min.x)/2, hy=(box.max.y-box.min.y)/2, hz=(box.max.z-box.min.z)/2;
+  const maxRight = hx*Math.abs(camRight.x) + hy*Math.abs(camRight.y) + hz*Math.abs(camRight.z);
+  const maxUp    = hx*Math.abs(camUp.x)    + hy*Math.abs(camUp.y)    + hz*Math.abs(camUp.z);
+
   const fovV = camera.fov * Math.PI/180;
-  const fovH = 2 * Math.atan(Math.tan(fovV/2) * camera.aspect);
-  const fov = Math.min(fovV, fovH);
-  const maxDim = Math.max(size.x, size.y, size.z);
-  let dist = (maxDim / 2) / Math.tan(fov/2);
-  dist *= 1.18;
-  const dir = new THREE.Vector3(0.38, 0.32, 1.0).normalize();
-  camera.position.copy(center).addScaledVector(dir, dist);
+  const tanV = Math.tan(fovV/2);
+  const tanH = tanV * camera.aspect;
+
+  const distV = maxUp    / tanV;
+  const distH = maxRight / tanH;
+  let dist = Math.max(distV, distH) * 1.05;   /* минимальный запас 5% */
+
+  camera.position.copy(center).addScaledVector(FIT_DIR, dist);
+  camera.lookAt(center);
   controls.target.copy(center);
-  camera.near = Math.max(0.1, dist * 0.01);
+  camera.near = Math.max(0.05, dist * 0.01);
   camera.far  = dist * 30;
   camera.updateProjectionMatrix();
   controls.update();
@@ -345,6 +378,7 @@ function fitCameraToScene(){
 const bottomUI=document.getElementById('bottomUI');
 const topUI=document.getElementById('topUI');
 const gearUI=document.getElementById('gearUI');
+let topUIScale=1;
 function fitBottomUI(){
   bottomUI.style.transform='scale(1)';
   const w=bottomUI.offsetWidth;
@@ -353,13 +387,17 @@ function fitBottomUI(){
 function fitTopUI(){
   topUI.style.transform='scale(1)';
   const w=topUI.offsetWidth;
-  topUI.style.transform='scale('+Math.min(1,(innerWidth-24)/w)+')';
+  topUIScale=Math.min(1,(innerWidth-24)/w);
+  topUI.style.transform='scale('+topUIScale+')';
 }
+/* панель КПП масштабируется так, чтобы не наезжать на панель приборов */
 function fitGearUI(){
   gearUI.style.transform='scale(1)';
   const w=gearUI.offsetWidth, h=gearUI.offsetHeight;
-  const sW=Math.min(1,(innerWidth-24)/w);
-  const sH=Math.min(1,(innerHeight-230)/h);
+  const topW = topUI.offsetWidth * topUIScale;
+  const availW = innerWidth - topW - 40;
+  const sW = Math.min(1, Math.max(0.45, availW / w));
+  const sH = Math.min(1, (innerHeight - 210) / h);
   gearUI.style.transform='scale('+Math.min(sW,sH)+')';
 }
 function fitAll(){ resize(); fitBottomUI(); fitTopUI(); fitGearUI(); fitCameraToScene(); }
@@ -377,33 +415,49 @@ const GA_A0=-120, GA_A1=120;
 function gaAng(t){ return (GA_A0 + t*(GA_A1-GA_A0))*Math.PI/180; }
 function gaPol(a,r){ return [Math.sin(a)*r, -Math.cos(a)*r]; }
 
+function arcPath(r,t0,t1){
+  const a0=gaAng(t0), a1=gaAng(t1);
+  const [x0,y0]=gaPol(a0,r), [x1,y1]=gaPol(a1,r);
+  const large = Math.abs(a1-a0) > Math.PI ? 1 : 0;
+  return `M ${x0.toFixed(2)} ${y0.toFixed(2)} A ${r} ${r} 0 ${large} 1 ${x1.toFixed(2)} ${y1.toFixed(2)}`;
+}
+
 function buildGauge(svg,cfg){
   while(svg.firstChild) svg.removeChild(svg.firstChild);
   svg.appendChild(mkEl('circle',{cx:0,cy:0,r:56,fill:'#0b121b',stroke:'#2b3d52','stroke-width':2.5}));
   svg.appendChild(mkEl('circle',{cx:0,cy:0,r:52,fill:'#0e1723',stroke:'#1b2a3a','stroke-width':1}));
-  if(cfg.redFrom!=null){
-    const a0=gaAng(cfg.redFrom/cfg.max), a1=gaAng(1);
-    const [x0,y0]=gaPol(a0,46), [x1,y1]=gaPol(a1,46);
+
+  if(cfg.greenFrom!=null && cfg.greenTo!=null){
     svg.appendChild(mkEl('path',{
-      d:`M ${x0.toFixed(2)} ${y0.toFixed(2)} A 46 46 0 0 1 ${x1.toFixed(2)} ${y1.toFixed(2)}`,
+      d:arcPath(46, cfg.greenFrom/cfg.max, cfg.greenTo/cfg.max),
+      fill:'none',stroke:'#2fae5f','stroke-width':5,opacity:.95}));
+  }
+  if(cfg.redFrom!=null){
+    svg.appendChild(mkEl('path',{
+      d:arcPath(46, cfg.redFrom/cfg.max, 1),
       fill:'none',stroke:'#d6402c','stroke-width':5,opacity:.9}));
   }
+
   const n=Math.round(cfg.max/cfg.step);
   for(let i=0;i<=n;i++){
     const v=i*cfg.step, t=v/cfg.max, a=gaAng(t);
     const maj=(Math.round(v)%cfg.major===0);
     const r1=maj?37:43, r2=47;
     const [x1,y1]=gaPol(a,r1), [x2,y2]=gaPol(a,r2);
-    const inRed=(cfg.redFrom!=null && v>=cfg.redFrom);
+    const inRed  =(cfg.redFrom!=null && v>=cfg.redFrom);
+    const inGreen=(cfg.greenFrom!=null && cfg.greenTo!=null && v>=cfg.greenFrom && v<=cfg.greenTo);
+    let tickCol='#6f8298';
+    if(maj) tickCol = inRed ? '#ff8d7a' : (inGreen ? '#7dffa8' : '#d8e6f5');
+    else if(inGreen) tickCol='#3f8f5f';
     svg.appendChild(mkEl('line',{
       x1:x1.toFixed(2),y1:y1.toFixed(2),x2:x2.toFixed(2),y2:y2.toFixed(2),
-      stroke: maj ? (inRed?'#ff8d7a':'#d8e6f5') : '#6f8298',
+      stroke: tickCol,
       'stroke-width': maj?2.2:1.1,'stroke-linecap':'round'}));
     if(maj){
       const [tx,ty]=gaPol(a,28);
-      const txt=mkEl('text',{x:tx.toFixed(2),y:(ty+3.6).toFixed(2),
+      const txt=mkEl('text',{x:tx.toFixed(2),y:(ty+3.2).toFixed(2),
         'text-anchor':'middle','font-size':cfg.numSize||10,'font-weight':'bold',
-        fill: inRed?'#ff9d8f':cfg.color,'font-family':'Arial'});
+        fill: inRed?'#ff9d8f':(inGreen?'#7dffa8':cfg.color),'font-family':'Arial'});
       txt.textContent=String(Math.round(v/cfg.divider));
       svg.appendChild(txt);
     }
@@ -426,20 +480,23 @@ function setGauge(g,value){
   const t=Math.max(0,Math.min(1,value/g.max));
   g.needle.setAttribute('transform','rotate('+(GA_A0 + t*(GA_A1-GA_A0)).toFixed(2)+')');
 }
+
 const tacho=buildGauge(document.getElementById('tachoSvg'),{
-  max:5000, step:250, major:1000, redFrom:4000, divider:1000,
+  max:5000, step:250, major:1000, redFrom:4000,
+  greenFrom:1500, greenTo:2500,
+  divider:1000,
   color:'#ffd166', needle:'#ff6b4a', unit:'об/мин ×1000'
 });
 const speedo=buildGauge(document.getElementById('speedoSvg'),{
-  max:180, step:10, major:30, divider:1, numSize:8,
+  max:180, step:10, major:20, divider:1, numSize:8,
   color:'#6cf09c', needle:'#6cf09c', unit:'км/ч'
 });
 
 /* ============ СХЕМА «Ж» ============ */
 const GATE_X=[0.20,0.50,0.80];
 const ROW_Y =[0.22,0.50,0.78];
-const BAR_THRESH=0.10;
 const ENGAGE_DIST=0.17;
+const BAR_THRESH=0.10;
 
 const GEAR_NODES=[
   {id:1,  gx:0, row:0},
@@ -458,13 +515,18 @@ function nodePos(g){
   const n=GEAR_NODES.find(n=>String(n.id)===String(g));
   return {x:GATE_X[n.gx], y:ROW_Y[n.row]};
 }
+
+/* ручка ходит строго по пазам; смена кулисы только через нейтраль */
+let curGate = 1;
 function constrainToH(nx,ny){
-  let gi=0,bd=Infinity;
-  for(let i=0;i<3;i++){ const d=Math.abs(nx-GATE_X[i]); if(d<bd){bd=d;gi=i;} }
-  if(Math.abs(ny-ROW_Y[1])<BAR_THRESH){
-    return {x:Math.max(GATE_X[0],Math.min(GATE_X[2],nx)), y:ROW_Y[1]};
+  const onBarZone = Math.abs(ny - ROW_Y[1]) < BAR_THRESH;
+  if(onBarZone){
+    let gi=0,bd=Infinity;
+    for(let i=0;i<3;i++){ const d=Math.abs(nx-GATE_X[i]); if(d<bd){bd=d;gi=i;} }
+    curGate = gi;
+    return {x: Math.max(GATE_X[0],Math.min(GATE_X[2],nx)), y: ROW_Y[1]};
   }
-  return {x:GATE_X[gi], y:Math.max(ROW_Y[0],Math.min(ROW_Y[2],ny))};
+  return {x: GATE_X[curGate], y: Math.max(ROW_Y[0],Math.min(ROW_Y[2],ny))};
 }
 function snapGear(nx,ny){
   if(Math.abs(ny-ROW_Y[1])<0.02) return 'N';
@@ -477,6 +539,7 @@ function snapGear(nx,ny){
   return best;
 }
 
+/* ---------- отрисовка схемы БЕЗ рамки-подложки, на всю площадь ---------- */
 const gateSvg=document.getElementById('gateSvg');
 const gateLabelEls={};
 (function buildGate(){
@@ -487,32 +550,34 @@ const gateLabelEls={};
     [X(1),Y(0),X(1),Y(2)],
     [X(2),Y(0),X(2),Y(2)],
   ];
+  /* пазы: тёмная канавка + внутренняя часть + блик */
   for(const [x1,y1,x2,y2] of segs)
-    gateSvg.appendChild(mkEl('line',{x1,y1,x2,y2,stroke:'#04070b','stroke-width':14,'stroke-linecap':'round'}));
+    gateSvg.appendChild(mkEl('line',{x1,y1,x2,y2,stroke:'#05080d','stroke-width':16,'stroke-linecap':'round',opacity:.92}));
   for(const [x1,y1,x2,y2] of segs)
-    gateSvg.appendChild(mkEl('line',{x1,y1,x2,y2,stroke:'#1e2f42','stroke-width':8,'stroke-linecap':'round'}));
+    gateSvg.appendChild(mkEl('line',{x1,y1,x2,y2,stroke:'#1b2b3d','stroke-width':9.5,'stroke-linecap':'round'}));
   for(const [x1,y1,x2,y2] of segs)
-    gateSvg.appendChild(mkEl('line',{x1,y1,x2,y2,stroke:'#2c4258','stroke-width':2,'stroke-linecap':'round',opacity:.55}));
+    gateSvg.appendChild(mkEl('line',{x1,y1,x2,y2,stroke:'#3b5872','stroke-width':2,'stroke-linecap':'round',opacity:.5}));
 
   gateSvg.appendChild(mkEl('line',{
-    x1:X(0)+6,y1:Y(1),x2:X(2)-6,y2:Y(1),
-    stroke:'#2a8f4f','stroke-width':2.5,'stroke-linecap':'round',opacity:.45}));
+    x1:X(0)+7,y1:Y(1),x2:X(2)-7,y2:Y(1),
+    stroke:'#2fae5f','stroke-width':2.5,'stroke-linecap':'round',opacity:.5}));
 
-  const labels=[
-    {t:'1',x:X(0),y:Y(0)-9}, {t:'3',x:X(1),y:Y(0)-9}, {t:'5',x:X(2),y:Y(0)-9},
-    {t:'2',x:X(0),y:Y(2)+15},{t:'4',x:X(1),y:Y(2)+15},{t:'R',x:X(2),y:Y(2)+15},
-  ];
-  for(const L of labels){
-    const el=mkEl('text',{x:L.x,y:L.y,'text-anchor':'middle','dominant-baseline':'middle',
-      'font-size':12,'font-weight':'bold',fill:'#8fa3bb','font-family':'Arial'});
-    el.textContent=L.t;
+  /* подписи с тёмной обводкой — читаются на любом фоне (рамки больше нет) */
+  const mkLabel=(t,x,y,size,color)=>{
+    const el=mkEl('text',{x,y,'text-anchor':'middle','dominant-baseline':'middle',
+      'font-size':size,'font-weight':'bold',fill:color,'font-family':'Arial',
+      stroke:'#060b12','stroke-width':3.2,'paint-order':'stroke',
+      'stroke-linejoin':'round'});
+    el.textContent=t;
     gateSvg.appendChild(el);
-    gateLabelEls[String(L.t)]=el;
-  }
-  const nEl=mkEl('text',{x:(X(0)+X(1))/2,y:Y(1)-9,'text-anchor':'middle','dominant-baseline':'middle',
-    'font-size':10,'font-weight':'bold',fill:'#4f9a6d','font-family':'Arial'});
-  nEl.textContent='N';
-  gateSvg.appendChild(nEl);
+    return el;
+  };
+  const labels=[
+    {t:'1',x:X(0),y:Y(0)-10}, {t:'3',x:X(1),y:Y(0)-10}, {t:'5',x:X(2),y:Y(0)-10},
+    {t:'2',x:X(0),y:Y(2)+16},{t:'4',x:X(1),y:Y(2)+16},{t:'R',x:X(2),y:Y(2)+16},
+  ];
+  for(const L of labels) gateLabelEls[String(L.t)] = mkLabel(L.t,L.x,L.y,13,'#93a6bb');
+  mkLabel('N',(X(0)+X(1))/2,Y(1)-10,11,'#5cb87f');
 })();
 
 /* ============ МАТЕРИАЛЫ ============ */
@@ -677,12 +742,13 @@ function spawnSpark(gx){
   sparkVel[i*3+2]= Math.cos(a)*tv+Math.sin(a)*Math.random()*1.2;
   sparkMax[i]=sparkLife[i]=0.24+Math.random()*0.42;
 }
-const MESH={x:0.41,y:-1.25,z:0};
+/* точка хруста — в месте зацепления двух шестерён */
+const MESH={x:0.30,y:-0.75,z:0};
 function spawnGearSpark(){
   const i=sparkHead; sparkHead=(sparkHead+1)%SPARK_N;
-  sparkPos[i*3]  =MESH.x+(Math.random()-0.5)*0.12;
-  sparkPos[i*3+1]=MESH.y+(Math.random()-0.5)*0.12;
-  sparkPos[i*3+2]=MESH.z+(Math.random()-0.5)*0.18;
+  sparkPos[i*3]  =MESH.x+(Math.random()-0.5)*0.30;
+  sparkPos[i*3+1]=MESH.y+(Math.random()-0.5)*0.30;
+  sparkPos[i*3+2]=MESH.z+(Math.random()-0.5)*0.30;
   const sp=1.8+Math.random()*3.2, a=Math.random()*Math.PI*2;
   sparkVel[i*3]  =Math.cos(a)*sp*0.7;
   sparkVel[i*3+1]=-Math.random()*sp-0.5;
@@ -729,6 +795,8 @@ addHousing(new THREE.Mesh(new THREE.BoxGeometry(0.82,3.1,1.7),glass())).position
 const OUT_Y=-1.50;
 const outShaft=new THREE.Mesh(cylX(.12,.12,8.2,24),M.blue); outShaft.position.set(-1.49,OUT_Y,0); scene.add(outShaft);
 
+const GA_X = 0.30;
+
 function makeGear(teeth,r,thick,mat){
   const g=new THREE.Group();
   g.add(new THREE.Mesh(cylX(r,r,thick,30),mat));
@@ -738,7 +806,7 @@ function makeGear(teeth,r,thick,mat){
     t.position.set(0,Math.cos(a)*(r+.02),Math.sin(a)*(r+.02)); t.rotation.x=a; g.add(t); }
   return g;
 }
-const gA=makeGear(16,.75,.2,M.blue); gA.position.set(0.30, 0,  0); scene.add(gA);
+const gA=makeGear(16,.75,.2,M.blue); gA.position.set(GA_X, 0,  0); scene.add(gA);
 
 const shifter=new THREE.Group(); scene.add(shifter);
 const gD=makeGear(16,.75,.2,M.blue); gD.position.y=OUT_Y; shifter.add(gD);
@@ -746,8 +814,6 @@ const prongGeo=new THREE.BoxGeometry(.06,.5,.12);
 const pr1=new THREE.Mesh(prongGeo,M.dark); pr1.position.set(-.16,OUT_Y, .18); shifter.add(pr1);
 const pr2=new THREE.Mesh(prongGeo,M.dark); pr2.position.set(-.16,OUT_Y,-.18); shifter.add(pr2);
 const cross=new THREE.Mesh(new THREE.BoxGeometry(.1,.1,.5),M.dark); cross.position.set(-.16,OUT_Y+.25,0); shifter.add(cross);
-
-const RAIL_L=0.24, RAIL_R=0.58;
 
 /* ============ РЫЧАГ КПП + КУЛИСА + ТРОС ============ */
 const SHIFTER_POS=new THREE.Vector3(-1.5,-0.40,2.6);
@@ -1324,16 +1390,14 @@ renderer.setAnimationLoop(()=>{
   if(clashActive) gE=0;
   gElast=gE;
 
-  /* ИСПРАВЛЕНО: тормоза сильнее двигателя.
-     При торможении с зацепленным сцеплением уменьшаем регулятор оборотов (GOV),
-     чтобы двигатель не мог противостоять тормозу и глох при полном торможении.
-     При частичном торможении эффект слабее, при полном — двигатель глохнет. */
   const govFactor = e > 0.5 ? (1.0 - brakeP * brakeP * 0.9) : 1.0;
 
   if(engineState==='running'){
     const gearMult = 1 + gElast*GEAR_LOAD;
     engOmega += st*( GOV*govFactor*(eOmegaTarget-engOmega) - clutchT*gearMult/Ie );
-    if(engOmega < STALL_OMEGA && gElast > 0.2){
+    /* мотор не глохнет при попытке переключения без выжатого сцепления */
+    const isShiftingWithoutClutch = blockShift && tryGear!=null;
+    if(engOmega < STALL_OMEGA && gElast > 0.2 && !isShiftingWithoutClutch){
       engineState='stalled'; rpmTarget=IDLE_RPM; gasP=0;
       if(brakeP > 0.25){
         showMsg('⚠️ Двигатель заглох — резкое торможение на включённой передаче!<small>Перед торможением выжмите сцепление или выключите передачу, затем нажмите кнопку START</small>','warn','stall');
@@ -1365,7 +1429,6 @@ renderer.setAnimationLoop(()=>{
     if(msgKind==='block') hideMsg();
   }
 
-  /* Трансмиссия */
   const brkVisc = BRK_VISC*brakeP;
   const coastDrag = (1-gE)*RR + brkVisc;
   const NSUB=32, h=st/NSUB;
@@ -1380,7 +1443,6 @@ renderer.setAnimationLoop(()=>{
   else aOmega = 0;
   dOmega=Math.max(dOmega,0);
 
-  /* когда сцепление полностью зацеплено, синхронизируем обороты (жёсткая связь) */
   if(e > 0.98){
     const avg = (engOmega + dOmega)/2;
     engOmega = avg;
@@ -1421,13 +1483,16 @@ renderer.setAnimationLoop(()=>{
     updateShiftCable(_cFrom,_cMid,_cTo);
   }
 
-  MESH.x = shifter.position.x - 0.16; MESH.y = OUT_Y + 0.25; MESH.z = 0;
+  /* искры — в точке зацепления шестерён gA и gD */
+  MESH.x = (GA_X + shifter.position.x) / 2;
+  MESH.y = (0 + OUT_Y) / 2;
+  MESH.z = 0;
   grindLight.position.set(MESH.x,MESH.y,MESH.z);
 
   gearKnob.style.left=(leverNX*100).toFixed(2)+'%';
   gearKnob.style.top =(leverNY*100).toFixed(2)+'%';
 
-  const PEDAL_ANGLE = 0.5 + Math.PI/4;
+  const PEDAL_ANGLE = 0.5 + Math.PI/4 - 20*Math.PI/180;
   pedal3D_clutch.rotation.x = p * PEDAL_ANGLE;
   pedal3D_brake.rotation.x  = brakeP * PEDAL_ANGLE;
   pedal3D_gas.rotation.x    = gasP * PEDAL_ANGLE;
@@ -1534,8 +1599,8 @@ renderer.setAnimationLoop(()=>{
 
     for(const k in gateLabelEls){
       const on=(k===String(gearSel));
-      gateLabelEls[k].setAttribute('fill', on ? (k==='R'?'#ff8d7a':'#6cf09c') : '#8fa3bb');
-      gateLabelEls[k].setAttribute('font-size', on ? '15' : '12');
+      gateLabelEls[k].setAttribute('fill', on ? (k==='R'?'#ff9d8f':'#6cf09c') : '#93a6bb');
+      gateLabelEls[k].setAttribute('font-size', on ? '16' : '13');
     }
 
     if(engineState==='running'){
