@@ -10,13 +10,61 @@
   #view{position:absolute;inset:0}
   canvas{display:block}
 
-  #startBtn{position:fixed;top:calc(50px + env(safe-area-inset-top));left:12px;z-index:12;
-       font-size:15px;font-weight:bold;padding:12px 16px;border-radius:12px;border:2px solid;
-       min-width:180px;height:56px;cursor:pointer;touch-action:manipulation;
-       transition:background .15s,opacity .15s;
-       background:#123f22;color:#6cf09c;border-color:#2a8f4f;box-shadow:0 4px 18px rgba(0,0,0,.4)}
-  #startBtn.dis{opacity:.35;pointer-events:none}
-  #startBtn.kill{background:#5a1414;color:#ff9d8f;border-color:#c0392b}
+  #topUI{position:fixed;top:calc(8px + env(safe-area-inset-top));left:12px;
+       transform-origin:top left;z-index:12;
+       display:flex;gap:14px;align-items:center;padding:10px 16px;
+       background:rgba(10,16,26,.88);border:1px solid #26374d;border-radius:20px;
+       backdrop-filter:blur(4px);box-shadow:0 6px 24px rgba(0,0,0,.45);
+       user-select:none;-webkit-user-select:none;pointer-events:none}
+  .gauge{width:104px;flex:0 0 auto}
+  .gauge svg{display:block;width:100%;height:auto;filter:drop-shadow(0 2px 8px rgba(0,0,0,.5))}
+
+  #startBtn{position:relative;flex:0 0 auto;
+       width:80px;height:80px;border-radius:50%;border:none;cursor:pointer;padding:0;margin:0;
+       background:radial-gradient(circle at 34% 28%, #46586c 0%, #243141 46%, #0e1620 100%);
+       color:#6cf09c;
+       display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;
+       pointer-events:auto;touch-action:manipulation;
+       box-shadow:0 0 0 3px #33465c,0 0 0 5px #131c26,
+         inset 0 2px 5px rgba(255,255,255,.18),inset 0 -4px 8px rgba(0,0,0,.55),
+         0 0 16px rgba(108,240,156,.35),0 6px 14px rgba(0,0,0,.5);
+       transition:transform .08s ease, box-shadow .25s ease, color .25s ease;
+       -webkit-tap-highlight-color:transparent}
+  #startBtn .pwr{display:block;filter:drop-shadow(0 0 5px currentColor)}
+  #startBtnTxt{font-family:Arial,sans-serif;font-size:10.5px;font-weight:bold;
+       letter-spacing:1.1px;text-shadow:0 0 8px currentColor}
+  #startBtn:hover{box-shadow:0 0 0 3px #3d5570,0 0 0 5px #131c26,
+         inset 0 2px 5px rgba(255,255,255,.22),inset 0 -4px 8px rgba(0,0,0,.55),
+         0 0 24px rgba(108,240,156,.55),0 6px 14px rgba(0,0,0,.5)}
+  #startBtn:active{transform:scale(.94);
+       box-shadow:0 0 0 3px #33465c,0 0 0 5px #131c26,
+         inset 0 3px 9px rgba(0,0,0,.7),0 0 14px rgba(108,240,156,.4)}
+  #startBtn.dis{opacity:.4;pointer-events:none}
+  #startBtn.kill{color:#ff9d8f;
+       box-shadow:0 0 0 3px #5c2c26,0 0 0 5px #17100e,
+         inset 0 2px 5px rgba(255,255,255,.14),inset 0 -4px 8px rgba(0,0,0,.55),
+         0 0 20px rgba(255,90,60,.55),0 6px 14px rgba(0,0,0,.5)}
+  #startBtn.kill:hover{box-shadow:0 0 0 3px #75382f,0 0 0 5px #17100e,
+         inset 0 2px 5px rgba(255,255,255,.18),inset 0 -4px 8px rgba(0,0,0,.55),
+         0 0 28px rgba(255,90,60,.75),0 6px 14px rgba(0,0,0,.5)}
+
+  #gearUI{position:fixed;top:calc(8px + env(safe-area-inset-top));right:12px;z-index:12;
+       display:flex;flex-direction:column;align-items:center;
+       background:rgba(10,16,26,.88);border:1px solid #26374d;border-radius:18px;
+       padding:8px 10px 10px;backdrop-filter:blur(4px);
+       box-shadow:0 6px 24px rgba(0,0,0,.45);
+       user-select:none;-webkit-user-select:none;touch-action:none;
+       pointer-events:auto;transform-origin:top right}
+  #gearTrack{position:relative;width:120px;height:120px;cursor:grab;overflow:hidden;flex:0 0 auto;
+       background:linear-gradient(#16222f,#0d1720);border-radius:12px;border:1px solid #24384d;
+       box-shadow:inset 0 2px 12px rgba(0,0,0,.55)}
+  #gearTrack:active{cursor:grabbing}
+  #gateSvg{position:absolute;inset:0;width:100%;height:100%;display:block;pointer-events:none}
+  #gearKnob{position:absolute;left:50%;top:50%;width:28px;height:28px;margin:-14px 0 0 -14px;
+       border-radius:50%;pointer-events:none;z-index:5;
+       background:radial-gradient(circle at 34% 28%, #8d98a6, #39424d 62%, #1b222a 100%);
+       border:2px solid #6b7684;
+       box-shadow:0 3px 10px rgba(0,0,0,.65),inset 0 2px 4px rgba(255,255,255,.28)}
 
   #bottomUI{position:fixed;bottom:calc(8px + env(safe-area-inset-bottom));left:12px;z-index:10;
        display:flex;align-items:stretch;width:max-content;transform-origin:bottom left;
@@ -50,46 +98,55 @@
   #gasRpm{font-size:12px;font-weight:bold;color:#ffd166;font-variant-numeric:tabular-nums;white-space:nowrap}
   #brakePct{font-size:14px;font-weight:bold;color:#ff6b5a;font-variant-numeric:tabular-nums}
 
-  #gearTrack{position:relative;width:140px;height:150px;cursor:grab;overflow:visible;flex:0 0 auto;
-       background:linear-gradient(#16222f,#0d1720);border-radius:14px;border:1px solid #24384d;
-       box-shadow:inset 0 2px 12px rgba(0,0,0,.55)}
-  #gearTrack:active{cursor:grabbing}
-  
-  #gearBase{position:absolute;bottom:16px;left:50%;width:80px;height:12px;margin-left:-40px;z-index:3;
-       background:linear-gradient(#39424d,#232a32);border-radius:6px;border:1px solid #4b5661}
-  #gearLever{position:absolute;bottom:28px;left:50%;width:20px;height:92px;margin-left:-10px;z-index:2;
-       transform-origin:50% 100%;transform:rotate(25deg);
-       background:linear-gradient(90deg,#aeb8c4,#5c656f);border-radius:10px;box-shadow:0 3px 10px rgba(0,0,0,.55)}
-  #gearKnob{position:absolute;top:-10px;left:50%;width:40px;height:40px;margin-left:-20px;
-       background:radial-gradient(#4a5561,#232a32);border-radius:50%;border:2px solid #626e7b;
-       box-shadow:0 2px 8px rgba(0,0,0,.6)}
-  #gearLabels{display:flex;justify-content:space-around;width:140px;margin-top:2px;margin-bottom:6px;font-size:12px;font-weight:bold;color:#8fa3bb;flex:0 0 auto}
-  #gearLabels span{padding:3px 12px;border-radius:6px;background:#232a32;border:1px solid #39424d;transition:all .2s}
-  #gearLabels span.active{background:#12452a;color:#6cf09c;border-color:#2a8f4f}
-
-  #msg{position:fixed;top:20%;left:50%;transform:translate(-50%,-50%);z-index:20;
-       padding:14px 24px;border-radius:14px;font-size:17px;font-weight:bold;text-align:center;display:none;max-width:92vw}
-  #msg small{display:block;font-weight:normal;font-size:13px;margin-top:5px;opacity:.85}
-  #msg.warn{display:block;background:rgba(90,20,20,.72);color:#ffc2b7;border:2px solid rgba(192,57,43,.6);box-shadow:0 4px 24px rgba(192,57,43,.45)}
-  #msg.info{display:block;background:rgba(18,49,79,.72);color:#a8d4ff;border:2px solid rgba(42,111,159,.6);box-shadow:0 4px 24px rgba(42,111,159,.35)}
+  #msg{position:fixed;top:calc(118px + env(safe-area-inset-top));left:50%;
+       transform:translateX(-50%);z-index:20;
+       padding:12px 22px;border-radius:14px;font-size:15px;font-weight:bold;text-align:center;display:none;max-width:92vw}
+  #msg small{display:block;font-weight:normal;font-size:12px;margin-top:5px;opacity:.85}
+  #msg.warn{display:block;background:rgba(90,20,20,.82);color:#ffc2b7;border:2px solid rgba(192,57,43,.7);box-shadow:0 4px 20px rgba(192,57,43,.5)}
+  #msg.info{display:block;background:rgba(18,49,79,.82);color:#a8d4ff;border:2px solid rgba(42,111,159,.7);box-shadow:0 4px 20px rgba(42,111,159,.45)}
 
   @media (max-width:760px){
     .pcol{padding:0 8px}
     #bottomUI{padding:6px 2px 6px}
-    #startBtn{min-width:130px;height:48px;font-size:13px;padding:10px}
-    #msg{font-size:14px;padding:10px 16px}
+    #msg{font-size:13px;padding:10px 14px;top:calc(92px + env(safe-area-inset-top));max-width:94vw}
+    #msg small{font-size:11px}
+    .gauge{width:82px}
+    #topUI{gap:10px;padding:8px 12px}
+    #startBtn{width:64px;height:64px}
+    #startBtnTxt{font-size:9px;letter-spacing:.8px}
+    #startBtn .pwr{width:17px;height:17px}
+    #gearUI{padding:6px 8px 8px}
+    #gearTrack{width:96px;height:96px}
+    #gearKnob{width:22px;height:22px;margin:-11px 0 0 -11px}
   }
 </style>
 </head>
 <body>
 <div id="msg" class="info">Нажмите «▶ Старт двигателя», чтобы завести двигатель</div>
 
-<button id="startBtn">▶ Старт двигателя</button>
+<div id="topUI">
+  <div class="gauge"><svg id="tachoSvg"  viewBox="-60 -60 120 120"></svg></div>
+  <div class="gauge"><svg id="speedoSvg" viewBox="-60 -60 120 120"></svg></div>
+  <button id="startBtn" type="button" aria-label="Старт / Стоп двигателя">
+    <svg class="pwr" viewBox="0 0 24 24" width="21" height="21" aria-hidden="true">
+      <path d="M12 3.2v8.4" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" fill="none"/>
+      <path d="M6.6 6.9a7.9 7.9 0 1 0 10.8 0" stroke="currentColor" stroke-width="2.5"
+            stroke-linecap="round" fill="none"/>
+    </svg>
+    <span id="startBtnTxt">СТАРТ</span>
+  </button>
+</div>
+
+<div id="gearUI">
+  <div id="gearTrack">
+    <svg id="gateSvg" viewBox="0 0 100 100"></svg>
+    <div id="gearKnob"></div>
+  </div>
+</div>
 
 <div id="view"></div>
 
 <div id="bottomUI">
-  <!-- СЦЕПЛЕНИЕ -->
   <div class="pcol">
     <div class="ptitle">Сцепление</div>
     <div class="pscale">
@@ -130,7 +187,6 @@
     </div>
   </div>
 
-  <!-- ТОРМОЗ -->
   <div class="pcol">
     <div class="ptitle">Тормоз</div>
     <div class="pscale">
@@ -170,7 +226,6 @@
     </div>
   </div>
 
-  <!-- ГАЗ -->
   <div class="pcol">
     <div class="ptitle">Газ</div>
     <div class="pscale">
@@ -209,21 +264,6 @@
       </svg>
     </div>
   </div>
-
-  <!-- КПП -->
-  <div class="pcol">
-    <div class="ptitle">КПП</div>
-    <div id="gearLabels">
-      <span id="lbl1">1</span>
-      <span id="lblN" class="active">N</span>
-    </div>
-    <div id="gearTrack">
-      <div id="gearLever">
-        <div id="gearKnob"></div>
-      </div>
-      <div id="gearBase"></div>
-    </div>
-  </div>
 </div>
 
 <script type="importmap">
@@ -236,7 +276,6 @@
 import * as THREE from 'three';
 import {OrbitControls} from 'three/addons/controls/OrbitControls.js';
 
-/* ============ TELEGRAM WEBAPP ============ */
 const tg = window.Telegram?.WebApp;
 if (tg) {
   try { tg.ready(); } catch(e) {}
@@ -249,7 +288,6 @@ document.addEventListener('touchmove', e => {
   if (tg && e.touches.length === 1 && e.touches[0].clientY < 50) e.preventDefault();
 }, {passive: false});
 
-/* ============ БАЗА ============ */
 const view = document.getElementById('view');
 const renderer = new THREE.WebGLRenderer({antialias:true});
 renderer.setPixelRatio(Math.min(devicePixelRatio,2));
@@ -272,17 +310,210 @@ function resize(){
   renderer.setSize(w,h); camera.aspect=w/h; camera.updateProjectionMatrix();
 }
 
-/* ============ АВТОМАСШТАБ НИЖНЕЙ ПАНЕЛИ ============ */
+function fitCameraToScene(){
+  scene.updateMatrixWorld(true);
+  const box = new THREE.Box3();
+  scene.traverse(obj => {
+    if(obj.isGridHelper) return;
+    if(obj.isLight) return;
+    if(obj.isSprite) return;
+    if(obj.isPoints) return;
+    if(!obj.geometry) return;
+    if(!obj.geometry.boundingBox) obj.geometry.computeBoundingBox();
+    const b = obj.geometry.boundingBox.clone();
+    b.applyMatrix4(obj.matrixWorld);
+    box.union(b);
+  });
+  if(box.isEmpty()) return;
+  const size = box.getSize(new THREE.Vector3());
+  const center = box.getCenter(new THREE.Vector3());
+  const fovV = camera.fov * Math.PI/180;
+  const fovH = 2 * Math.atan(Math.tan(fovV/2) * camera.aspect);
+  const fov = Math.min(fovV, fovH);
+  const maxDim = Math.max(size.x, size.y, size.z);
+  let dist = (maxDim / 2) / Math.tan(fov/2);
+  dist *= 1.18;
+  const dir = new THREE.Vector3(0.38, 0.32, 1.0).normalize();
+  camera.position.copy(center).addScaledVector(dir, dist);
+  controls.target.copy(center);
+  camera.near = Math.max(0.1, dist * 0.01);
+  camera.far  = dist * 30;
+  camera.updateProjectionMatrix();
+  controls.update();
+}
+
 const bottomUI=document.getElementById('bottomUI');
+const topUI=document.getElementById('topUI');
+const gearUI=document.getElementById('gearUI');
 function fitBottomUI(){
   bottomUI.style.transform='scale(1)';
   const w=bottomUI.offsetWidth;
-  const s=Math.min(1,(innerWidth-28)/w);
-  bottomUI.style.transform='scale('+s+')';
+  bottomUI.style.transform='scale('+Math.min(1,(innerWidth-28)/w)+')';
 }
-addEventListener('resize',()=>{ resize(); fitBottomUI(); });
-addEventListener('orientationchange',()=>{ setTimeout(()=>{ resize(); fitBottomUI(); },120); });
-resize(); fitBottomUI();
+function fitTopUI(){
+  topUI.style.transform='scale(1)';
+  const w=topUI.offsetWidth;
+  topUI.style.transform='scale('+Math.min(1,(innerWidth-24)/w)+')';
+}
+function fitGearUI(){
+  gearUI.style.transform='scale(1)';
+  const w=gearUI.offsetWidth, h=gearUI.offsetHeight;
+  const sW=Math.min(1,(innerWidth-24)/w);
+  const sH=Math.min(1,(innerHeight-230)/h);
+  gearUI.style.transform='scale('+Math.min(sW,sH)+')';
+}
+function fitAll(){ resize(); fitBottomUI(); fitTopUI(); fitGearUI(); fitCameraToScene(); }
+addEventListener('resize', fitAll);
+addEventListener('orientationchange',()=>{ setTimeout(fitAll, 150); });
+
+/* ============ ПРИБОРЫ ============ */
+const SVGNS='http://www.w3.org/2000/svg';
+function mkEl(name,attrs){
+  const e=document.createElementNS(SVGNS,name);
+  for(const k in attrs) e.setAttribute(k,attrs[k]);
+  return e;
+}
+const GA_A0=-120, GA_A1=120;
+function gaAng(t){ return (GA_A0 + t*(GA_A1-GA_A0))*Math.PI/180; }
+function gaPol(a,r){ return [Math.sin(a)*r, -Math.cos(a)*r]; }
+
+function buildGauge(svg,cfg){
+  while(svg.firstChild) svg.removeChild(svg.firstChild);
+  svg.appendChild(mkEl('circle',{cx:0,cy:0,r:56,fill:'#0b121b',stroke:'#2b3d52','stroke-width':2.5}));
+  svg.appendChild(mkEl('circle',{cx:0,cy:0,r:52,fill:'#0e1723',stroke:'#1b2a3a','stroke-width':1}));
+  if(cfg.redFrom!=null){
+    const a0=gaAng(cfg.redFrom/cfg.max), a1=gaAng(1);
+    const [x0,y0]=gaPol(a0,46), [x1,y1]=gaPol(a1,46);
+    svg.appendChild(mkEl('path',{
+      d:`M ${x0.toFixed(2)} ${y0.toFixed(2)} A 46 46 0 0 1 ${x1.toFixed(2)} ${y1.toFixed(2)}`,
+      fill:'none',stroke:'#d6402c','stroke-width':5,opacity:.9}));
+  }
+  const n=Math.round(cfg.max/cfg.step);
+  for(let i=0;i<=n;i++){
+    const v=i*cfg.step, t=v/cfg.max, a=gaAng(t);
+    const maj=(Math.round(v)%cfg.major===0);
+    const r1=maj?37:43, r2=47;
+    const [x1,y1]=gaPol(a,r1), [x2,y2]=gaPol(a,r2);
+    const inRed=(cfg.redFrom!=null && v>=cfg.redFrom);
+    svg.appendChild(mkEl('line',{
+      x1:x1.toFixed(2),y1:y1.toFixed(2),x2:x2.toFixed(2),y2:y2.toFixed(2),
+      stroke: maj ? (inRed?'#ff8d7a':'#d8e6f5') : '#6f8298',
+      'stroke-width': maj?2.2:1.1,'stroke-linecap':'round'}));
+    if(maj){
+      const [tx,ty]=gaPol(a,28);
+      const txt=mkEl('text',{x:tx.toFixed(2),y:(ty+3.6).toFixed(2),
+        'text-anchor':'middle','font-size':cfg.numSize||10,'font-weight':'bold',
+        fill: inRed?'#ff9d8f':cfg.color,'font-family':'Arial'});
+      txt.textContent=String(Math.round(v/cfg.divider));
+      svg.appendChild(txt);
+    }
+  }
+  const unit=mkEl('text',{x:0,y:17,'text-anchor':'middle','font-size':7.5,
+    fill:'#8fa3bb','font-family':'Arial','font-weight':'bold','letter-spacing':'.5'});
+  unit.textContent=cfg.unit; svg.appendChild(unit);
+  const dig=mkEl('text',{x:0,y:34,'text-anchor':'middle','font-size':13,
+    fill:cfg.color,'font-family':'Arial','font-weight':'bold'});
+  dig.textContent='0'; svg.appendChild(dig);
+  const needle=mkEl('g',{});
+  needle.appendChild(mkEl('path',{d:'M -2 7 L 0 -49 L 2 7 Z',fill:cfg.needle||cfg.color}));
+  needle.appendChild(mkEl('circle',{cx:0,cy:0,r:4.2,fill:cfg.needle||cfg.color}));
+  svg.appendChild(needle);
+  svg.appendChild(mkEl('circle',{cx:0,cy:0,r:6,fill:'#16202d',stroke:cfg.color,'stroke-width':1.8}));
+  svg.appendChild(mkEl('circle',{cx:0,cy:0,r:2,fill:cfg.color}));
+  return {needle,dig,max:cfg.max};
+}
+function setGauge(g,value){
+  const t=Math.max(0,Math.min(1,value/g.max));
+  g.needle.setAttribute('transform','rotate('+(GA_A0 + t*(GA_A1-GA_A0)).toFixed(2)+')');
+}
+const tacho=buildGauge(document.getElementById('tachoSvg'),{
+  max:5000, step:250, major:1000, redFrom:4000, divider:1000,
+  color:'#ffd166', needle:'#ff6b4a', unit:'об/мин ×1000'
+});
+const speedo=buildGauge(document.getElementById('speedoSvg'),{
+  max:180, step:10, major:30, divider:1, numSize:8,
+  color:'#6cf09c', needle:'#6cf09c', unit:'км/ч'
+});
+
+/* ============ СХЕМА «Ж» ============ */
+const GATE_X=[0.20,0.50,0.80];
+const ROW_Y =[0.22,0.50,0.78];
+const BAR_THRESH=0.10;
+const ENGAGE_DIST=0.17;
+
+const GEAR_NODES=[
+  {id:1,  gx:0, row:0},
+  {id:2,  gx:0, row:2},
+  {id:3,  gx:1, row:0},
+  {id:4,  gx:1, row:2},
+  {id:5,  gx:2, row:0},
+  {id:'R',gx:2, row:2},
+];
+
+const GEAR_RATIO={1:1, 2:2, 3:3, 4:4, 5:5, 'R':-1, 'N':1};
+const SPEED_K = 0.008;
+
+function nodePos(g){
+  if(String(g)==='N') return {x:GATE_X[1],y:ROW_Y[1]};
+  const n=GEAR_NODES.find(n=>String(n.id)===String(g));
+  return {x:GATE_X[n.gx], y:ROW_Y[n.row]};
+}
+function constrainToH(nx,ny){
+  let gi=0,bd=Infinity;
+  for(let i=0;i<3;i++){ const d=Math.abs(nx-GATE_X[i]); if(d<bd){bd=d;gi=i;} }
+  if(Math.abs(ny-ROW_Y[1])<BAR_THRESH){
+    return {x:Math.max(GATE_X[0],Math.min(GATE_X[2],nx)), y:ROW_Y[1]};
+  }
+  return {x:GATE_X[gi], y:Math.max(ROW_Y[0],Math.min(ROW_Y[2],ny))};
+}
+function snapGear(nx,ny){
+  if(Math.abs(ny-ROW_Y[1])<0.02) return 'N';
+  let best='N',bd=Infinity;
+  for(const n of GEAR_NODES){
+    const px=GATE_X[n.gx],py=ROW_Y[n.row];
+    const d=(nx-px)*(nx-px)+(ny-py)*(ny-py);
+    if(d<bd){bd=d;best=n.id;}
+  }
+  return best;
+}
+
+const gateSvg=document.getElementById('gateSvg');
+const gateLabelEls={};
+(function buildGate(){
+  const X=i=>GATE_X[i]*100, Y=r=>ROW_Y[r]*100;
+  const segs=[
+    [X(0),Y(1),X(2),Y(1)],
+    [X(0),Y(0),X(0),Y(2)],
+    [X(1),Y(0),X(1),Y(2)],
+    [X(2),Y(0),X(2),Y(2)],
+  ];
+  for(const [x1,y1,x2,y2] of segs)
+    gateSvg.appendChild(mkEl('line',{x1,y1,x2,y2,stroke:'#04070b','stroke-width':14,'stroke-linecap':'round'}));
+  for(const [x1,y1,x2,y2] of segs)
+    gateSvg.appendChild(mkEl('line',{x1,y1,x2,y2,stroke:'#1e2f42','stroke-width':8,'stroke-linecap':'round'}));
+  for(const [x1,y1,x2,y2] of segs)
+    gateSvg.appendChild(mkEl('line',{x1,y1,x2,y2,stroke:'#2c4258','stroke-width':2,'stroke-linecap':'round',opacity:.55}));
+
+  gateSvg.appendChild(mkEl('line',{
+    x1:X(0)+6,y1:Y(1),x2:X(2)-6,y2:Y(1),
+    stroke:'#2a8f4f','stroke-width':2.5,'stroke-linecap':'round',opacity:.45}));
+
+  const labels=[
+    {t:'1',x:X(0),y:Y(0)-9}, {t:'3',x:X(1),y:Y(0)-9}, {t:'5',x:X(2),y:Y(0)-9},
+    {t:'2',x:X(0),y:Y(2)+15},{t:'4',x:X(1),y:Y(2)+15},{t:'R',x:X(2),y:Y(2)+15},
+  ];
+  for(const L of labels){
+    const el=mkEl('text',{x:L.x,y:L.y,'text-anchor':'middle','dominant-baseline':'middle',
+      'font-size':12,'font-weight':'bold',fill:'#8fa3bb','font-family':'Arial'});
+    el.textContent=L.t;
+    gateSvg.appendChild(el);
+    gateLabelEls[String(L.t)]=el;
+  }
+  const nEl=mkEl('text',{x:(X(0)+X(1))/2,y:Y(1)-9,'text-anchor':'middle','dominant-baseline':'middle',
+    'font-size':10,'font-weight':'bold',fill:'#4f9a6d','font-family':'Arial'});
+  nEl.textContent='N';
+  gateSvg.appendChild(nEl);
+})();
 
 /* ============ МАТЕРИАЛЫ ============ */
 const M = {
@@ -311,19 +542,14 @@ const DISC_HOT =new THREE.Color(0xffd0a0);
 
 function glass(){ return new THREE.MeshStandardMaterial({color:0x9fb4c8,metalness:.1,roughness:.05,transparent:true,opacity:.13,side:THREE.DoubleSide,depthWrite:false}); }
 const housings=[];
-function addHousing(mesh){ housings.push(mesh); scene.add(mesh);
-  const e=new THREE.LineSegments(new THREE.EdgesGeometry(mesh.geometry),new THREE.LineBasicMaterial({color:0x4a6076,transparent:true,opacity:.5}));
-  e.position.copy(mesh.position); e.rotation.copy(mesh.rotation); housings.push(e); scene.add(e); return mesh; }
-
+function addHousing(mesh){ housings.push(mesh); scene.add(mesh); return mesh; }
 function cylX(rt,rb,h,seg=28){ const g=new THREE.CylinderGeometry(rt,rb,h,seg); g.rotateZ(Math.PI/2); return g; }
 
 /* ============ ДВИГАТЕЛЬ ============ */
 const cylXs=[-3.2,-2.2], phases=[0,Math.PI];
 const CR=0.42, RL=1.05;
-
-addHousing(new THREE.Mesh(new THREE.BoxGeometry(2.1,2.12,2.0),glass())).position.set(-2.75,1.00,0);
+addHousing(new THREE.Mesh(new THREE.BoxGeometry(2.1,2.75,2.0),glass())).position.set(-2.75,0.625,0);
 const head=new THREE.Mesh(new THREE.BoxGeometry(2.1,.25,2.05),M.dark); head.position.set(-2.75,2.145,0); scene.add(head);
-addHousing(new THREE.Mesh(new THREE.BoxGeometry(2.1,0.9,1.9),glass())).position.set(-2.75,-0.30,0);
 cylXs.forEach(x=>{ const s=new THREE.Mesh(new THREE.CylinderGeometry(.47,.47,1.6,24,1,true),glass()); s.position.set(x,1.25,0); housings.push(s); scene.add(s); });
 
 const crank=new THREE.Group(); scene.add(crank);
@@ -335,8 +561,7 @@ function makeWebGeo(thick){
   s.absarc(0,0,rW,340*d2r,560*d2r,false);
   s.closePath();
   const g=new THREE.ExtrudeGeometry(s,{depth:thick,bevelEnabled:true,bevelThickness:.012,bevelSize:.012,bevelSegments:1,curveSegments:24});
-  g.rotateY(Math.PI/2);
-  return g;
+  g.rotateY(Math.PI/2); return g;
 }
 const webGeo=makeWebGeo(0.13);
 [[-3.675,0.25],[-2.70,0.30],[-1.60,0.50]].forEach(([x,l])=>{
@@ -364,7 +589,6 @@ cylXs.forEach(x=>{
   const be=new THREE.Mesh(cylX(.21,.21,.2),M.dark); scene.add(be); bigEnds.push(be);
 });
 
-/* --- ВОСПЛАМЕНЕНИЕ --- */
 function combustionTexture(){
   const c=document.createElement('canvas'); c.width=c.height=64;
   const k=c.getContext('2d');
@@ -391,8 +615,8 @@ cylXs.forEach(x=>{
 
 const flywheel=new THREE.Group(); flywheel.position.x=-1.15; scene.add(flywheel);
 flywheel.add(new THREE.Mesh(cylX(1.25,1.25,.22,40),M.red));
-{ const n=40, tg=new THREE.BoxGeometry(.18,.07,.16);
-  for(let i=0;i<n;i++){ const a=i/n*Math.PI*2, t=new THREE.Mesh(tg,M.dark);
+{ const n=40, tg2=new THREE.BoxGeometry(.18,.07,.16);
+  for(let i=0;i<n;i++){ const a=i/n*Math.PI*2, t=new THREE.Mesh(tg2,M.dark);
     t.position.set(0,Math.cos(a)*1.285,Math.sin(a)*1.285); t.rotation.x=a; flywheel.add(t);} }
 for(let i=0;i<6;i++){ const a=i/6*Math.PI*2, b=new THREE.Mesh(cylX(.06,.06,.1),M.steel);
   b.position.set(-0.16,Math.cos(a)*.95,Math.sin(a)*.95); b.visible=false; flywheel.add(b); }
@@ -402,7 +626,7 @@ clutchDisc.add(new THREE.Mesh(cylX(1.12,1.12,.08,36),M.orange));
 { const mk=new THREE.BoxGeometry(.05,.02,.1);
   for(let i=0;i<36;i++){ const a=i/36*Math.PI*2;
     const m=new THREE.Mesh(mk,M.dark); m.position.set(0,Math.cos(a)*1.125,Math.sin(a)*1.125); m.rotation.x=a; clutchDisc.add(m); } }
-const hub=new THREE.Mesh(cylX(.3,.3,.24),M.dark); hub.position.x=.12; clutchDisc.add(hub);
+const chub=new THREE.Mesh(cylX(.3,.3,.24),M.dark); chub.position.x=.12; clutchDisc.add(chub);
 for(let i=0;i<6;i++){ const a=i/6*Math.PI*2, s=new THREE.Mesh(new THREE.BoxGeometry(.05,.16,.22),M.steel);
   s.position.set(.025,Math.cos(a)*.62,Math.sin(a)*.62); s.rotation.x=a; clutchDisc.add(s); }
 
@@ -413,9 +637,7 @@ const pivotPin=new THREE.Mesh(new THREE.CylinderGeometry(.06,.06,.4,16),M.steel)
 pivotPin.position.copy(forkPivot); scene.add(pivotPin);
 const forkG=new THREE.Group(); forkG.position.copy(forkPivot); scene.add(forkG);
 const fbar=new THREE.Mesh(new THREE.BoxGeometry(.1,1.18,.14),M.dark);
-fbar.position.set(-0.265,-0.5,0);
-fbar.rotation.z=2.654;
-forkG.add(fbar);
+fbar.position.set(-0.265,-0.5,0); fbar.rotation.z=2.654; forkG.add(fbar);
 const fpad=new THREE.Mesh(new THREE.BoxGeometry(.08,.3,.5),M.dark); fpad.position.set(-0.53,-1.0,0); forkG.add(fpad);
 
 /* ============ ИСКРЫ ============ */
@@ -455,7 +677,7 @@ function spawnSpark(gx){
   sparkVel[i*3+2]= Math.cos(a)*tv+Math.sin(a)*Math.random()*1.2;
   sparkMax[i]=sparkLife[i]=0.24+Math.random()*0.42;
 }
-const MESH={x:0.47,y:-0.45,z:0};
+const MESH={x:0.41,y:-1.25,z:0};
 function spawnGearSpark(){
   const i=sparkHead; sparkHead=(sparkHead+1)%SPARK_N;
   sparkPos[i*3]  =MESH.x+(Math.random()-0.5)*0.12;
@@ -502,7 +724,7 @@ const glowRing=new THREE.Mesh(new THREE.PlaneGeometry(2.6,2.6),glowMat);
 glowRing.geometry.rotateY(Math.PI/2);
 scene.add(glowRing);
 
-/* ============ КПП (коробка с вилкой, без ручки) ============ */
+/* ============ КПП ============ */
 addHousing(new THREE.Mesh(new THREE.BoxGeometry(0.82,3.1,1.7),glass())).position.set(0.41,-0.75,0);
 const OUT_Y=-1.50;
 const outShaft=new THREE.Mesh(cylX(.12,.12,8.2,24),M.blue); outShaft.position.set(-1.49,OUT_Y,0); scene.add(outShaft);
@@ -511,14 +733,13 @@ function makeGear(teeth,r,thick,mat){
   const g=new THREE.Group();
   g.add(new THREE.Mesh(cylX(r,r,thick,30),mat));
   g.add(new THREE.Mesh(cylX(r*.3,r*.3,thick*1.25,14),mat));
-  const tg=new THREE.BoxGeometry(thick*.8,.04,2*Math.PI*r/teeth*.55);
-  for(let i=0;i<teeth;i++){ const a=i/teeth*Math.PI*2, t=new THREE.Mesh(tg,mat);
+  const tg2=new THREE.BoxGeometry(thick*.8,.04,2*Math.PI*r/teeth*.55);
+  for(let i=0;i<teeth;i++){ const a=i/teeth*Math.PI*2, t=new THREE.Mesh(tg2,mat);
     t.position.set(0,Math.cos(a)*(r+.02),Math.sin(a)*(r+.02)); t.rotation.x=a; g.add(t); }
   return g;
 }
 const gA=makeGear(16,.75,.2,M.blue); gA.position.set(0.30, 0,  0); scene.add(gA);
 
-/* Вилка КПП: зубья и поперечина СЛЕВА от шестерни (локальный X = -0.16) */
 const shifter=new THREE.Group(); scene.add(shifter);
 const gD=makeGear(16,.75,.2,M.blue); gD.position.y=OUT_Y; shifter.add(gD);
 const prongGeo=new THREE.BoxGeometry(.06,.5,.12);
@@ -526,60 +747,38 @@ const pr1=new THREE.Mesh(prongGeo,M.dark); pr1.position.set(-.16,OUT_Y, .18); sh
 const pr2=new THREE.Mesh(prongGeo,M.dark); pr2.position.set(-.16,OUT_Y,-.18); shifter.add(pr2);
 const cross=new THREE.Mesh(new THREE.BoxGeometry(.1,.1,.5),M.dark); cross.position.set(-.16,OUT_Y+.25,0); shifter.add(cross);
 
-const GEAR_L=0.30, GEAR_R=0.52;
-let leverP=1, leverTarget=1;
-let rejectTimer=0, outRejectTimer=0;
-const REJECT_DUR=1.0, OUT_DUR=0.6;
+const RAIL_L=0.24, RAIL_R=0.58;
 
 /* ============ РЫЧАГ КПП + КУЛИСА + ТРОС ============ */
-/* Кулиса по центру между колёсами, отодвинута от двигателя (увеличен z до 2.6).
-   Рычаг качается вперёд-назад: вперёд = первая передача, назад = нейтраль. */
 const SHIFTER_POS=new THREE.Vector3(-1.5,-0.40,2.6);
-
 const gearConsole=new THREE.Group();
-gearConsole.position.copy(SHIFTER_POS);
-scene.add(gearConsole);
-
-/* основание кулисы */
+gearConsole.position.copy(SHIFTER_POS); scene.add(gearConsole);
 const consoleBase=new THREE.Mesh(new THREE.CylinderGeometry(0.26,0.32,0.26,20),M.dark);
 gearConsole.add(consoleBase);
-
-/* качающийся рычаг (ручка КПП) — ходит вперёд/назад */
 const gearLever3D=new THREE.Group();
-gearLever3D.position.set(0,0.12,0);
-gearConsole.add(gearLever3D);
+gearLever3D.position.set(0,0.12,0); gearConsole.add(gearLever3D);
 const leverStick=new THREE.Mesh(new THREE.CylinderGeometry(0.045,0.06,1.0,12),M.steel);
-leverStick.position.y=0.5;
-gearLever3D.add(leverStick);
+leverStick.position.y=0.5; gearLever3D.add(leverStick);
 const leverKnob=new THREE.Mesh(new THREE.SphereGeometry(0.15,20,14),M.dark);
-leverKnob.position.y=1.0;
-gearLever3D.add(leverKnob);
+leverKnob.position.y=1.0; gearLever3D.add(leverKnob);
 
-/* трос из сегментов от основания кулисы к вилке коробки */
 const CABLE_SEGS=10;
 const cableSegs=[];
 for(let i=0;i<CABLE_SEGS;i++){
   const seg=new THREE.Mesh(new THREE.CylinderGeometry(0.022,0.022,1,6),M.cable);
-  scene.add(seg);
-  cableSegs.push(seg);
+  scene.add(seg); cableSegs.push(seg);
 }
 const _pA=new THREE.Vector3(), _pB=new THREE.Vector3();
 const _cFrom=new THREE.Vector3(), _cTo=new THREE.Vector3(), _cMid=new THREE.Vector3();
 const _cDir=new THREE.Vector3(), _up=new THREE.Vector3(0,1,0);
-
 function bezierPoint(p0,p1,p2,t,out){
   const it=1-t;
-  out.set(
-    it*it*p0.x + 2*it*t*p1.x + t*t*p2.x,
-    it*it*p0.y + 2*it*t*p1.y + t*t*p2.y,
-    it*it*p0.z + 2*it*t*p1.z + t*t*p2.z
-  );
+  out.set(it*it*p0.x+2*it*t*p1.x+t*t*p2.x, it*it*p0.y+2*it*t*p1.y+t*t*p2.y, it*it*p0.z+2*it*t*p1.z+t*t*p2.z);
 }
 function updateShiftCable(from,mid,to){
   for(let i=0;i<CABLE_SEGS;i++){
-    const t0=i/CABLE_SEGS, t1=(i+1)/CABLE_SEGS;
-    bezierPoint(from,mid,to,t0,_pA);
-    bezierPoint(from,mid,to,t1,_pB);
+    bezierPoint(from,mid,to,i/CABLE_SEGS,_pA);
+    bezierPoint(from,mid,to,(i+1)/CABLE_SEGS,_pB);
     const seg=cableSegs[i];
     seg.position.copy(_pA).lerp(_pB,0.5);
     _cDir.subVectors(_pB,_pA);
@@ -589,88 +788,103 @@ function updateShiftCable(from,mid,to){
   }
 }
 
-/* ============ КОЛЕСО (ПРОЗРАЧНОЕ, СУППОРТ НЕ ВРАЩАЕТСЯ) ============ */
+/* ============ 3D ПЕДАЛИ ============ */
+const PEDALS_POS = new THREE.Vector3(-3.0, -2.15, 2.6);
+const PEDALS_TILT = -Math.PI/4;
+const pedals3D = new THREE.Group();
+pedals3D.position.copy(PEDALS_POS); pedals3D.rotation.x = PEDALS_TILT; scene.add(pedals3D);
+const pedalsBracket = new THREE.Mesh(new THREE.BoxGeometry(2.7, 0.18, 1.0), glass());
+pedalsBracket.position.set(0, 0.55, 0); pedals3D.add(pedalsBracket);
+
+const padClutchMat = new THREE.MeshStandardMaterial({color:0x5490d0, metalness:.4, roughness:.5});
+const padBrakeMat  = new THREE.MeshStandardMaterial({color:0xd0402e, metalness:.4, roughness:.5});
+const padGasMat    = new THREE.MeshStandardMaterial({color:0xf2c14e, metalness:.4, roughness:.5});
+
+function makeRoundedSquareGeo(size, radius, depth){
+  const s = new THREE.Shape();
+  const h = size/2, r = Math.min(radius, h);
+  s.moveTo(-h+r, -h); s.lineTo( h-r, -h);
+  s.absarc( h-r, -h+r, r, -Math.PI/2, 0, false);
+  s.lineTo( h, h-r);
+  s.absarc( h-r, h-r, r, 0, Math.PI/2, false);
+  s.lineTo(-h+r, h);
+  s.absarc(-h+r, h-r, r, Math.PI/2, Math.PI, false);
+  s.lineTo(-h, -h+r);
+  s.absarc(-h+r, -h+r, r, Math.PI, Math.PI*1.5, false);
+  const g = new THREE.ExtrudeGeometry(s,{depth,bevelEnabled:true,bevelThickness:0.015,bevelSize:0.015,bevelSegments:2});
+  g.translate(0,0,-depth/2); return g;
+}
+const padGeo = makeRoundedSquareGeo(0.40, 0.06, 0.10);
+
+function makePedal3D(padMat, xOff){
+  const holder = new THREE.Group();
+  holder.position.set(xOff, 0.45, 0.15); pedals3D.add(holder);
+  const pivot = new THREE.Group(); holder.add(pivot);
+  const axle = new THREE.Mesh(new THREE.CylinderGeometry(0.05,0.05,0.55,12), M.dark);
+  axle.rotation.z = Math.PI/2; pivot.add(axle);
+  const arm = new THREE.Mesh(new THREE.BoxGeometry(0.09, 0.93, 0.09), M.steel);
+  arm.position.set(0, -0.465, 0); pivot.add(arm);
+  const pad = new THREE.Mesh(padGeo, padMat);
+  pad.position.set(0, -0.99, 0); pivot.add(pad);
+  return pivot;
+}
+const pedal3D_clutch = makePedal3D(padClutchMat, -0.85);
+const pedal3D_brake  = makePedal3D(padBrakeMat,   0.0);
+const pedal3D_gas    = makePedal3D(padGasMat,     0.85);
+
+/* ============ КОЛЕСО ============ */
 const WX=2.6, LWX=-5.58;
 const WSCALE=1.5;
 function makeWheel(flip){
   const f=flip<0?-1:1;
-
   const assembly=new THREE.Group();
   const g=new THREE.Group();
-  assembly.add(g);
-  assembly.userData.rotor=g;
+  assembly.add(g); assembly.userData.rotor=g;
+  const discX=-0.25*f, faceX=0.25*f, hubX=0.30*f;
 
-  const discX = -0.25*f;
-  const faceX =  0.25*f;
-  const hubX  =  0.30*f;
-
-  const wheelGlass = new THREE.MeshStandardMaterial({
-    color:0x88aacc, metalness:.2, roughness:.1,
-    transparent:true, opacity:.18, side:THREE.DoubleSide, depthWrite:false
-  });
-  const tireGlass = new THREE.MeshStandardMaterial({
-    color:0x2c3947, metalness:.05, roughness:.45,
-    transparent:true, opacity:.26, side:THREE.DoubleSide, depthWrite:false
-  });
+  const wheelGlass = new THREE.MeshStandardMaterial({color:0x88aacc,metalness:.2,roughness:.1,
+    transparent:true,opacity:.18,side:THREE.DoubleSide,depthWrite:false});
+  const tireGlass = new THREE.MeshStandardMaterial({color:0x2c3947,metalness:.05,roughness:.45,
+    transparent:true,opacity:.26,side:THREE.DoubleSide,depthWrite:false});
 
   const HW=0.47;
   const prof=[
-    new THREE.Vector2(0.950, -HW),
-    new THREE.Vector2(1.220, -HW),
-    new THREE.Vector2(1.400, -0.462),
-    new THREE.Vector2(1.490, -0.420),
-    new THREE.Vector2(1.535, -0.338),
-    new THREE.Vector2(1.550, -0.300),
-    new THREE.Vector2(1.550,  0.000),
-    new THREE.Vector2(1.550,  0.300),
-    new THREE.Vector2(1.535,  0.338),
-    new THREE.Vector2(1.490,  0.420),
-    new THREE.Vector2(1.400,  0.462),
-    new THREE.Vector2(1.220,  HW),
-    new THREE.Vector2(0.950,  HW)
+    new THREE.Vector2(0.950,-HW), new THREE.Vector2(1.220,-HW), new THREE.Vector2(1.400,-0.462),
+    new THREE.Vector2(1.490,-0.420), new THREE.Vector2(1.535,-0.338), new THREE.Vector2(1.550,-0.300),
+    new THREE.Vector2(1.550, 0.000), new THREE.Vector2(1.550, 0.300), new THREE.Vector2(1.535, 0.338),
+    new THREE.Vector2(1.490, 0.420), new THREE.Vector2(1.400, 0.462), new THREE.Vector2(1.220, HW),
+    new THREE.Vector2(0.950, HW)
   ];
-  const tg=new THREE.LatheGeometry(prof,64); tg.rotateZ(Math.PI/2);
-  g.add(new THREE.Mesh(tg, tireGlass));
+  const tg3=new THREE.LatheGeometry(prof,64); tg3.rotateZ(Math.PI/2);
+  g.add(new THREE.Mesh(tg3, tireGlass));
 
   const rimWidth=0.80, halfW=rimWidth/2;
-
-  const lipGeo=new THREE.TorusGeometry(0.90,0.045,12,48);
-  lipGeo.rotateY(Math.PI/2);
+  const lipGeo=new THREE.TorusGeometry(0.90,0.045,12,48); lipGeo.rotateY(Math.PI/2);
   const lipF=new THREE.Mesh(lipGeo,wheelGlass); lipF.position.x=halfW; g.add(lipF);
   const lipB=new THREE.Mesh(lipGeo.clone(),wheelGlass); lipB.position.x=-halfW; g.add(lipB);
-
   const barrelGeo=new THREE.CylinderGeometry(0.90,0.90,rimWidth,48,1,true);
-  barrelGeo.rotateZ(Math.PI/2);
-  g.add(new THREE.Mesh(barrelGeo,wheelGlass));
+  barrelGeo.rotateZ(Math.PI/2); g.add(new THREE.Mesh(barrelGeo,wheelGlass));
 
   const spokeGeo=new THREE.BoxGeometry(0.12,0.70,0.10);
   for(let i=0;i<5;i++){
     const a=i/5*Math.PI*2;
     const spoke=new THREE.Mesh(spokeGeo,wheelGlass);
     spoke.position.set(faceX,Math.cos(a)*0.45,Math.sin(a)*0.45);
-    spoke.rotation.x=a;
-    g.add(spoke);
+    spoke.rotation.x=a; g.add(spoke);
   }
-
-  const hubGeo=new THREE.CylinderGeometry(0.26,0.26,0.12,24);
-  hubGeo.rotateZ(Math.PI/2);
+  const hubGeo=new THREE.CylinderGeometry(0.26,0.26,0.12,24); hubGeo.rotateZ(Math.PI/2);
   const hubMesh=new THREE.Mesh(hubGeo,wheelGlass); hubMesh.position.x=hubX; g.add(hubMesh);
 
-  const discGeo=new THREE.CylinderGeometry(0.72,0.72,0.05,48);
-  discGeo.rotateZ(Math.PI/2);
+  const discGeo=new THREE.CylinderGeometry(0.72,0.72,0.05,48); discGeo.rotateZ(Math.PI/2);
   const disc=new THREE.Mesh(discGeo,M.brakeHot); disc.position.x=discX; g.add(disc);
-
-  const discHoleGeo=new THREE.CylinderGeometry(0.28,0.28,0.06,32,1,true);
-  discHoleGeo.rotateZ(Math.PI/2);
+  const discHoleGeo=new THREE.CylinderGeometry(0.28,0.28,0.06,32,1,true); discHoleGeo.rotateZ(Math.PI/2);
   const discHole=new THREE.Mesh(discHoleGeo,M.dark); discHole.position.x=discX; g.add(discHole);
 
-  const ventGeo=new THREE.CylinderGeometry(0.045,0.045,0.07,10);
-  ventGeo.rotateZ(Math.PI/2);
+  const ventGeo=new THREE.CylinderGeometry(0.045,0.045,0.07,10); ventGeo.rotateZ(Math.PI/2);
   for(let i=0;i<10;i++){
     const a=i/10*Math.PI*2;
     const v=new THREE.Mesh(ventGeo,M.dark);
-    v.position.set(discX,Math.cos(a)*0.56,Math.sin(a)*0.56);
-    g.add(v);
+    v.position.set(discX,Math.cos(a)*0.56,Math.sin(a)*0.56); g.add(v);
   }
 
   const A0=Math.PI*0.36, A1=Math.PI*0.64, Ro=0.80, Ri=0.60;
@@ -680,24 +894,18 @@ function makeWheel(flip){
   caliperShape.absarc(0,0,Ri,A1,A0,true);
   caliperShape.closePath();
   const caliperGeo=new THREE.ExtrudeGeometry(caliperShape,
-        {depth:0.14,bevelEnabled:true,bevelThickness:0.015,bevelSize:0.015,bevelSegments:1});
-  caliperGeo.translate(0,0,-0.07);
-  caliperGeo.rotateY(Math.PI/2);
-  caliperGeo.translate(discX,0,0);
-  const caliper=new THREE.Mesh(caliperGeo,M.caliper);
-  assembly.add(caliper);
+    {depth:0.14,bevelEnabled:true,bevelThickness:0.015,bevelSize:0.015,bevelSegments:1});
+  caliperGeo.translate(0,0,-0.07); caliperGeo.rotateY(Math.PI/2); caliperGeo.translate(discX,0,0);
+  assembly.add(new THREE.Mesh(caliperGeo,M.caliper));
 
   const bracket=new THREE.Mesh(new THREE.BoxGeometry(0.10,0.55,0.16),M.dark);
-  bracket.position.set(discX,0.42,0);
-  assembly.add(bracket);
-
+  bracket.position.set(discX,0.42,0); assembly.add(bracket);
   assembly.add(new THREE.Mesh(cylX(.29,.29,.96,20),M.steel));
   assembly.add(new THREE.Mesh(cylX(.15,.15,1.04,14),M.dark));
-
   return assembly;
 }
-const wheel=makeWheel();      wheel.position.set(WX, OUT_Y,0); wheel.scale.setScalar(WSCALE); scene.add(wheel);
-const wheelL=makeWheel(-1);   wheelL.position.set(LWX,OUT_Y,0); wheelL.scale.setScalar(WSCALE); scene.add(wheelL);
+const wheel=makeWheel();    wheel.position.set(WX, OUT_Y,0); wheel.scale.setScalar(WSCALE); scene.add(wheel);
+const wheelL=makeWheel(-1); wheelL.position.set(LWX,OUT_Y,0); wheelL.scale.setScalar(WSCALE); scene.add(wheelL);
 
 const brakes=[];
 [[WX,1],[LWX,-1]].forEach(([wx,f])=>{
@@ -708,10 +916,9 @@ const brakes=[];
   brakes.push({x:px,y:py,z:pz,L});
 });
 
-/* ============ 3D-ТАБЛИЧКИ ОБОРОТОВ ============ */
+/* ============ 3D-ТАБЛИЧКИ ============ */
 function roundRectPath(k,x,y,w,h,r){
-  k.beginPath();
-  k.moveTo(x+r,y);
+  k.beginPath(); k.moveTo(x+r,y);
   k.lineTo(x+w-r,y); k.quadraticCurveTo(x+w,y,x+w,y+r);
   k.lineTo(x+w,y+h-r); k.quadraticCurveTo(x+w,y+h,x+w-r,y+h);
   k.lineTo(x+r,y+h); k.quadraticCurveTo(x,y+h,x,y+h-r);
@@ -721,15 +928,12 @@ function roundRectPath(k,x,y,w,h,r){
 function makeRpmLabel(accent){
   const c=document.createElement('canvas'); c.width=200; c.height=96;
   const k=c.getContext('2d');
-  const tex=new THREE.CanvasTexture(c);
-  tex.minFilter=THREE.LinearFilter;
+  const tex=new THREE.CanvasTexture(c); tex.minFilter=THREE.LinearFilter;
   const s=new THREE.Sprite(new THREE.SpriteMaterial({map:tex,transparent:true,depthTest:false}));
-  s.scale.set(0.71,0.34,1);
-  s.renderOrder=10;
+  s.scale.set(0.71,0.34,1); s.renderOrder=10;
   let last=null;
   s.userData.draw=(num)=>{
-    const txt=String(num);
-    if(txt===last) return; last=txt;
+    const txt=String(num); if(txt===last) return; last=txt;
     k.clearRect(0,0,200,96);
     roundRectPath(k,6,10,188,76,16);
     k.fillStyle='rgba(10,20,32,.78)'; k.fill();
@@ -740,10 +944,29 @@ function makeRpmLabel(accent){
   };
   return s;
 }
-const engLabel=makeRpmLabel('#ffd166'); engLabel.position.set(-2.75,2.8,0); scene.add(engLabel);
-const whlLabel=makeRpmLabel('#6cf09c'); whlLabel.position.set(WX,OUT_Y+2.94,0);  scene.add(whlLabel);
-engLabel.userData.draw(0);
-whlLabel.userData.draw(0);
+function makeSpeedLabel(accent){
+  const c=document.createElement('canvas'); c.width=240; c.height=120;
+  const k=c.getContext('2d');
+  const tex=new THREE.CanvasTexture(c); tex.minFilter=THREE.LinearFilter;
+  const s=new THREE.Sprite(new THREE.SpriteMaterial({map:tex,transparent:true,depthTest:false}));
+  s.scale.set(0.95,0.48,1); s.renderOrder=10;
+  let last=null;
+  s.userData.draw=(num)=>{
+    const txt=String(num); if(txt===last) return; last=txt;
+    k.clearRect(0,0,240,120);
+    roundRectPath(k,6,8,228,104,16);
+    k.fillStyle='rgba(10,20,32,.78)'; k.fill();
+    k.lineWidth=4; k.strokeStyle=accent; k.stroke();
+    k.font='bold 64px Arial'; k.textAlign='center'; k.textBaseline='middle';
+    k.fillStyle=accent; k.fillText(txt,120,48);
+    k.font='bold 22px Arial'; k.globalAlpha=0.85;
+    k.fillText('км/ч',120,95); k.globalAlpha=1;
+    tex.needsUpdate=true;
+  };
+  return s;
+}
+const engLabel=makeRpmLabel('#ffd166');  engLabel.position.set(-2.75,2.8,0); scene.add(engLabel); engLabel.userData.draw(0);
+const whlLabel=makeSpeedLabel('#6cf09c'); whlLabel.position.set(WX,OUT_Y+2.94,0); scene.add(whlLabel); whlLabel.userData.draw(0);
 
 /* ============ ЗВУК ============ */
 let audio=null, soundOn=false;
@@ -755,19 +978,15 @@ function initAudio(){
   const boost=ctx.createGain(); boost.gain.value=2.2;
   comp.connect(boost); boost.connect(ctx.destination);
   const master=ctx.createGain(); master.gain.value=0; master.connect(comp);
-
   const nb=ctx.createBuffer(1,ctx.sampleRate*2,ctx.sampleRate);
   const nd=nb.getChannelData(0); for(let i=0;i<nd.length;i++) nd[i]=Math.random()*2-1;
   const noise=ctx.createBufferSource(); noise.buffer=nb; noise.loop=true;
-
   const exhF=ctx.createBiquadFilter(); exhF.type='bandpass'; exhF.frequency.value=500; exhF.Q.value=0.6;
   const exhG=ctx.createGain(); exhG.gain.value=0;
   noise.connect(exhF); exhF.connect(exhG); exhG.connect(master);
-
   const slipF=ctx.createBiquadFilter(); slipF.type='bandpass'; slipF.frequency.value=1800; slipF.Q.value=0.7;
   const slipG=ctx.createGain(); slipG.gain.value=0;
   noise.connect(slipF); slipF.connect(slipG); slipG.connect(master);
-
   const grindF=ctx.createBiquadFilter(); grindF.type='bandpass'; grindF.frequency.value=2000; grindF.Q.value=1.1;
   const grindRattle=ctx.createGain(); grindRattle.gain.value=0.6;
   const grindLevel=ctx.createGain(); grindLevel.gain.value=0;
@@ -776,8 +995,6 @@ function initAudio(){
   grindLFO.connect(grindLFOG); grindLFOG.connect(grindRattle.gain);
   noise.connect(grindF); grindF.connect(grindRattle); grindRattle.connect(grindLevel); grindLevel.connect(master);
   grindLFO.start();
-
-  /* визг тормозов: модулируется частота, а не громкость */
   const brkF=ctx.createBiquadFilter(); brkF.type='bandpass'; brkF.frequency.value=2400; brkF.Q.value=7;
   const brkG=ctx.createGain(); brkG.gain.value=0;
   const brkLFO=ctx.createOscillator(); brkLFO.type='sine'; brkLFO.frequency.value=6.5;
@@ -785,9 +1002,7 @@ function initAudio(){
   brkLFO.connect(brkLFOG); brkLFOG.connect(brkF.frequency);
   noise.connect(brkF); brkF.connect(brkG); brkG.connect(master);
   brkLFO.start();
-
   noise.start();
-
   const engF=ctx.createBiquadFilter(); engF.type='lowpass'; engF.Q.value=0.7; engF.frequency.value=1400;
   const engPeak=ctx.createBiquadFilter(); engPeak.type='peaking'; engPeak.frequency.value=450; engPeak.Q.value=0.9; engPeak.gain.value=12;
   const engG=ctx.createGain(); engG.gain.value=0;
@@ -804,7 +1019,6 @@ function initAudio(){
   o1.connect(engF); o2.connect(g2); g2.connect(engF); o3.connect(g3); g3.connect(engF);
   o4.connect(g4); g4.connect(engF); o5.connect(g5); g5.connect(engF);
   o1.start(); o2.start(); o3.start(); o4.start(); o5.start();
-
   return {ctx,master,comp,o1,o2,o3,o4,o5,engF,engG,exhF,exhG,slipG,grindLevel,brkF,brkG,noiseBuf:nb};
 }
 function setSoundOn(){
@@ -839,12 +1053,10 @@ function playStarter(dur){
   const bus=ctx.createGain(); bus.gain.value=0; bus.connect(audio.comp);
   const o=ctx.createOscillator(); o.type='sawtooth';
   o.frequency.setValueAtTime(26,t0); o.frequency.linearRampToValueAtTime(54,t0+dur);
-  const og=ctx.createGain(); og.gain.value=0.4;
-  o.connect(og); og.connect(bus);
+  const og=ctx.createGain(); og.gain.value=0.4; o.connect(og); og.connect(bus);
   const o2=ctx.createOscillator(); o2.type='square'; o2.frequency.setValueAtTime(13,t0);
   o2.frequency.linearRampToValueAtTime(27,t0+dur);
-  const og2=ctx.createGain(); og2.gain.value=0.2;
-  o2.connect(og2); og2.connect(bus);
+  const og2=ctx.createGain(); og2.gain.value=0.2; o2.connect(og2); og2.connect(bus);
   const n=ctx.createBufferSource(); n.buffer=audio.noiseBuf; n.loop=true;
   const bp=ctx.createBiquadFilter(); bp.type='bandpass'; bp.frequency.value=240; bp.Q.value=3;
   const ng=ctx.createGain(); ng.gain.value=0.75;
@@ -862,10 +1074,9 @@ function playStarter(dur){
   lfo.start(t0); lfo.stop(t0+dur+0.05);
 }
 
-/* ============ ПЕДАЛИ И РЫЧАГ КПП ============ */
+/* ============ ПЕДАЛИ ============ */
 let p=0, gasP=0, brakeP=0, rpmTarget=800;
-const REST_ANG=28, PRESS_ANG=32;
-const PIVOT_K=14/150;
+const REST_ANG=28, PRESS_ANG=32, PIVOT_K=14/150;
 
 const pedalTrack=document.getElementById('pedalTrack');
 const pedalArm=document.getElementById('pedalArm');
@@ -922,62 +1133,88 @@ gasTrack.addEventListener('pointermove',e=>{ if(gasDrag) gasFromPointer(e.client
 gasTrack.addEventListener('pointerup',()=>{ gasDrag=false; });
 gasTrack.addEventListener('pointercancel',()=>{ gasDrag=false; });
 
+/* ============ РЫЧАГ КПП ============ */
 const gearTrack=document.getElementById('gearTrack');
-const gearLever=document.getElementById('gearLever');
-const lblN=document.getElementById('lblN');
-const lbl1=document.getElementById('lbl1');
+const gearKnob=document.getElementById('gearKnob');
+
+let gearSel='N';
+let leverNX=GATE_X[1], leverNY=ROW_Y[1];
+let goalNX=GATE_X[1], goalNY=ROW_Y[1];
+let tryGear=null;
+let pendingGear=null;
 let gearDrag=false;
-function gearFromX(cx){
-  const rect=gearTrack.getBoundingClientRect();
-  let t=(cx-rect.left)/rect.width;
-  t=Math.max(0,Math.min(1,t));
-  leverTarget=t;
-}
+let rejectTimer=0;
+const REJECT_DUR=1.0;
 const FULL_DEPRESS=0.95;
+
+let shifterTargetX = 0.55;
+shifter.position.x = shifterTargetX;
+let wasAtNeutral = true;
+
 function shiftBlocked(){ return (engineState==='running') && p<FULL_DEPRESS; }
+
+function gearFromPointer(cx,cy){
+  const rect=gearTrack.getBoundingClientRect();
+  let nx=(cx-rect.left)/rect.width, ny=(cy-rect.top)/rect.height;
+  nx=Math.max(0,Math.min(1,nx)); ny=Math.max(0,Math.min(1,ny));
+  const c=constrainToH(nx,ny);
+  const intended=snapGear(c.x,c.y);
+
+  if(shiftBlocked() && String(intended)!==String(gearSel)){
+    const np=nodePos(gearSel), dev=0.13;
+    goalNX=Math.max(np.x-dev,Math.min(np.x+dev,c.x));
+    goalNY=Math.max(np.y-dev,Math.min(np.y+dev,c.y));
+    tryGear=intended;
+  } else {
+    goalNX=c.x; goalNY=c.y;
+    gearSel=intended;
+    tryGear=null;
+  }
+}
 function gearRelease(){
   if(!gearDrag) return;
   gearDrag=false;
-  if(leverTarget<0.5){
-    attemptFirstGear();
+  const g=snapGear(goalNX,goalNY);
+  if(shiftBlocked() && String(g)!==String(gearSel)){
+    pendingGear=g;
+    tryGear=g;
+    rejectTimer=REJECT_DUR;
   } else {
-    if(shiftBlocked() && leverP<0.35){
-      outRejectTimer=OUT_DUR; leverTarget=0;
-    } else {
-      outRejectTimer=0; rejectTimer=0; leverTarget=1;
-    }
+    gearSel=g; tryGear=null; pendingGear=null; rejectTimer=0;
+    const np=nodePos(g); goalNX=np.x; goalNY=np.y;
   }
 }
 gearTrack.addEventListener('pointerdown',e=>{
-  gearDrag=true; rejectTimer=0; outRejectTimer=0;
+  gearDrag=true; rejectTimer=0; pendingGear=null;
   try{gearTrack.setPointerCapture(e.pointerId);}catch(_){}
-  gearFromX(e.clientX); e.preventDefault();
+  gearFromPointer(e.clientX,e.clientY); e.preventDefault();
 });
-gearTrack.addEventListener('pointermove',e=>{ if(gearDrag) gearFromX(e.clientX); });
+gearTrack.addEventListener('pointermove',e=>{ if(gearDrag) gearFromPointer(e.clientX,e.clientY); });
 gearTrack.addEventListener('pointerup',gearRelease);
 gearTrack.addEventListener('pointercancel',gearRelease);
 
 addEventListener('keydown',e=>{
   if(e.code==='Space'&&!e.repeat){ p=1; e.preventDefault(); }
   if((e.code==='KeyB'||e.code==='ArrowDown')&&!e.repeat){ brakeKey=1; e.preventDefault(); }
+  const k=e.key.toUpperCase();
+  if('12345R'.includes(k) && k.length===1){
+    if(!shiftBlocked()){ gearSel=(k==='R')?'R':Number(k); const np=nodePos(gearSel); goalNX=np.x; goalNY=np.y; }
+    e.preventDefault();
+  }
+  if(k==='N'){ if(!shiftBlocked()){ gearSel='N'; goalNX=GATE_X[1]; goalNY=ROW_Y[1]; } e.preventDefault(); }
 });
-addEventListener('keyup',  e=>{
+addEventListener('keyup',e=>{
   if(e.code==='Space'){ p=0; e.preventDefault(); }
   if(e.code==='KeyB'||e.code==='ArrowDown'){ brakeKey=0; e.preventDefault(); }
 });
 
 function friction(pp){ if(pp<=0.4) return 1; if(pp>=0.6) return 0; return (0.6-pp)/0.2; }
 function gapF(pp){ return Math.max(0,(pp-0.4)/0.6); }
-function gearMismatch(){ const c=-dOmega*GR; return Math.abs(c*0.17 + aOmega*0.38); }
-
-function attemptFirstGear(){
-  if(shiftBlocked()){ rejectTimer=REJECT_DUR; leverTarget=0.42; }
-  else { rejectTimer=0; leverTarget=0; }
-}
 
 /* ============ СОСТОЯНИЕ ДВИГАТЕЛЯ ============ */
 const msgEl=document.getElementById('msg');
 const startBtn=document.getElementById('startBtn');
+const startBtnTxt=document.getElementById('startBtnTxt');
 let msgKind='info';
 function showMsg(html,cls,kind){ msgEl.innerHTML=html; msgEl.className=cls; msgKind=kind||''; }
 function hideMsg(){ msgEl.className=''; msgEl.textContent=''; msgKind=''; }
@@ -985,44 +1222,39 @@ let engineState='off', crankT=0;
 let failCrankT=0; const FAIL_DUR=0.5;
 startBtn.addEventListener('click',()=>{
   if(engineState==='running'){
-    engineState='off';
-    rpmTarget=IDLE_RPM; gasP=0;
-    showMsg('Двигатель заглушен.<small>Нажмите «▶ Старт двигателя», чтобы завести снова.</small>','info','kill');
+    engineState='off'; rpmTarget=IDLE_RPM; gasP=0;
+    showMsg('Двигатель заглушен.<small>Нажмите круглую кнопку START, чтобы завести снова.</small>','info','kill');
     return;
   }
   if(engineState==='cranking') return;
   const clutchOut = p < 0.5;
-  const gearOn    = leverTarget < 0.5;
+  const gearOn    = String(gearSel)!=='N';
   if(clutchOut && gearOn){
     showMsg('⚠️ Для запуска выжмите сцепление или включите нейтраль<small>Стартер крутит, но двигатель не запускается — включена передача</small>','warn','startlock');
-    playStarter(FAIL_DUR);
-    failCrankT=FAIL_DUR;
-    return;
+    playStarter(FAIL_DUR); failCrankT=FAIL_DUR; return;
   }
-  hideMsg();
-  setSoundOn();
+  hideMsg(); setSoundOn();
   engineState='cranking'; crankT=0; failCrankT=0;
   playStarter(1.25);
 });
-
-const WHL_RPM_K=46.2;
 
 /* ============ ФИЗИКА И АНИМАЦИЯ ============ */
 const SLOW=0.1;
 const K=6, GS=30, RR=1.5;
 const GOV=12, Ie=10, GEAR_LOAD=8;
-const BRK_VISC=7.0;
-const BRK_LOCK=2.6;
+const BRK_VISC=7.0, BRK_LOCK=2.6;
 const RPM2O=Math.PI/30*SLOW;
 const IDLE_RPM=800;
 const IDLE_OMEGA=IDLE_RPM*RPM2O;
 const STALL_OMEGA=700*RPM2O;
 const CRANK_OMEGA=320*RPM2O;
-const GR=1;
 let thE=0, discAng=0, axleAng=0;
 let engOmega=0, dOmega=0, aOmega=0;
-let gElast=0, blocked=0, lastPct=-1;
+let gElast=0, curGR=1, blocked=0, lastPct=-1;
 let brakeHeat=0;
+let tachoShown=0, speedoShown=0;
+
+fitAll();
 
 const clock=new THREE.Clock(); let hudT=0;
 renderer.setAnimationLoop(()=>{
@@ -1057,16 +1289,56 @@ renderer.setAnimationLoop(()=>{
   const st=Math.min(dt,.033);
   const clutchT=e*K*(engOmega-dOmega);
 
+  const blockShift=shiftBlocked();
+  if(rejectTimer>0){
+    rejectTimer-=dt;
+    if(!blockShift){
+      rejectTimer=0;
+      if(pendingGear!=null){
+        gearSel=pendingGear;
+        const np=nodePos(gearSel); goalNX=np.x; goalNY=np.y;
+      }
+      pendingGear=null; tryGear=null;
+    } else if(rejectTimer<=0){
+      const np=nodePos(gearSel); goalNX=np.x; goalNY=np.y;
+      pendingGear=null;
+    }
+  }
+
+  leverNX += (goalNX-leverNX)*Math.min(1,dt*14);
+  leverNY += (goalNY-leverNY)*Math.min(1,dt*14);
+
+  let gE=0;
+  if(String(gearSel)!=='N'){
+    const np=nodePos(gearSel);
+    const d=Math.hypot(leverNX-np.x, leverNY-np.y);
+    let t=1-Math.min(1,d/ENGAGE_DIST);
+    gE=t*t*(3-2*t);
+  }
+  curGR = GEAR_RATIO[gearSel] || 1;
+
+  const clashGear = tryGear!=null ? tryGear : gearSel;
+  const mismatchNow = Math.abs(dOmega*(GEAR_RATIO[clashGear]||1) - aOmega);
+  const clashActive = blockShift && tryGear!=null && String(tryGear)!==String(gearSel)
+                      && gE<0.9 && mismatchNow>0.4;
+  if(clashActive) gE=0;
+  gElast=gE;
+
+  /* ИСПРАВЛЕНО: тормоза сильнее двигателя.
+     При торможении с зацепленным сцеплением уменьшаем регулятор оборотов (GOV),
+     чтобы двигатель не мог противостоять тормозу и глох при полном торможении.
+     При частичном торможении эффект слабее, при полном — двигатель глохнет. */
+  const govFactor = e > 0.5 ? (1.0 - brakeP * brakeP * 0.9) : 1.0;
+
   if(engineState==='running'){
     const gearMult = 1 + gElast*GEAR_LOAD;
-    engOmega += st*( GOV*(eOmegaTarget-engOmega) - clutchT*gearMult/Ie );
+    engOmega += st*( GOV*govFactor*(eOmegaTarget-engOmega) - clutchT*gearMult/Ie );
     if(engOmega < STALL_OMEGA && gElast > 0.2){
-      engineState='stalled';
-      rpmTarget=IDLE_RPM; gasP=0;
+      engineState='stalled'; rpmTarget=IDLE_RPM; gasP=0;
       if(brakeP > 0.25){
-        showMsg('⚠️ Двигатель заглох — резкое торможение на включённой передаче!<small>Перед торможением выжмите сцепление или выключите передачу, затем нажмите «▶ Старт двигателя»</small>','warn','stall');
+        showMsg('⚠️ Двигатель заглох — резкое торможение на включённой передаче!<small>Перед торможением выжмите сцепление или выключите передачу, затем нажмите кнопку START</small>','warn','stall');
       } else {
-        showMsg('⚠️ Сцепление отпущено слишком быстро — двигатель заглох!<small>Нажмите «▶ Старт двигателя»: выжмите сцепление или включите нейтраль, затем отпускайте плавно (зона 40–60%)</small>','warn','stall');
+        showMsg('⚠️ Сцепление отпущено слишком быстро — двигатель заглох!<small>Нажмите кнопку START: выжмите сцепление или включите нейтраль, затем отпускайте плавно (зона 40–60%)</small>','warn','stall');
       }
     }
   } else if(engineState==='cranking'){
@@ -1084,69 +1356,81 @@ renderer.setAnimationLoop(()=>{
   }
   engOmega=Math.max(0,engOmega);
 
-  const blockShift=shiftBlocked();
-
-  if(rejectTimer>0){
-    rejectTimer-=dt;
-    if(!blockShift){ rejectTimer=0; leverTarget=0; }
-    else if(rejectTimer<=0){ leverTarget=1; }
-  }
-  if(outRejectTimer>0){
-    outRejectTimer-=dt;
-    if(!blockShift){ outRejectTimer=0; leverTarget=1; }
+  const blockMsg = clashActive ? 1 : 0;
+  if(blockMsg && blocked!==blockMsg){
+    blocked=blockMsg;
+    showMsg('⚠️ Передача не включается — выжмите сцепление полностью!<small>Передачи переключаются только при полностью выжатом сцеплении</small>','warn','block');
+  } else if(!blockMsg && blocked){
+    blocked=0;
+    if(msgKind==='block') hideMsg();
   }
 
-  let effTarget=leverTarget;
-  if(blockShift){
-    if(leverP>0.35){ if(effTarget<0.42) effTarget=0.42; }
-    else { if(effTarget>0.05) effTarget=0.05; }
-  }
-  leverP += (effTarget-leverP)*Math.min(1,dt*10);
-
-  const shifterX=GEAR_L+(GEAR_R-GEAR_L)*leverP;
-  const meshDist=Math.abs(shifterX-1.15);
-  const mismatchNow=gearMismatch();
-  const clashActive = blockShift && meshDist>0.06 && meshDist<0.35 && mismatchNow>0.08;
-  let gE;
-  if(clashActive) gE=0;
-  else { const tt0=THREE.MathUtils.clamp((leverP-0.15)/0.7,0,1); gE=1-tt0*tt0*(3-2*tt0); }
-  gElast=gE;
-
-  gearLever.style.transform='rotate('+(25*(2*leverP-1)).toFixed(1)+'deg)';
-  lbl1.classList.toggle('active',gE>0.5);
-  lblN.classList.toggle('active',gE<=0.5);
-
-  const tryingEngage = blockShift && leverP>0.35 && leverTarget<0.45;
-  const tryingOut = (blockShift && leverP<=0.35 && leverTarget>0.25) || outRejectTimer>0;
-
-  dOmega += st*( clutchT - gE*GR*GS*(dOmega*GR-aOmega) - cutDrag*dOmega );
-
+  /* Трансмиссия */
   const brkVisc = BRK_VISC*brakeP;
-  aOmega += st*( gE*GS*(dOmega*GR-aOmega) - (RR+cutDrag+brkVisc)*aOmega );
-  aOmega = Math.max(0, aOmega - st*(0.4*(1-gE) + BRK_LOCK*brakeP));
+  const coastDrag = (1-gE)*RR + brkVisc;
+  const NSUB=32, h=st/NSUB;
+  for(let s=0;s<NSUB;s++){
+    const err = dOmega*curGR - aOmega;
+    dOmega += h*( clutchT - gE*curGR*GS*err - cutDrag*dOmega );
+    aOmega += h*( gE*GS*err - coastDrag*aOmega );
+  }
+  const staticDec = st*(0.4*(1-gE) + BRK_LOCK*brakeP);
+  if(aOmega >  staticDec) aOmega -= staticDec;
+  else if(aOmega < -staticDec) aOmega += staticDec;
+  else aOmega = 0;
   dOmega=Math.max(dOmega,0);
 
-  thE   += engOmega*dt;
-  discAng+= dOmega*dt;
-  axleAng+= aOmega*dt;
+  /* когда сцепление полностью зацеплено, синхронизируем обороты (жёсткая связь) */
+  if(e > 0.98){
+    const avg = (engOmega + dOmega)/2;
+    engOmega = avg;
+    dOmega = avg;
+  }
+
+  thE += engOmega*dt; discAng += dOmega*dt; axleAng += aOmega*dt;
 
   crank.rotation.x=thE; flywheel.rotation.x=thE;
   clutchDisc.position.x=-1.00+gf*0.25;
   clutchDisc.rotation.x=discAng;
   forkG.rotation.z=gf*0.25;
-  shifter.position.x=shifterX;
   gA.rotation.x=discAng; gD.rotation.x=-axleAng;
 
-  /* рычаг КПП качается вперёд-назад; ИНВЕРТИРОВАН:
-     вперёд (-Z) = первая передача, назад (+Z) = нейтраль */
-  const leverAng=0.45*(2*leverP-1);
-  gearLever3D.rotation.x=leverAng;
+  const gateT = (leverNX - GATE_X[0])/(GATE_X[2]-GATE_X[0]);
+  const rowT  = (leverNY - ROW_Y[0])/(ROW_Y[2]-ROW_Y[0]);
+
+  const isAtNeutral = Math.abs(leverNY - ROW_Y[1]) < 0.03;
+  const isMovingToGear = Math.abs(leverNY - ROW_Y[1]) > 0.05;
+
+  if (isMovingToGear && !isAtNeutral) {
+    shifterTargetX = 0.30;
+    wasAtNeutral = false;
+  } else if (isAtNeutral && !wasAtNeutral) {
+    shifterTargetX = 0.55;
+    wasAtNeutral = true;
+  }
+
+  shifter.position.x += (shifterTargetX - shifter.position.x) * Math.min(1, dt * 10);
+
+  gearLever3D.rotation.x = (rowT - 0.5) * 0.9;
+  gearLever3D.rotation.z = (0.5 - gateT) * 0.7;
+
   {
     _cFrom.set(SHIFTER_POS.x, SHIFTER_POS.y+0.10, SHIFTER_POS.z-0.28);
-    _cTo.set(shifterX - 0.16, OUT_Y+0.25, 0);
+    _cTo.set(shifter.position.x - 0.16, OUT_Y+0.25, 0);
     _cMid.set((_cFrom.x+_cTo.x)*0.5, Math.min(_cFrom.y,_cTo.y)-0.20, (_cFrom.z+_cTo.z)*0.5);
     updateShiftCable(_cFrom,_cMid,_cTo);
   }
+
+  MESH.x = shifter.position.x - 0.16; MESH.y = OUT_Y + 0.25; MESH.z = 0;
+  grindLight.position.set(MESH.x,MESH.y,MESH.z);
+
+  gearKnob.style.left=(leverNX*100).toFixed(2)+'%';
+  gearKnob.style.top =(leverNY*100).toFixed(2)+'%';
+
+  const PEDAL_ANGLE = 0.5 + Math.PI/4;
+  pedal3D_clutch.rotation.x = p * PEDAL_ANGLE;
+  pedal3D_brake.rotation.x  = brakeP * PEDAL_ANGLE;
+  pedal3D_gas.rotation.x    = gasP * PEDAL_ANGLE;
 
   wheel.userData.rotor.rotation.x=-axleAng;
   wheelL.userData.rotor.rotation.x=-axleAng;
@@ -1167,61 +1451,41 @@ renderer.setAnimationLoop(()=>{
     cb.L.intensity=ign*7.5;
   }
 
-  /* ============ ТОРМОЗА: НАГРЕВ, СВЕЧЕНИЕ, ИСКРЫ ============ */
-  const speedN=Math.min(1,aOmega/6);
+  const absOmega=Math.abs(aOmega);
+  const speedN=Math.min(1,absOmega/6);
   const brakeLevel=brakeP*speedN;
-
   brakeHeat += st*( brakeLevel*3.4 - brakeHeat*0.45 );
   brakeHeat = Math.max(0, Math.min(1, brakeHeat));
-
   const hh=Math.min(1, brakeHeat*1.15 + brakeLevel*0.25);
   M.brakeHot.color.copy(DISC_COLD).lerp(DISC_HOT,hh);
   M.brakeHot.emissiveIntensity = hh*hh*3.0;
   M.brakeHot.roughness = 0.40 - hh*0.22;
-
-  const caliperGlow = brakeP*(0.65 + 0.55*speedN);
-  M.caliper.emissiveIntensity = caliperGlow*2.3;
+  M.caliper.emissiveIntensity = brakeP*(0.65 + 0.55*speedN)*2.3;
 
   if(brakeLevel>0.01){
     brakeEmitAcc += dt*(110+1700*brakeLevel)*brakeLevel;
-    while(brakeEmitAcc>=1){
-      brakeEmitAcc-=1;
-      spawnBrakeSpark(brakes[(Math.random()<0.5)?0:1]);
-    }
+    while(brakeEmitAcc>=1){ brakeEmitAcc-=1; spawnBrakeSpark(brakes[(Math.random()<0.5)?0:1]); }
   } else brakeEmitAcc=0;
 
   const flick=brakeLevel>0.01 ? brakeLevel*(5.0+Math.random()*3.5) : 0;
-  for(let i=0;i<brakes.length;i++){
-    brakes[i].L.intensity = flick + brakeHeat*brakeHeat*1.8;
-  }
+  for(let i=0;i<brakes.length;i++) brakes[i].L.intensity = flick + brakeHeat*brakeHeat*1.8;
 
   const slip=Math.abs(engOmega-dOmega);
   const slipN=Math.min(1,slip/14);
   const gearEngaged=gE>0.5;
   const clutchSlipping=(e>0.02&&e<0.98)&&gearEngaged;
   const sparkLevel=clutchSlipping?Math.min(1,4*e*(1-e))*slipN:0;
-  const discX=clutchDisc.position.x;
-  const gx=(-1.04+(discX-0.045))*0.5;
+  const cdx=clutchDisc.position.x;
+  const gx=(-1.04+(cdx-0.045))*0.5;
   emitAcc+=dt*(60+700*sparkLevel)*sparkLevel;
   while(emitAcc>=1){ emitAcc-=1; spawnSpark(gx); }
 
-  const clash = clashActive ? Math.min(1, mismatchNow*2.4) : ((tryingEngage||tryingOut) ? 0.85 : 0);
+  const clash = clashActive ? Math.min(1, mismatchNow*1.2) : 0;
   if(clash>0.02){
     grindAcc+=dt*(300+1300*clash)*clash;
     while(grindAcc>=1){ grindAcc-=1; spawnGearSpark(); }
   } else grindAcc=0;
   grindLight.intensity = clash>0 ? clash*(6.0+Math.random()*4.5) : 0;
-
-  const blockMsg=(tryingEngage||clashActive)?1:(tryingOut?2:0);
-  if(blockMsg && blocked!==blockMsg){
-    blocked=blockMsg;
-    showMsg(blockMsg===1
-      ? '⚠️ Передача не включается — выжмите сцепление полностью!<small>Передачи переключаются только при полностью выжатом сцеплении</small>'
-      : '⚠️ Передача не выключается — выжмите сцепление полностью!<small>Передачи переключаются только при полностью выжатом сцеплении</small>','warn','block');
-  } else if(!blockMsg && blocked){
-    blocked=0;
-    if(msgKind==='block') hideMsg();
-  }
 
   for(let i=0;i<SPARK_N;i++){
     if(sparkLife[i]>0){
@@ -1251,17 +1515,35 @@ renderer.setAnimationLoop(()=>{
   const rpmNow=engOmega/SLOW*9.549;
   updateSound(Math.max(0,(rpmNow-800)/3200), rpmNow/60, sparkLevel, clash, brakeLevel);
 
+  const wheelRpm = aOmega/SLOW * 9.549;
+  const speedKmh = wheelRpm * SPEED_K;
+  const absSpeed = Math.abs(speedKmh);
+  tachoShown  += (rpmNow  - tachoShown )*Math.min(1,dt*9);
+  speedoShown += (absSpeed- speedoShown)*Math.min(1,dt*9);
+  setGauge(tacho,  tachoShown);
+  setGauge(speedo, speedoShown);
+
   hudT+=dt;
-  if(hudT>0.1){ hudT=0;
+  if(hudT>0.08){
+    hudT=0;
+    tacho.dig.textContent  = Math.round(tachoShown);
+    speedo.dig.textContent = Math.round(speedoShown);
     engLabel.userData.draw(Math.round(rpmNow));
-    whlLabel.userData.draw(Math.round(aOmega*WHL_RPM_K));
+    whlLabel.userData.draw(Math.round(absSpeed));
     gasRpmTxt.textContent=Math.round(rpmNow)+' об/мин';
+
+    for(const k in gateLabelEls){
+      const on=(k===String(gearSel));
+      gateLabelEls[k].setAttribute('fill', on ? (k==='R'?'#ff8d7a':'#6cf09c') : '#8fa3bb');
+      gateLabelEls[k].setAttribute('font-size', on ? '15' : '12');
+    }
+
     if(engineState==='running'){
-      startBtn.textContent='⏹ Заглушить';
+      startBtnTxt.textContent='СТОП';
       startBtn.classList.add('kill');
       startBtn.classList.remove('dis');
     } else {
-      startBtn.textContent='▶ Старт двигателя';
+      startBtnTxt.textContent='СТАРТ';
       startBtn.classList.remove('kill');
       startBtn.classList.toggle('dis', engineState==='cranking');
     }
