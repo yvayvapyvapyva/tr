@@ -49,14 +49,14 @@
          inset 0 2px 5px rgba(255,255,255,.18),inset 0 -4px 8px rgba(0,0,0,.55),
          0 0 28px rgba(255,90,60,.75),0 6px 14px rgba(0,0,0,.5)}
 
-  /* ---------- ПАНЕЛЬ КПП: без рамок ---------- */
+  /* ---------- ПАНЕЛЬ КПП: без рамок, увеличена в 1.5 раза ---------- */
   #gearUI{position:fixed;top:calc(6px + env(safe-area-inset-top));right:6px;z-index:12;
        display:flex;flex-direction:column;align-items:center;
        background:none;border:none;border-radius:0;
        padding:0;margin:0;box-shadow:none;backdrop-filter:none;
        user-select:none;-webkit-user-select:none;touch-action:none;
        pointer-events:none;transform-origin:top right}
-  #gearTrack{position:relative;width:152px;height:152px;cursor:grab;
+  #gearTrack{position:relative;width:228px;height:228px;cursor:grab;
        overflow:visible;flex:0 0 auto;
        background:none;border:none;border-radius:0;box-shadow:none;
        pointer-events:auto}
@@ -64,7 +64,7 @@
   #gateSvg{position:absolute;inset:0;width:100%;height:100%;display:block;
        pointer-events:none;overflow:visible;
        filter:drop-shadow(0 3px 10px rgba(0,0,0,.65))}
-  #gearKnob{position:absolute;left:50%;top:50%;width:30px;height:30px;margin:-15px 0 0 -15px;
+  #gearKnob{position:absolute;left:50%;top:50%;width:45px;height:45px;margin:-22.5px 0 0 -22.5px;
        border-radius:50%;pointer-events:none;z-index:5;
        background:radial-gradient(circle at 34% 28%, #9aa5b3, #3d4650 62%, #1b222a 100%);
        border:2px solid #77828f;
@@ -122,13 +122,13 @@
     #startBtnTxt{font-size:8px;letter-spacing:.6px}
     #startBtn .pwr{width:15px;height:15px}
     #gearUI{top:calc(4px + env(safe-area-inset-top));right:4px}
-    #gearTrack{width:112px;height:112px}
-    #gearKnob{width:24px;height:24px;margin:-12px 0 0 -12px}
+    #gearTrack{width:168px;height:168px}
+    #gearKnob{width:36px;height:36px;margin:-18px 0 0 -18px}
   }
 </style>
 </head>
 <body>
-<div id="msg" class="info">Нажмите «▶ Старт двигателя», чтобы завести двигатель</div>
+<div id="msg" class="info">Нажмите «Старт», чтобы завести двигатель</div>
 
 <div id="topUI">
   <div class="gauge"><svg id="tachoSvg"  viewBox="-60 -60 120 120"></svg></div>
@@ -316,7 +316,6 @@ function resize(){
   renderer.setSize(w,h); camera.aspect=w/h; camera.updateProjectionMatrix();
 }
 
-/* Плотная подгонка камеры по проекции габаритов на оси камеры */
 const FIT_DIR = new THREE.Vector3(0.38, 0.32, 1.0).normalize();
 function fitCameraToScene(){
   scene.updateMatrixWorld(true);
@@ -348,7 +347,7 @@ function fitCameraToScene(){
   const tanH = tanV * camera.aspect;
   const distV = maxUp / tanV;
   const distH = maxRight / tanH;
-  let dist = Math.max(distV, distH) * 1.05;
+  let dist = Math.max(distV, distH) * 0.525;
   camera.position.copy(center).addScaledVector(FIT_DIR, dist);
   camera.lookAt(center);
   controls.target.copy(center);
@@ -456,7 +455,7 @@ function setGauge(g,value){
 }
 const tacho=buildGauge(document.getElementById('tachoSvg'),{
   max:5000, step:250, major:1000, redFrom:4000, greenFrom:1500, greenTo:2500,
-  divider:1000, color:'#ffd166', needle:'#ff6b4a', unit:'об/мин ×1000'});
+  divider:1000, color:'#ffd166', needle:'#ff6b4a', unit:'×1000'});
 const speedo=buildGauge(document.getElementById('speedoSvg'),{
   max:180, step:10, major:20, divider:1, numSize:8,
   color:'#6cf09c', needle:'#6cf09c', unit:'км/ч'});
@@ -1126,6 +1125,7 @@ const FULL_DEPRESS=0.95;
 let shifterTargetX=0.55;
 shifter.position.x=shifterTargetX;
 let wasAtNeutral=true;
+let noClutchShiftTimer=0;
 
 function shiftBlocked(){ return (engineState==='running') && p<FULL_DEPRESS; }
 
@@ -1139,8 +1139,11 @@ function gearFromPointer(cx,cy){
     const np=nodePos(gearSel), dev=0.13;
     goalNX=Math.max(np.x-dev,Math.min(np.x+dev,c.x));
     goalNY=Math.max(np.y-dev,Math.min(np.y+dev,c.y));
+    /* ИСПРАВЛЕНО: ограничиваем цель на схему через constrainToH */
+    const clamped=constrainToH(goalNX,goalNY);
+    goalNX=clamped.x; goalNY=clamped.y;
     tryGear=intended;
-    noClutchShiftTimer=1.5;   /* не глохнуть при попытке переключения без сцепления */
+    noClutchShiftTimer=1.0;
   } else {
     goalNX=c.x; goalNY=c.y;
     gearSel=intended;
@@ -1155,7 +1158,7 @@ function gearRelease(){
     pendingGear=g;
     tryGear=g;
     rejectTimer=REJECT_DUR;
-    noClutchShiftTimer=1.5;   /* защита от ложного глохания после отпускания рычага */
+    noClutchShiftTimer=1.0;
   } else {
     gearSel=g; tryGear=null; pendingGear=null; rejectTimer=0;
     const np=nodePos(g); goalNX=np.x; goalNY=np.y;
@@ -1200,7 +1203,7 @@ let failCrankT=0; const FAIL_DUR=0.5;
 startBtn.addEventListener('click',()=>{
   if(engineState==='running'){
     engineState='off'; rpmTarget=IDLE_RPM; gasP=0;
-    showMsg('Двигатель заглушен.<small>Нажмите круглую кнопку START, чтобы завести снова.</small>','info','kill');
+    showMsg('Двигатель заглушен.<small>Нажмите круглую кнопку СТАРТ, чтобы завести снова.</small>','info','kill');
     return;
   }
   if(engineState==='cranking') return;
@@ -1230,7 +1233,6 @@ let engOmega=0, dOmega=0, aOmega=0;
 let gElast=0, curGR=1, blocked=0, lastPct=-1;
 let brakeHeat=0;
 let tachoShown=0, speedoShown=0;
-let noClutchShiftTimer=0;   /* защита: не глохнуть после попытки переключения без сцепления */
 
 fitAll();
 
@@ -1239,7 +1241,17 @@ renderer.setAnimationLoop(()=>{
   let dt=Math.min(clock.getDelta(),.05);
 
   if(!brakeDrag) brakeP += (brakeKey - brakeP)*Math.min(1,dt*7);
-  if(noClutchShiftTimer>0) noClutchShiftTimer-=dt;
+  
+  if(noClutchShiftTimer>0){
+    noClutchShiftTimer-=dt;
+    if(noClutchShiftTimer<=0){
+      const np=nodePos('N');
+      goalNX=np.x; goalNY=np.y;
+      gearSel='N';
+      tryGear=null;
+      pendingGear=null;
+    }
+  }
 
   const armAng=REST_ANG-p*(REST_ANG+PRESS_ANG);
   pedalArm.style.transform='rotate('+(-armAng).toFixed(1)+'deg)';
@@ -1307,16 +1319,13 @@ renderer.setAnimationLoop(()=>{
     const gearMult=1+gElast*GEAR_LOAD;
     engOmega += st*( GOV*govFactor*(eOmegaTarget-engOmega) - clutchT*gearMult/Ie );
 
-    /* ИСПРАВЛЕНО: двигатель НЕ глохнет при попытке выключить передачу без сцепления.
-       Условие глохания дополнено проверкой: если сцепление отпущено и пользователь
-       тянет/отпустил рычаг (попытка переключения), таймер запрещает глохнуть. */
     const isShiftingWithoutClutch = blockShift && tryGear!=null;
     if(engOmega < STALL_OMEGA && gElast > 0.2 && !isShiftingWithoutClutch && noClutchShiftTimer<=0){
       engineState='stalled'; rpmTarget=IDLE_RPM; gasP=0;
       if(brakeP > 0.25){
-        showMsg('⚠️ Двигатель заглох — резкое торможение на включённой передаче!<small>Перед торможением выжмите сцепление или выключите передачу, затем нажмите кнопку START</small>','warn','stall');
+        showMsg('⚠️ Двигатель заглох — резкое торможение на включённой передаче!<small>Перед торможением выжмите сцепление или выключите передачу, затем нажмите кнопку СТАРТ</small>','warn','stall');
       } else {
-        showMsg('⚠️ Сцепление отпущено слишком быстро — двигатель заглох!<small>Нажмите кнопку START: выжмите сцепление или включите нейтраль, затем отпускайте плавно (зона 40–60%)</small>','warn','stall');
+        showMsg('⚠️ Сцепление отпущено слишком быстро — двигатель заглох!<small>Нажмите кнопку СТАРТ: выжмите сцепление или включите нейтраль, затем отпускайте плавно (зона 40–60%)</small>','warn','stall');
       }
     }
   } else if(engineState==='cranking'){
