@@ -83,13 +83,8 @@
   #brakeFill {background:linear-gradient(180deg,#f0705a,#8f2418)}
   #gasFill   {background:linear-gradient(180deg,#f0c65a,#8f6a1c)}
 
-  /* зона 45–60% пересчитана под V_TOP=17 / V_SPAN=66 */
-  .vzone{position:absolute;left:3px;right:3px;top:46.7%;height:9.9%;
-       background:rgba(46,185,100,.35);
-       border-top:2px solid rgba(46,185,100,.9);
-       border-bottom:2px solid rgba(46,185,100,.9);
-       box-shadow:inset 0 0 10px rgba(46,185,100,.4),0 0 8px rgba(46,185,100,.3);
-       pointer-events:none}
+/* зона 40–60% пересчитана под V_TOP=17 / V_SPAN=66 */
+  /* (зелёная зона оставлена только на шкале — см. .scaleZone) */
 
   /* РУЧКА: квадрат 50×50 (было 32×32, ×1.5), цвет как у 3D-накладки */
   .vthumb{position:absolute;left:2px;right:2px;top:17%;
@@ -119,12 +114,10 @@
   .scaleTick.maj{right:20px;width:7px;height:2px;background:#93a6bb}
   .scaleTick.passed{background:var(--sc);box-shadow:0 0 4px var(--sc)}
   .scaleTick.maj.passed{background:var(--sc);box-shadow:0 0 6px var(--sc),0 0 2px var(--sc)}
-  .scaleZone{position:absolute;left:0;right:0;
-       background:rgba(46,185,100,.35);
-       border-top:2px solid rgba(46,185,100,.9);
-       border-bottom:2px solid rgba(46,185,100,.9);
-       box-shadow:inset 0 0 10px rgba(46,185,100,.4),0 0 8px rgba(46,185,100,.3);
-       pointer-events:none}
+.scaleZone{position:absolute;left:0;right:0;
+     background:rgba(46,185,100,.35);
+     box-shadow:inset 0 0 10px rgba(46,185,100,.4),0 0 8px rgba(46,185,100,.3);
+     pointer-events:none}
   .scaleCursor{position:absolute;right:0;width:32px;height:2px;margin-top:-1px;
        background:currentColor;pointer-events:none;border-radius:1px;z-index:3;
        box-shadow:0 0 6px currentColor}
@@ -206,7 +199,6 @@
     <div class="ptitle">Сцепление</div>
     <div class="pedalWrap" id="pedalTrack">
       <div class="sliderHalf">
-        <div class="vzone"></div>
         <div class="vfill" id="clutchFill"></div>
         <div class="vthumb" id="clutchThumb"></div>
       </div>
@@ -1088,7 +1080,7 @@ function bindVSlider(wrapEl, fillEl, thumbEl, cursorEl, onChange, onRelease){
 
 const sim = new Transmission();
 
-const clutchScaleData = buildScale(document.getElementById('clutchScale'), [45,60],'#8fd0ff');
+const clutchScaleData = buildScale(document.getElementById('clutchScale'), [40,60],'#8fd0ff');
 const brakeScaleData  = buildScale(document.getElementById('brakeScale'),  null,'#ff6b5a');
 const gasScaleData    = buildScale(document.getElementById('gasScale'),    null,'#ffd166');
 function highlightScale(data, pct){
