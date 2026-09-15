@@ -257,6 +257,7 @@
 <script type="module">
 import * as THREE from 'three';
 import {OrbitControls} from 'three/addons/controls/OrbitControls.js';
+import {Transmission, PHYS, GATE_X, ROW_Y} from './transmission.js';
 
 const tg = window.Telegram?.WebApp;
 if (tg) {
@@ -429,44 +430,6 @@ const speedo=buildGauge(document.getElementById('speedoSvg'),{
   color:'#6cf09c', needle:'#6cf09c', unit:'км/ч'});
 
 /* ============ СХЕМА «Ж» ============ */
-const GATE_X=[0.10,0.50,0.90];
-const ROW_Y =[0.17,0.50,0.83];
-const ENGAGE_DIST=0.17;
-const BAR_THRESH=0.10;
-const GEAR_NODES=[
-  {id:1,gx:0,row:0},{id:2,gx:0,row:2},{id:3,gx:1,row:0},
-  {id:4,gx:1,row:2},{id:5,gx:2,row:0},{id:'R',gx:2,row:2},
-];
-const GEAR_RATIO={1:1, 2:2, 3:3, 4:4, 5:5, 'R':-1, 'N':1};
-const SPEED_K = 0.008;
-
-function nodePos(g){
-  if(String(g)==='N') return {x:GATE_X[1],y:ROW_Y[1]};
-  const n=GEAR_NODES.find(n=>String(n.id)===String(g));
-  return {x:GATE_X[n.gx], y:ROW_Y[n.row]};
-}
-let curGate=1;
-function constrainToH(nx,ny){
-  const onBarZone = Math.abs(ny-ROW_Y[1])<BAR_THRESH;
-  if(onBarZone){
-    let gi=0,bd=Infinity;
-    for(let i=0;i<3;i++){ const d=Math.abs(nx-GATE_X[i]); if(d<bd){bd=d;gi=i;} }
-    curGate=gi;
-    return {x:Math.max(GATE_X[0],Math.min(GATE_X[2],nx)), y:ROW_Y[1]};
-  }
-  return {x:GATE_X[curGate], y:Math.max(ROW_Y[0],Math.min(ROW_Y[2],ny))};
-}
-function snapGear(nx,ny){
-  if(Math.abs(ny-ROW_Y[1])<0.02) return 'N';
-  let best='N',bd=Infinity;
-  for(const n of GEAR_NODES){
-    const px=GATE_X[n.gx],py=ROW_Y[n.row];
-    const d=(nx-px)*(nx-px)+(ny-py)*(ny-py);
-    if(d<bd){bd=d;best=n.id;}
-  }
-  return best;
-}
-
 const gateSvg=document.getElementById('gateSvg');
 const gateLabelEls={};
 (function buildGate(){
@@ -1122,9 +1085,7 @@ function bindVSlider(wrapEl, fillEl, thumbEl, cursorEl, onChange, onRelease){
   return { set:paint, isDragging(){ return dragging; } };
 }
 
-let p=0, gasP=0, brakeP=0, rpmTarget=800;
-let brakeKey=0;
-let brakeReturn=false;
+const sim = new Transmission();
 
 const clutchScaleData = buildScale(document.getElementById('clutchScale'), [45,60],'#8fd0ff');
 const brakeScaleData  = buildScale(document.getElementById('brakeScale'),  null,'#ff6b5a');
@@ -1139,79 +1100,44 @@ const clutchSlider=bindVSlider(
   document.getElementById('clutchFill'),
   document.getElementById('clutchThumb'),
   document.getElementById('clutchCursor'),
-  v=>{ p=v; });
+  v=>{ sim.setClutch(v); });
 
 const brakeSlider=bindVSlider(
   document.getElementById('brakeTrack'),
   document.getElementById('brakeFill'),
   document.getElementById('brakeThumb'),
   document.getElementById('brakeCursor'),
-  v=>{ brakeP=v; brakeReturn=false; },
-  ()=>{ brakeReturn=true; });
+  v=>{ sim.setBrake(v); },
+  ()=>{ sim.releaseBrake(); });
 
 const gasSlider=bindVSlider(
   document.getElementById('gasTrack'),
   document.getElementById('gasFill'),
   document.getElementById('gasThumb'),
   document.getElementById('gasCursor'),
-  v=>{ gasP=v; rpmTarget=800+v*3200; });
+  v=>{ sim.setGas(v); });
 
 clutchSlider.set(0); brakeSlider.set(0); gasSlider.set(0);
 
 /* ============ РЫЧАГ КПП ============ */
 const gearTrack=document.getElementById('gearTrack');
 const gearKnob=document.getElementById('gearKnob');
-let gearSel='N';
-let leverNX=GATE_X[1], leverNY=ROW_Y[1];
-let goalNX=GATE_X[1], goalNY=ROW_Y[1];
-let tryGear=null;
-let pendingGear=null;
 let gearDrag=false;
-let rejectTimer=0;
-const REJECT_DUR=1.0;
-const FULL_DEPRESS=0.95;
-let shifterTargetX=0.55;
-shifter.position.x=shifterTargetX;
-let wasAtNeutral=true;
-let noClutchShiftTimer=0;
-
-function shiftBlocked(){ return (engineState==='running') && p<FULL_DEPRESS; }
+shifter.position.x=sim.shifterTargetX;
 
 function gearFromPointer(cx,cy){
   const rect=gearTrack.getBoundingClientRect();
-  let nx=(cx-rect.left)/rect.width, ny=(cy-rect.top)/rect.height;
-  nx=Math.max(0,Math.min(1,nx)); ny=Math.max(0,Math.min(1,ny));
-  const c=constrainToH(nx,ny);
-  const intended=snapGear(c.x,c.y);
-
-  if(shiftBlocked() && String(intended)!==String(gearSel)){
-    const np=nodePos(gearSel);
-    goalNX=np.x; goalNY=np.y;
-    tryGear=intended;
-    noClutchShiftTimer=1.0;
-  } else {
-    goalNX=c.x; goalNY=c.y;
-    gearSel=intended;
-    tryGear=null;
-  }
+  const nx=Math.max(0,Math.min(1,(cx-rect.left)/rect.width));
+  const ny=Math.max(0,Math.min(1,(cy-rect.top)/rect.height));
+  sim.dragGear(nx,ny);
 }
 function gearRelease(){
   if(!gearDrag) return;
   gearDrag=false;
-
-  if(shiftBlocked()){
-    const np=nodePos(gearSel);
-    goalNX=np.x; goalNY=np.y;
-    tryGear=null; pendingGear=null; rejectTimer=0;
-    noClutchShiftTimer=0.5;
-  } else {
-    const g=snapGear(goalNX,goalNY);
-    gearSel=g; tryGear=null; pendingGear=null; rejectTimer=0;
-    const np=nodePos(g); goalNX=np.x; goalNY=np.y;
-  }
+  sim.releaseGear();
 }
 gearTrack.addEventListener('pointerdown',e=>{
-  gearDrag=true; rejectTimer=0; pendingGear=null;
+  gearDrag=true; sim.beginGearDrag();
   try{gearTrack.setPointerCapture(e.pointerId);}catch(_){}
   gearFromPointer(e.clientX,e.clientY); e.preventDefault();
 });
@@ -1220,68 +1146,32 @@ gearTrack.addEventListener('pointerup',gearRelease);
 gearTrack.addEventListener('pointercancel',gearRelease);
 
 addEventListener('keydown',e=>{
-  if(e.code==='Space'&&!e.repeat){ p=1; e.preventDefault(); }
-  if((e.code==='KeyB'||e.code==='ArrowDown')&&!e.repeat){ brakeKey=1; brakeReturn=false; e.preventDefault(); }
+  if(e.code==='Space'&&!e.repeat){ sim.setClutch(1); e.preventDefault(); }
+  if((e.code==='KeyB'||e.code==='ArrowDown')&&!e.repeat){ sim.holdBrake(true); e.preventDefault(); }
   const k=e.key.toUpperCase();
-  if('12345R'.includes(k) && k.length===1){
-    if(!shiftBlocked()){ gearSel=(k==='R')?'R':Number(k); const np=nodePos(gearSel); goalNX=np.x; goalNY=np.y; }
-    e.preventDefault();
-  }
-  if(k==='N'){ if(!shiftBlocked()){ gearSel='N'; goalNX=GATE_X[1]; goalNY=ROW_Y[1]; } e.preventDefault(); }
+  if('12345RN'.includes(k) && k.length===1){ sim.keyGear(k); e.preventDefault(); }
 });
 addEventListener('keyup',e=>{
-  if(e.code==='Space'){ p=0; e.preventDefault(); }
-  if(e.code==='KeyB'||e.code==='ArrowDown'){ brakeKey=0; brakeReturn=true; e.preventDefault(); }
+  if(e.code==='Space'){ sim.setClutch(0); e.preventDefault(); }
+  if(e.code==='KeyB'||e.code==='ArrowDown'){ sim.holdBrake(false); e.preventDefault(); }
 });
-
-function friction(pp){ if(pp<=0.4) return 1; if(pp>=0.6) return 0; return (0.6-pp)/0.2; }
-function gapF(pp){ return Math.max(0,(pp-0.4)/0.6); }
 
 /* ============ СОСТОЯНИЕ ДВИГАТЕЛЯ ============ */
 const msgEl=document.getElementById('msg');
 const startBtn=document.getElementById('startBtn');
 const startBtnTxt=document.getElementById('startBtnTxt');
-let msgKind='info';
-function showMsg(html,cls,kind){ msgEl.innerHTML=html; msgEl.className=cls; msgKind=kind||''; }
-function hideMsg(){ msgEl.className=''; msgEl.textContent=''; msgKind=''; }
-let engineState='off', crankT=0;
-let failCrankT=0; const FAIL_DUR=0.5;
+function showMsg(html,cls){ msgEl.innerHTML=html; msgEl.className=cls; }
+function hideMsg(){ msgEl.className=''; msgEl.textContent=''; }
 startBtn.addEventListener('click',()=>{
-  if(engineState==='running'){
-    engineState='off'; rpmTarget=IDLE_RPM; gasP=0;
-    showMsg('Двигатель заглушен.<small>Нажмите круглую кнопку СТАРТ, чтобы завести снова.</small>','info','kill');
-    return;
-  }
-  if(engineState==='cranking') return;
-  const clutchOut=p<0.5;
-  const gearOn=String(gearSel)!=='N';
-  if(clutchOut && gearOn){
-    showMsg('⚠️ Для запуска выжмите сцепление или включите нейтраль<small>Стартер крутит, но двигатель не запускается — включена передача</small>','warn','startlock');
-    playStarter(FAIL_DUR); failCrankT=FAIL_DUR; return;
-  }
-  hideMsg(); setSoundOn();
-  engineState='cranking'; crankT=0; failCrankT=0;
-  playStarter(1.25);
+  const act=sim.pressStart();
+  if(act==='started'){ setSoundOn(); playStarter(1.25); }
+  else if(act==='lock'){ playStarter(PHYS.FAIL_DUR); }
 });
 
 /* ============ ФИЗИКА И АНИМАЦИЯ ============ */
-const SLOW=0.1;
-const K=6, GS=30, RR=1.5;
-const GOV=12, Ie=10, GEAR_LOAD=8;
-const BRK_VISC=7.0, BRK_LOCK=2.6;
-const RPM2O=Math.PI/30*SLOW;
-const IDLE_RPM=800;
-const IDLE_OMEGA=IDLE_RPM*RPM2O;
-const STALL_OMEGA=700*RPM2O;
-const CRANK_OMEGA=320*RPM2O;
-let thE=0, discAng=0, axleAng=0;
-let engOmega=0, dOmega=0, aOmega=0;
-let gElast=0, curGR=1, blocked=0;
-let brakeHeat=0;
 let tachoShown=0, speedoShown=0;
-
-const BLOCK_MSG_DUR = 2.0;
-let blockMsgTimer = 0;
+let lastClutch=0, lastGas=0, lastBrake=0;
+let msgShown=null;
 
 fitAll();
 
@@ -1289,160 +1179,21 @@ const clock=new THREE.Clock(); let hudT=0;
 renderer.setAnimationLoop(()=>{
   let dt=Math.min(clock.getDelta(),.05);
 
-  if(brakeKey>0){
-    brakeReturn=false;
-    if(brakeP<1 && !brakeSlider.isDragging()){
-      brakeP=Math.min(1,brakeP+dt*3);
-      brakeSlider.set(brakeP);
-    }
-  } else if(brakeReturn && !brakeSlider.isDragging()){
-    brakeP += (0 - brakeP)*Math.min(1, dt*12);
-    if(brakeP < 0.004){ brakeP=0; brakeReturn=false; }
-    brakeSlider.set(brakeP);
+  sim.setBrakeDragging(brakeSlider.isDragging());
+  sim.step(dt);
+
+  crank.rotation.x=sim.thE; flywheel.rotation.x=sim.thE;
+  clutchDisc.position.x=sim.cdx;
+  clutchDisc.rotation.x=sim.discAng;
+  forkG.rotation.z=sim.gf*0.25;
+  gA.rotation.x=sim.discAng; gD.rotation.x=-sim.axleAng;
+
+  {
+    const gateT=sim.gateT, rowT=sim.rowT;
+    shifter.position.x += (sim.shifterTargetX-shifter.position.x)*Math.min(1,dt*10);
+    gearLever3D.rotation.x=(rowT-0.5)*0.9;
+    gearLever3D.rotation.z=(0.5-gateT)*0.7;
   }
-
-  const eOmegaTarget=rpmTarget*RPM2O;
-  const e=friction(p);
-  const gf=gapF(p);
-  const cutDrag=(1-e)*1.6;
-  const st=Math.min(dt,.033);
-  const clutchT=e*K*(engOmega-dOmega);
-
-  const blockShift=shiftBlocked();
-  if(rejectTimer>0){
-    rejectTimer-=dt;
-    if(!blockShift){
-      rejectTimer=0;
-      if(pendingGear!=null){
-        gearSel=pendingGear;
-        const np=nodePos(gearSel); goalNX=np.x; goalNY=np.y;
-      }
-      pendingGear=null; tryGear=null;
-    } else if(rejectTimer<=0){
-      const np=nodePos(gearSel); goalNX=np.x; goalNY=np.y;
-      pendingGear=null;
-    }
-  }
-
-  leverNX += (goalNX-leverNX)*Math.min(1,dt*14);
-  leverNY += (goalNY-leverNY)*Math.min(1,dt*14);
-
-  let gE=0;
-  if(String(gearSel)!=='N'){
-    const np=nodePos(gearSel);
-    const d=Math.hypot(leverNX-np.x, leverNY-np.y);
-    let t=1-Math.min(1,d/ENGAGE_DIST);
-    gE=t*t*(3-2*t);
-  }
-  curGR=GEAR_RATIO[gearSel]||1;
-
-  const clashGear=tryGear!=null?tryGear:gearSel;
-  const mismatchNow=Math.abs(dOmega*(GEAR_RATIO[clashGear]||1)-aOmega);
-  const clashActive=blockShift && tryGear!=null && String(tryGear)!==String(gearSel)
-                    && gE<0.9 && mismatchNow>0.4;
-  if(clashActive) gE=0;
-  gElast=gE;
-
-  const govFactor = e>0.5 ? (1.0 - brakeP*brakeP*0.9) : 1.0;
-
-  if(engineState==='running'){
-    const gearMult=1+gElast*GEAR_LOAD;
-    engOmega += st*( GOV*govFactor*(eOmegaTarget-engOmega) - clutchT*gearMult/Ie );
-
-    const isShiftingWithoutClutch = blockShift && tryGear!=null;
-    if(engOmega < STALL_OMEGA && gElast > 0.2 && !isShiftingWithoutClutch && noClutchShiftTimer<=0){
-      engineState='stalled'; rpmTarget=IDLE_RPM; gasP=0;
-      gasSlider.set(0);
-      blockMsgTimer=0; blocked=0;
-      if(brakeP > 0.25){
-        showMsg('⚠️ Двигатель заглох — резкое торможение на включённой передаче!<small>Перед торможением выжмите сцепление или выключите передачу, затем нажмите кнопку СТАРТ</small>','warn','stall');
-      } else {
-        showMsg('⚠️ Сцепление отпущено слишком быстро — двигатель заглох!<small>Нажмите кнопку СТАРТ: выжмите сцепление или включите нейтраль, затем отпускайте плавно (зона 40–60%)</small>','warn','stall');
-      }
-    }
-  } else if(engineState==='cranking'){
-    crankT+=dt;
-    engOmega += (CRANK_OMEGA-engOmega)*Math.min(1,dt*5);
-    if(crankT>1.25){ engineState='running'; engOmega=Math.max(engOmega,IDLE_OMEGA); }
-  } else {
-    if(failCrankT>0){
-      failCrankT-=dt;
-      engOmega=0.55+Math.abs(Math.sin(performance.now()*0.035))*0.75;
-    } else {
-      engOmega += st*(-5*engOmega);
-      if(engOmega<0.01) engOmega=0;
-    }
-  }
-  engOmega=Math.max(0,engOmega);
-
-  if(noClutchShiftTimer>0){
-    noClutchShiftTimer-=dt;
-    if(noClutchShiftTimer<=0){
-      const np=nodePos(gearSel);
-      goalNX=np.x; goalNY=np.y;
-      tryGear=null; pendingGear=null;
-    }
-  }
-
-  if(clashActive){
-    if(!blocked){
-      blocked=1;
-      blockMsgTimer=BLOCK_MSG_DUR;
-      showMsg('⚠️ Передача не включается — выжмите сцепление полностью!<small>Передачи переключаются только при полностью выжатом сцеплении</small>','warn','block');
-    }
-  } else {
-    blocked=0;
-  }
-  if(blockMsgTimer>0){
-    blockMsgTimer-=dt;
-    if(blockMsgTimer<=0){
-      blockMsgTimer=0;
-      if(msgKind==='block') hideMsg();
-    }
-  }
-
-  const brkVisc=BRK_VISC*brakeP;
-  const coastDrag=(1-gE)*RR+brkVisc;
-  const NSUB=32, h=st/NSUB;
-  for(let s=0;s<NSUB;s++){
-    const err=dOmega*curGR-aOmega;
-    dOmega += h*( clutchT - gE*curGR*GS*err - cutDrag*dOmega );
-    aOmega += h*( gE*GS*err - coastDrag*aOmega );
-  }
-  const staticDec=st*(0.4*(1-gE)+BRK_LOCK*brakeP);
-  if(aOmega>staticDec) aOmega-=staticDec;
-  else if(aOmega<-staticDec) aOmega+=staticDec;
-  else aOmega=0;
-  dOmega=Math.max(dOmega,0);
-
-  if(e>0.98){
-    if(String(gearSel)==='N'){
-      dOmega=engOmega;
-    } else {
-      const avg=(engOmega+dOmega)/2;
-      engOmega=avg; dOmega=avg;
-    }
-  }
-
-  thE+=engOmega*dt; discAng+=dOmega*dt; axleAng+=aOmega*dt;
-  crank.rotation.x=thE; flywheel.rotation.x=thE;
-  clutchDisc.position.x=-1.00+gf*0.25;
-  clutchDisc.rotation.x=discAng;
-  forkG.rotation.z=gf*0.25;
-  gA.rotation.x=discAng; gD.rotation.x=-axleAng;
-
-  const gateT=(leverNX-GATE_X[0])/(GATE_X[2]-GATE_X[0]);
-  const rowT=(leverNY-ROW_Y[0])/(ROW_Y[2]-ROW_Y[0]);
-  const isAtNeutral=Math.abs(leverNY-ROW_Y[1])<0.03;
-  const isMovingToGear=Math.abs(leverNY-ROW_Y[1])>0.05;
-  if(isMovingToGear && !isAtNeutral){
-    shifterTargetX=0.30; wasAtNeutral=false;
-  } else if(isAtNeutral && !wasAtNeutral){
-    shifterTargetX=0.55; wasAtNeutral=true;
-  }
-  shifter.position.x += (shifterTargetX-shifter.position.x)*Math.min(1,dt*10);
-  gearLever3D.rotation.x=(rowT-0.5)*0.9;
-  gearLever3D.rotation.z=(0.5-gateT)*0.7;
 
   {
     _cFrom.set(SHIFTER_POS.x,SHIFTER_POS.y+0.10,SHIFTER_POS.z-0.28);
@@ -1456,19 +1207,19 @@ renderer.setAnimationLoop(()=>{
   MESH.z=0;
   grindLight.position.set(MESH.x,MESH.y,MESH.z);
 
-  gearKnob.style.left=(leverNX*100).toFixed(2)+'%';
-  gearKnob.style.top=(leverNY*100).toFixed(2)+'%';
+  gearKnob.style.left=(sim.leverNX*100).toFixed(2)+'%';
+  gearKnob.style.top=(sim.leverNY*100).toFixed(2)+'%';
 
   const PEDAL_ANGLE=0.5+Math.PI/4-20*Math.PI/180;
-  pedal3D_clutch.rotation.x = p      * PEDAL_ANGLE;
-  pedal3D_brake.rotation.x  = brakeP * PEDAL_ANGLE;
-  pedal3D_gas.rotation.x    = gasP   * PEDAL_ANGLE;
+  pedal3D_clutch.rotation.x = sim.p      * PEDAL_ANGLE;
+  pedal3D_brake.rotation.x  = sim.brakeP * PEDAL_ANGLE;
+  pedal3D_gas.rotation.x    = sim.gasP   * PEDAL_ANGLE;
 
-  wheel.userData.rotor.rotation.x=-axleAng;
-  wheelL.userData.rotor.rotation.x=-axleAng;
+  wheel.userData.rotor.rotation.x=-sim.axleAng;
+  wheelL.userData.rotor.rotation.x=-sim.axleAng;
 
   for(let i=0;i<cylXs.length;i++){
-    const x=cylXs[i], psi=thE+phases[i];
+    const x=cylXs[i], psi=sim.thE+phases[i];
     const py=CR*Math.cos(psi), pz=CR*Math.sin(psi);
     const ypis=py+Math.sqrt(Math.max(RL*RL-pz*pz,0));
     pistons[i].position.set(x,ypis+0.18,0);
@@ -1476,41 +1227,31 @@ renderer.setAnimationLoop(()=>{
     rods[i].rotation.x=Math.atan2(-pz,ypis-py);
     bigEnds[i].position.set(x,py,pz);
     let ign=Math.pow(Math.max(0,Math.cos(psi)),6);
-    if(engineState!=='running') ign=0;
+    if(sim.engineState!=='running') ign=0;
     const cb=combs[i];
     cb.mat.opacity=ign;
     const sc=0.25+ign*0.1; cb.s.scale.set(sc,sc,1);
     cb.L.intensity=ign*7.5;
   }
 
-  const absOmega=Math.abs(aOmega);
-  const speedN=Math.min(1,absOmega/6);
-  const brakeLevel=brakeP*speedN;
-  brakeHeat += st*(brakeLevel*3.4-brakeHeat*0.45);
-  brakeHeat=Math.max(0,Math.min(1,brakeHeat));
-  const hh=Math.min(1,brakeHeat*1.15+brakeLevel*0.25);
+  const brakeLevel=sim.brakeLevel;
+  const hh=Math.min(1,sim.brakeHeat*1.15+brakeLevel*0.25);
   M.brakeHot.color.copy(DISC_COLD).lerp(DISC_HOT,hh);
   M.brakeHot.emissiveIntensity=hh*hh*3.0;
   M.brakeHot.roughness=0.40-hh*0.22;
-  M.caliper.emissiveIntensity=brakeP*(0.65+0.55*speedN)*2.3;
+  M.caliper.emissiveIntensity=sim.brakeP*(0.65+0.55*sim.speedN)*2.3;
   if(brakeLevel>0.01){
     brakeEmitAcc += dt*(110+1700*brakeLevel)*brakeLevel;
     while(brakeEmitAcc>=1){ brakeEmitAcc-=1; spawnBrakeSpark(brakes[(Math.random()<0.5)?0:1]); }
   } else brakeEmitAcc=0;
   const flick=brakeLevel>0.01 ? brakeLevel*(5.0+Math.random()*3.5) : 0;
-  for(let i=0;i<brakes.length;i++) brakes[i].L.intensity=flick+brakeHeat*brakeHeat*1.8;
+  for(let i=0;i<brakes.length;i++) brakes[i].L.intensity=flick+sim.brakeHeat*sim.brakeHeat*1.8;
 
-  const slip=Math.abs(engOmega-dOmega);
-  const slipN=Math.min(1,slip/14);
-  const gearEngaged=gE>0.5;
-  const clutchSlipping=(e>0.02&&e<0.98)&&gearEngaged;
-  const sparkLevel=clutchSlipping?Math.min(1,4*e*(1-e))*slipN:0;
-  const cdx=clutchDisc.position.x;
-  const gx=(-1.04+(cdx-0.045))*0.5;
+  const sparkLevel=sim.sparkLevel;
   emitAcc+=dt*(60+700*sparkLevel)*sparkLevel;
-  while(emitAcc>=1){ emitAcc-=1; spawnSpark(gx); }
+  while(emitAcc>=1){ emitAcc-=1; spawnSpark(sim.gx); }
 
-  const clash=clashActive?Math.min(1,mismatchNow*1.2):0;
+  const clash=sim.clash;
   if(clash>0.02){
     grindAcc+=dt*(300+1300*clash)*clash;
     while(grindAcc>=1){ grindAcc-=1; spawnGearSpark(); }
@@ -1534,24 +1275,37 @@ renderer.setAnimationLoop(()=>{
   sparkGeo.attributes.position.needsUpdate=true;
   sparkGeo.attributes.color.needsUpdate=true;
 
-  glowRing.position.x=gx;
+  glowRing.position.x=sim.gx;
   glowMat.opacity=sparkLevel>0?Math.min(1,sparkLevel*1.5)*(0.85+Math.random()*0.25):0;
   const gsc=0.9+sparkLevel*0.35; glowRing.scale.set(gsc,gsc,gsc);
-  sparkLight.position.set(gx,0.4,0.4);
+  sparkLight.position.set(sim.gx,0.4,0.4);
   sparkLight.intensity=sparkLevel>0?sparkLevel*(4.5+Math.random()*3.0):0;
-  const slipGlow=clutchSlipping?(e*Math.pow(slip,1.5)*0.03+sparkLevel*1.2):0;
+  const slipGlow=sim.clutchSlipping?(sim.e*Math.pow(sim.slip,1.5)*0.03+sparkLevel*1.2):0;
   M.orange.emissiveIntensity=Math.min(2.0,slipGlow);
 
-  const rpmNow=engOmega/SLOW*9.549;
-  updateSound(Math.max(0,(rpmNow-800)/3200),rpmNow/60,sparkLevel,clash,brakeLevel);
+  const rpmNow=sim.engOmega/PHYS.SLOW*9.549;
+  updateSound(Math.max(0,(rpmNow-PHYS.IDLE_RPM)/3200),rpmNow/60,sparkLevel,clash,brakeLevel);
 
-  const wheelRpm=aOmega/SLOW*9.549;
-  const speedKmh=wheelRpm*SPEED_K;
+  const wheelRpm=sim.aOmega/PHYS.SLOW*9.549;
+  const speedKmh=wheelRpm*PHYS.SPEED_K;
   const absSpeed=Math.abs(speedKmh);
   tachoShown += (rpmNow-tachoShown)*Math.min(1,dt*9);
   speedoShown += (absSpeed-speedoShown)*Math.min(1,dt*9);
   setGauge(tacho,tachoShown);
   setGauge(speedo,speedoShown);
+
+  if(sim.msg){
+    if(msgShown==null || msgShown.html!==sim.msg.html || msgShown.cls!==sim.msg.cls){
+      showMsg(sim.msg.html, sim.msg.cls);
+      msgShown={html:sim.msg.html, cls:sim.msg.cls};
+    }
+  } else if(msgShown!=null){
+    hideMsg(); msgShown=null;
+  }
+
+  if(sim.p!==lastClutch){ lastClutch=sim.p; clutchSlider.set(sim.p); }
+  if(sim.brakeP!==lastBrake){ lastBrake=sim.brakeP; brakeSlider.set(sim.brakeP); }
+  if(sim.gasP!==lastGas){ lastGas=sim.gasP; gasSlider.set(sim.gasP); }
 
   hudT+=dt;
   if(hudT>0.08){
@@ -1560,22 +1314,22 @@ renderer.setAnimationLoop(()=>{
     speedo.dig.textContent=Math.round(speedoShown);
     engLabel.userData.draw(Math.round(rpmNow));
     whlLabel.userData.draw(Math.round(absSpeed));
-    highlightScale(clutchScaleData,p);
-    highlightScale(brakeScaleData,brakeP);
-    highlightScale(gasScaleData,gasP);
+    highlightScale(clutchScaleData,sim.p);
+    highlightScale(brakeScaleData,sim.brakeP);
+    highlightScale(gasScaleData,sim.gasP);
     for(const k in gateLabelEls){
-      const on=(k===String(gearSel));
+      const on=(k===String(sim.gearSel));
       gateLabelEls[k].setAttribute('fill',on?(k==='R'?'#ff9d8f':'#6cf09c'):'#93a6bb');
       gateLabelEls[k].setAttribute('font-size',on?'11.5':'9.5');
     }
-    if(engineState==='running'){
+    if(sim.engineState==='running'){
       startBtnTxt.textContent='СТОП';
       startBtn.classList.add('kill');
       startBtn.classList.remove('dis');
     } else {
       startBtnTxt.textContent='СТАРТ';
       startBtn.classList.remove('kill');
-      startBtn.classList.toggle('dis',engineState==='cranking');
+      startBtn.classList.toggle('dis',sim.engineState==='cranking');
     }
   }
 
