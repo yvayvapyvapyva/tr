@@ -119,6 +119,9 @@
     #startBtn .pwr{width:15px;height:15px}
     #gearTrack{width:168px;height:168px}
     #gearKnob{width:36px;height:36px;margin:-18px 0 0 -18px}
+    #bottomUI{left:0;width:100%;max-width:100%;transform:none;box-sizing:border-box}
+    #uiContent{width:100%}
+    .uiRow{width:100%;justify-content:space-between}
   }
 </style>
 </head>
@@ -355,6 +358,19 @@ function fitCameraToScene(){
 
 const bottomUI=document.getElementById('bottomUI');
 function fitPanel(){
+  if(innerWidth<=760){
+    bottomUI.style.left='0';
+    bottomUI.style.width='100%';
+    bottomUI.style.maxWidth='100%';
+    bottomUI.style.transform='none';
+    const h=Math.max(bottomUI.offsetHeight,4);
+    const s=Math.min(1,innerHeight/h);
+    if(s<1){
+      bottomUI.style.transformOrigin='bottom center';
+      bottomUI.style.transform='scale('+s+')';
+    }
+    return;
+  }
   bottomUI.style.transform='translateX(-50%) scale(1)';
   bottomUI.style.maxWidth='10000px';
   bottomUI.style.width='max-content';
