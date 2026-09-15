@@ -77,14 +77,14 @@
        border-radius:14px;
        box-shadow:inset 0 0 0 1px #24384d, inset 0 2px 12px rgba(0,0,0,.55)}
 
-  .vfill{position:absolute;left:3px;right:3px;bottom:0;height:0;
+  .vfill{position:absolute;left:3px;right:3px;top:0;height:0;
        border-radius:11px;pointer-events:none;opacity:.9}
   #clutchFill{background:linear-gradient(180deg,#4d90d8,#1d4f80)}
   #brakeFill {background:linear-gradient(180deg,#f0705a,#8f2418)}
   #gasFill   {background:linear-gradient(180deg,#f0c65a,#8f6a1c)}
 
   /* зона 45–60% пересчитана под V_TOP=17 / V_SPAN=66 */
-  .vzone{position:absolute;left:3px;right:3px;top:43.4%;height:9.9%;
+  .vzone{position:absolute;left:3px;right:3px;top:46.7%;height:9.9%;
        background:rgba(46,185,100,.35);
        border-top:2px solid rgba(46,185,100,.9);
        border-bottom:2px solid rgba(46,185,100,.9);
@@ -1000,17 +1000,17 @@ function playStarter(dur){
 
 /* ============================================================
    ВЕРТИКАЛЬНЫЕ ПОЛЗУНКИ ПЕДАЛЕЙ + ШКАЛА 0–100%
-   низ = отпущено (0), вверх = нажатие (1)
+   верх = отпущено (0), вниз = нажатие (1)
 
    V_TOP/V_SPAN подобраны под ручку 50×50 px (полувысота 25 px)
    в треке 150 px, чтобы ручка не выходила за границы:
-     верх (v=1): 17% × 150 = 25.5 px → ручка 0.5 … 50.5 px  ✓
-     низ  (v=0): 83% × 150 = 124.5 px → ручка 99.5 … 149.5 px ✓
+     верх (v=0): 17% × 150 = 25.5 px → ручка 0.5 … 50.5 px  ✓
+     низ  (v=1): 83% × 150 = 124.5 px → ручка 99.5 … 149.5 px ✓
    ============================================================ */
 const V_TOP = 17;
 const V_SPAN = 66;
 
-function vPosPct(v){ return (V_TOP + (1-v)*V_SPAN).toFixed(3)+'%'; }
+function vPosPct(v){ return (V_TOP + v*V_SPAN).toFixed(3)+'%'; }
 function vFillPct(v){ return (V_TOP + v*V_SPAN).toFixed(3)+'%'; }
 
 function vFromPointer(rect, cy){
@@ -1018,7 +1018,7 @@ function vFromPointer(rect, cy){
   const spanPx = rect.height*(V_SPAN/100);
   let v = (cy - topPx)/spanPx;
   v = Math.max(0, Math.min(1, v));
-  return 1 - v;
+  return v;
 }
 
 /* риски и подписи шкалы; позиции считаются от тех же V_TOP/V_SPAN,
@@ -1028,8 +1028,8 @@ function buildScale(el, zone, accent){
   if(zone){
     const z=document.createElement('div');
     z.className='scaleZone';
-    const tHi=V_TOP+(1-zone[1]/100)*V_SPAN;
-    const tLo=V_TOP+(1-zone[0]/100)*V_SPAN;
+    const tHi=V_TOP+(zone[0]/100)*V_SPAN;
+    const tLo=V_TOP+(zone[1]/100)*V_SPAN;
     z.style.top=tHi.toFixed(2)+'%';
     z.style.height=(tLo-tHi).toFixed(2)+'%';
     el.appendChild(z);
@@ -1037,7 +1037,7 @@ function buildScale(el, zone, accent){
   const ticks=[], labels=[];
   for(let pc=0; pc<=100; pc+=5){
     const maj=(pc%20===0);
-    const top=V_TOP+(1-pc/100)*V_SPAN;
+    const top=V_TOP+(pc/100)*V_SPAN;
     const t=document.createElement('i');
     t.className='scaleTick'+(maj?' maj':'');
     t.style.top=top.toFixed(2)+'%';
