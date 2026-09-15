@@ -1123,7 +1123,6 @@ function bindVSlider(wrapEl, fillEl, thumbEl, cursorEl, onChange, onRelease){
 let p=0, gasP=0, brakeP=0, rpmTarget=800;
 let brakeKey=0;
 let brakeReturn=false;
-let gasReturn=false;
 
 const clutchScaleData = buildScale(document.getElementById('clutchScale'), [45,60],'#8fd0ff');
 const brakeScaleData  = buildScale(document.getElementById('brakeScale'),  null,'#ff6b5a');
@@ -1153,8 +1152,7 @@ const gasSlider=bindVSlider(
   document.getElementById('gasFill'),
   document.getElementById('gasThumb'),
   document.getElementById('gasCursor'),
-  v=>{ gasP=v; gasReturn=false; rpmTarget=800+v*3200; },
-  ()=>{ gasReturn=true; });
+  v=>{ gasP=v; rpmTarget=800+v*3200; });
 
 clutchSlider.set(0); brakeSlider.set(0); gasSlider.set(0);
 
@@ -1299,14 +1297,6 @@ renderer.setAnimationLoop(()=>{
     brakeP += (0 - brakeP)*Math.min(1, dt*12);
     if(brakeP < 0.004){ brakeP=0; brakeReturn=false; }
     brakeSlider.set(brakeP);
-  }
-
-  /* педаль газа возвращается сама со скоростью GOV — синхронно с падением оборотов */
-  if(gasReturn && !gasSlider.isDragging()){
-    gasP += (0 - gasP)*Math.min(1, dt*GOV);
-    if(gasP < 0.004){ gasP=0; gasReturn=false; }
-    gasSlider.set(gasP);
-    rpmTarget = 800 + gasP*3200;
   }
 
   const eOmegaTarget=rpmTarget*RPM2O;
