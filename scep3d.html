@@ -325,7 +325,7 @@ function fitCameraToScene(){
   const tanH = tanV * camera.aspect;
   const distV = maxUp / tanV;
   const distH = maxRight / tanH;
-  let dist = Math.max(distV, distH) * 0.525;
+  let dist = Math.max(distV, distH) * 0.4;
   camera.position.copy(center).addScaledVector(FIT_DIR, dist);
   camera.lookAt(center);
   controls.target.copy(center);
