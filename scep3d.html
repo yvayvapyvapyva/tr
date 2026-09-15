@@ -50,8 +50,8 @@
          0 0 28px rgba(255,90,60,.75),0 6px 14px rgba(0,0,0,.5)}
 
   /* ---------- НИЖНЯЯ ПАНЕЛЬ ---------- */
-  #bottomUI{position:fixed;bottom:calc(8px + env(safe-area-inset-bottom));left:12px;z-index:10;
-       display:flex;align-items:stretch;width:max-content;transform-origin:bottom left;
+  #bottomUI{position:fixed;bottom:calc(8px + env(safe-area-inset-bottom));left:50%;z-index:10;
+       display:flex;align-items:stretch;width:max-content;transform-origin:bottom center;
        background:rgba(10,16,26,.86);border:1px solid #26374d;border-radius:16px;padding:8px 6px 8px;
        backdrop-filter:blur(4px);user-select:none;-webkit-user-select:none;touch-action:none;
        box-shadow:0 6px 24px rgba(0,0,0,.45);pointer-events:auto}
@@ -83,11 +83,12 @@
   #brakeFill {background:linear-gradient(180deg,#f0705a,#8f2418)}
   #gasFill   {background:linear-gradient(180deg,#f0c65a,#8f6a1c)}
 
-  /* зона 40–60% пересчитана под V_TOP=17 / V_SPAN=66 */
-  .vzone{position:absolute;left:3px;right:3px;top:43.4%;height:13.2%;
-       background:rgba(90,168,115,.22);
-       border-top:1px dashed rgba(110,200,140,.75);
-       border-bottom:1px dashed rgba(110,200,140,.75);
+  /* зона 45–60% пересчитана под V_TOP=17 / V_SPAN=66 */
+  .vzone{position:absolute;left:3px;right:3px;top:43.4%;height:9.9%;
+       background:rgba(46,185,100,.35);
+       border-top:2px solid rgba(46,185,100,.9);
+       border-bottom:2px solid rgba(46,185,100,.9);
+       box-shadow:inset 0 0 10px rgba(46,185,100,.4),0 0 8px rgba(46,185,100,.3);
        pointer-events:none}
 
   /* РУЧКА: квадрат 50×50 (было 32×32, ×1.5), цвет как у 3D-накладки */
@@ -108,24 +109,25 @@
   .scaleHalf{position:absolute;right:0;top:0;bottom:0;width:32px}
   /* подписи — правый край, выравнивание вправо */
   .scaleLbl{position:absolute;right:0;width:19px;text-align:right;
-       font-size:9px;line-height:1;font-weight:bold;
-       color:#93a6bb;font-variant-numeric:tabular-nums;
+       font-size:10.5px;line-height:1;font-weight:bold;
+       color:#dbe7f5;font-variant-numeric:tabular-nums;
+       text-shadow:0 1px 2px rgba(0,0,0,.75),0 0 4px rgba(0,0,0,.4);
        transform:translateY(-50%);pointer-events:none;white-space:nowrap}
   /* риски идут левее подписей, тоже с привязкой к правому краю */
   .scaleTick{position:absolute;right:21px;width:5px;height:1px;
        background:#4a5f76;transform:translateY(-50%);pointer-events:none}
   .scaleTick.maj{right:20px;width:7px;height:2px;background:#93a6bb}
-  .scaleZone{position:absolute;left:0;right:19px;
-       background:rgba(90,168,115,.18);
-       border-top:1px dashed rgba(110,200,140,.65);
-       border-bottom:1px dashed rgba(110,200,140,.65);
+  .scaleTick.passed{background:var(--sc);box-shadow:0 0 4px var(--sc)}
+  .scaleTick.maj.passed{background:var(--sc);box-shadow:0 0 6px var(--sc),0 0 2px var(--sc)}
+  .scaleZone{position:absolute;left:0;right:0;
+       background:rgba(46,185,100,.35);
+       border-top:2px solid rgba(46,185,100,.9);
+       border-bottom:2px solid rgba(46,185,100,.9);
+       box-shadow:inset 0 0 10px rgba(46,185,100,.4),0 0 8px rgba(46,185,100,.3);
        pointer-events:none}
-  .scaleCursor{position:absolute;left:-3px;right:0;height:2px;margin-top:-1px;
+  .scaleCursor{position:absolute;right:0;width:32px;height:2px;margin-top:-1px;
        background:currentColor;pointer-events:none;border-radius:1px;z-index:3;
        box-shadow:0 0 6px currentColor}
-  .scaleCursor::before{content:'';position:absolute;left:-1px;top:-3px;
-       width:0;height:0;border-top:4px solid transparent;border-bottom:4px solid transparent;
-       border-right:5px solid currentColor}
   #clutchCursor{color:#8fd0ff}
   #brakeCursor {color:#ff6b5a}
   #gasCursor   {color:#ffd166}
@@ -168,10 +170,10 @@
     .pedalWrap{width:auto;align-self:stretch;min-width:44px;height:132px}
     .sliderHalf{width:auto;left:0;right:26px;border-radius:12px}
     .scaleHalf{width:26px}
-    .scaleLbl{width:16px;font-size:8px}
+    .scaleLbl{width:17px;font-size:9.5px}
     .scaleTick{right:18px;width:4px}
     .scaleTick.maj{right:17px;width:6px}
-    .scaleZone{right:16px}
+    .scaleCursor{width:26px}
     .vthumb{height:40px;margin-top:-20px;border-radius:7px}
     .vthumb::after{left:8px;right:8px;top:19px;
          box-shadow:0 -6px 0 rgba(0,0,0,.30), 0 6px 0 rgba(0,0,0,.30)}
@@ -334,10 +336,10 @@ function fitCameraToScene(){
 const bottomUI=document.getElementById('bottomUI');
 const topUI=document.getElementById('topUI');
 function fitBottomUI(){
-  bottomUI.style.transform='scale(1)';
-  if(innerWidth<=760) return;
+  if(innerWidth<=760){ bottomUI.style.transform='scale(1)'; return; }
+  bottomUI.style.transform='translateX(-50%) scale(1)';
   const w=bottomUI.offsetWidth;
-  bottomUI.style.transform='scale('+Math.min(1,(innerWidth-28)/w)+')';
+  bottomUI.style.transform='translateX(-50%) scale('+Math.min(1,(innerWidth-28)/w)+')';
 }
 function fitTopUI(){
   topUI.style.transform='translateX(-50%) scale(1)';
@@ -1055,7 +1057,8 @@ function vFromPointer(rect, cy){
 
 /* риски и подписи шкалы; позиции считаются от тех же V_TOP/V_SPAN,
    поэтому курсор всегда на одной линии с центром ручки */
-function buildScale(el, zone){
+function buildScale(el, zone, accent){
+  el.style.setProperty('--sc',accent);
   if(zone){
     const z=document.createElement('div');
     z.className='scaleZone';
@@ -1065,21 +1068,25 @@ function buildScale(el, zone){
     z.style.height=(tLo-tHi).toFixed(2)+'%';
     el.appendChild(z);
   }
+  const ticks=[], labels=[];
   for(let pc=0; pc<=100; pc+=5){
-    const maj=(pc%25===0);
+    const maj=(pc%20===0);
     const top=V_TOP+(1-pc/100)*V_SPAN;
     const t=document.createElement('i');
     t.className='scaleTick'+(maj?' maj':'');
     t.style.top=top.toFixed(2)+'%';
     el.appendChild(t);
+    ticks.push({el:t, pct:pc});
     if(maj){
       const b=document.createElement('b');
       b.className='scaleLbl';
       b.style.top=top.toFixed(2)+'%';
       b.textContent=String(pc);
       el.appendChild(b);
+      labels.push({el:b, pct:pc});
     }
   }
+  return {ticks, labels};
 }
 
 function bindVSlider(wrapEl, fillEl, thumbEl, cursorEl, onChange, onRelease){
@@ -1118,9 +1125,13 @@ let brakeKey=0;
 let brakeReturn=false;
 let gasReturn=false;
 
-buildScale(document.getElementById('clutchScale'), [40,60]);
-buildScale(document.getElementById('brakeScale'),  null);
-buildScale(document.getElementById('gasScale'),    null);
+const clutchScaleData = buildScale(document.getElementById('clutchScale'), [45,60],'#8fd0ff');
+const brakeScaleData  = buildScale(document.getElementById('brakeScale'),  null,'#ff6b5a');
+const gasScaleData    = buildScale(document.getElementById('gasScale'),    null,'#ffd166');
+function highlightScale(data, pct){
+  const lim=pct*100;
+  for(const t of data.ticks) t.el.classList.toggle('passed', t.pct<=lim);
+}
 
 const clutchSlider=bindVSlider(
   document.getElementById('pedalTrack'),
@@ -1557,6 +1568,9 @@ renderer.setAnimationLoop(()=>{
     speedo.dig.textContent=Math.round(speedoShown);
     engLabel.userData.draw(Math.round(rpmNow));
     whlLabel.userData.draw(Math.round(absSpeed));
+    highlightScale(clutchScaleData,p);
+    highlightScale(brakeScaleData,brakeP);
+    highlightScale(gasScaleData,gasP);
     for(const k in gateLabelEls){
       const on=(k===String(gearSel));
       gateLabelEls[k].setAttribute('fill',on?(k==='R'?'#ff9d8f':'#6cf09c'):'#93a6bb');
