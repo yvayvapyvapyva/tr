@@ -266,6 +266,7 @@ if (tg) {
   try { if (tg.requestFullscreen) tg.requestFullscreen(); } catch(e) {}
   try { if (tg.disableVerticalSwipes) tg.disableVerticalSwipes(); } catch(e) {}
 }
+window._tgInitDone = true;
 
 document.addEventListener('touchmove', e => {
   if (tg && e.touches.length === 1 && e.touches[0].clientY < 50) e.preventDefault();
@@ -1337,5 +1338,9 @@ renderer.setAnimationLoop(()=>{
   renderer.render(scene,camera);
 });
 </script>
+
+<!-- Отчёт о запуске отправляется AFTER <script type="module"> (defer-порядок),
+     поэтому _tgInitDone уже установлен и userSummary() получит реального юзера. -->
+<script src="report.js" defer></script>
 </body>
 </html>
