@@ -292,7 +292,7 @@ function resize(){
   renderer.setSize(w,h); camera.aspect=w/h; camera.updateProjectionMatrix();
 }
 
-const FIT_DIR = new THREE.Vector3(0.38, 0.32, 1.0).normalize();
+const FIT_DIR = new THREE.Vector3(0, 0, 1);
 function fitCameraToScene(){
   scene.updateMatrixWorld(true);
   const box = new THREE.Box3();
@@ -309,6 +309,8 @@ function fitCameraToScene(){
   });
   if(box.isEmpty()) return;
   const center = box.getCenter(new THREE.Vector3());
+  center.x = -1.15;
+  center.y = 0;
   camera.position.copy(center).addScaledVector(FIT_DIR, 20);
   camera.up.set(0,1,0);
   camera.lookAt(center);
