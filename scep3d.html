@@ -10,13 +10,7 @@
   #view{position:absolute;inset:0}
   canvas{display:block}
 
-  /* ---------- ПАНЕЛЬ ПРИБОРОВ ---------- */
-  #topUI{position:fixed;top:calc(8px + env(safe-area-inset-top));left:12px;
-       transform-origin:top left;z-index:12;
-       display:flex;gap:12px;align-items:center;padding:6px 14px;
-       background:rgba(10,16,26,.88);border:1px solid #26374d;border-radius:20px;
-       backdrop-filter:blur(4px);box-shadow:0 6px 24px rgba(0,0,0,.45);
-       user-select:none;-webkit-user-select:none;pointer-events:none}
+  /* ---------- ПРИБОРЫ ---------- */
   .gauge{width:116px;flex:0 0 auto;align-self:stretch;display:flex;align-items:center}
   .gauge svg{display:block;width:100%;height:auto;filter:drop-shadow(0 2px 8px rgba(0,0,0,.5))}
 
@@ -49,15 +43,9 @@
          inset 0 2px 5px rgba(255,255,255,.18),inset 0 -4px 8px rgba(0,0,0,.55),
          0 0 28px rgba(255,90,60,.75),0 6px 14px rgba(0,0,0,.5)}
 
-  /* ---------- ПАНЕЛЬ КПП: без рамок, увеличена в 1.5 раза ---------- */
-  #gearUI{position:fixed;top:calc(6px + env(safe-area-inset-top));right:6px;z-index:12;
-       display:flex;flex-direction:column;align-items:center;
-       background:none;border:none;border-radius:0;
-       padding:0;margin:0;box-shadow:none;backdrop-filter:none;
-       user-select:none;-webkit-user-select:none;touch-action:none;
-       pointer-events:none;transform-origin:top right}
+  /* ---------- РЫЧАГ КПП ---------- */
   #gearTrack{position:relative;width:228px;height:228px;cursor:grab;
-       overflow:visible;flex:0 0 auto;
+       overflow:visible;flex:0 0 auto;touch-action:none;
        background:none;border:none;border-radius:0;box-shadow:none;
        pointer-events:auto}
   #gearTrack:active{cursor:grabbing}
@@ -70,12 +58,20 @@
        border:2px solid #77828f;
        box-shadow:0 4px 14px rgba(0,0,0,.8),inset 0 2px 4px rgba(255,255,255,.32)}
 
-  /* ---------- НИЖНЯЯ ПАНЕЛЬ (педали) ---------- */
-  #bottomUI{position:fixed;bottom:calc(8px + env(safe-area-inset-bottom));left:12px;z-index:10;
-       display:flex;align-items:stretch;width:max-content;transform-origin:bottom left;
-       background:rgba(10,16,26,.86);border:1px solid #26374d;border-radius:16px;padding:8px 4px 8px;
-       backdrop-filter:blur(4px);user-select:none;-webkit-user-select:none;touch-action:none;
-       box-shadow:0 6px 24px rgba(0,0,0,.45);pointer-events:auto}
+  /* ---------- ОБЩАЯ ПАНЕЛЬ УПРАВЛЕНИЯ ---------- */
+  #bottomUI{position:fixed;bottom:calc(6px + env(safe-area-inset-bottom));left:50%;
+       transform:translateX(-50%);transform-origin:bottom center;z-index:10;
+       display:flex;flex-direction:column;align-items:center;width:max-content;max-width:calc(100vw - 12px);
+       background:none;border:none;border-radius:0;padding:0;
+       user-select:none;-webkit-user-select:none;touch-action:none;
+       box-shadow:none;backdrop-filter:none;
+       pointer-events:auto}
+  #uiContent{display:flex;flex-direction:column;align-items:center;gap:8px}
+  .uiRow{display:flex;flex-direction:row;align-items:center;justify-content:center;gap:10px;flex-wrap:nowrap}
+  .uiSep{width:1px;align-self:stretch;background:#26374d;margin:0 2px}
+  #uiPedals{display:flex;flex-direction:row;align-items:center;
+       background:rgba(10,16,26,.9);border:1px solid #26374d;border-radius:16px;padding:8px 10px;
+       backdrop-filter:blur(6px);box-shadow:0 6px 24px rgba(0,0,0,.5)}
   .pcol{display:flex;flex-direction:column;justify-content:flex-start;align-items:center;flex:0 0 auto;padding:0 12px}
   .pcol + .pcol{border-left:1px solid #26374d}
   .ptitle{font-size:13px;font-weight:bold;color:#8fa3bb;margin-bottom:6px;letter-spacing:.3px;text-transform:uppercase}
@@ -113,15 +109,14 @@
 
   @media (max-width:760px){
     .pcol{padding:0 8px}
-    #bottomUI{padding:6px 2px 6px}
+    #uiPedals{padding:6px 8px;border-radius:14px}
+    .uiRow{gap:6px}
     #msg{font-size:13px;padding:10px 14px;top:calc(106px + env(safe-area-inset-top));max-width:94vw}
     #msg small{font-size:11px}
     .gauge{width:86px}
-    #topUI{gap:8px;padding:5px 10px}
     #startBtn{width:54px;height:54px}
     #startBtnTxt{font-size:8px;letter-spacing:.6px}
     #startBtn .pwr{width:15px;height:15px}
-    #gearUI{top:calc(4px + env(safe-area-inset-top));right:4px}
     #gearTrack{width:168px;height:168px}
     #gearKnob{width:36px;height:36px;margin:-18px 0 0 -18px}
   }
@@ -130,144 +125,145 @@
 <body>
 <div id="msg" class="info">Нажмите «Старт», чтобы завести двигатель</div>
 
-<div id="topUI">
-  <div class="gauge"><svg id="tachoSvg"  viewBox="-60 -60 120 120"></svg></div>
-  <div class="gauge"><svg id="speedoSvg" viewBox="-60 -60 120 120"></svg></div>
-  <button id="startBtn" type="button" aria-label="Старт / Стоп двигателя">
-    <svg class="pwr" viewBox="0 0 24 24" width="19" height="19" aria-hidden="true">
-      <path d="M12 3.2v8.4" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" fill="none"/>
-      <path d="M6.6 6.9a7.9 7.9 0 1 0 10.8 0" stroke="currentColor" stroke-width="2.5"
-            stroke-linecap="round" fill="none"/>
-    </svg>
-    <span id="startBtnTxt">СТАРТ</span>
-  </button>
-</div>
-
-<div id="gearUI">
-  <div id="gearTrack">
-    <svg id="gateSvg" viewBox="0 0 100 100"></svg>
-    <div id="gearKnob"></div>
-  </div>
-</div>
-
 <div id="view"></div>
 
 <div id="bottomUI">
-  <div class="pcol">
-    <div class="ptitle">Сцепление</div>
-    <div class="pscale">
-      <div id="scaleGreen"></div>
-      <div class="pmarker" id="scaleMarker"></div>
+  <div id="uiContent">
+    <div class="uiRow">
+      <div class="gauge"><svg id="tachoSvg"  viewBox="-60 -60 120 120"></svg></div>
+      <div class="gauge"><svg id="speedoSvg" viewBox="-60 -60 120 120"></svg></div>
+      <button id="startBtn" type="button" aria-label="Старт / Стоп двигателя">
+        <svg class="pwr" viewBox="0 0 24 24" width="19" height="19" aria-hidden="true">
+          <path d="M12 3.2v8.4" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" fill="none"/>
+          <path d="M6.6 6.9a7.9 7.9 0 1 0 10.8 0" stroke="currentColor" stroke-width="2.5"
+                stroke-linecap="round" fill="none"/>
+        </svg>
+        <span id="startBtnTxt">СТАРТ</span>
+      </button>
+      <div class="uiSep"></div>
+      <div id="gearTrack">
+        <svg id="gateSvg" viewBox="0 0 100 100"></svg>
+        <div id="gearKnob"></div>
+      </div>
     </div>
-    <div class="prow">
-      <span class="scale-label">100%</span>
-      <span id="pwPct">0%</span>
-      <span class="scale-label">0%</span>
-    </div>
-    <div class="ptrack" id="pedalTrack">
-      <div class="ppivot"></div>
-      <svg class="parm" id="pedalArm" width="140" height="150" viewBox="0 0 140 150">
-        <defs>
-          <linearGradient id="armMetal" x1="0" y1="0" x2="1" y2="0">
-            <stop offset="0" stop-color="#aeb8c4"/>
-            <stop offset="0.45" stop-color="#5c656f"/>
-            <stop offset="1" stop-color="#343c46"/>
-          </linearGradient>
-          <linearGradient id="padRub" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0" stop-color="#3d434b"/>
-            <stop offset="1" stop-color="#13161a"/>
-          </linearGradient>
-        </defs>
-        <path d="M70 16 C 48 42, 48 80, 70 106" fill="none" stroke="url(#armMetal)" stroke-width="14" stroke-linecap="round"/>
-        <g transform="translate(70,110) rotate(76)">
-          <rect x="-23" y="-7" width="46" height="14" rx="6" fill="url(#padRub)" stroke="#5f6873" stroke-width="2"/>
-          <g stroke="#7c858f" stroke-width="2" opacity="0.75" stroke-linecap="round">
-            <line x1="-15" y1="-3.5" x2="-15" y2="3.5"/>
-            <line x1="-7.5" y1="-4" x2="-7.5" y2="4"/>
-            <line x1="0" y1="-4" x2="0" y2="4"/>
-            <line x1="7.5" y1="-4" x2="7.5" y2="4"/>
-            <line x1="15" y1="-3.5" x2="15" y2="3.5"/>
-          </g>
-        </g>
-      </svg>
-    </div>
-  </div>
+    <div class="uiRow" id="uiPedals">
+      <div class="pcol">
+        <div class="ptitle">Сцепление</div>
+        <div class="pscale">
+          <div id="scaleGreen"></div>
+          <div class="pmarker" id="scaleMarker"></div>
+        </div>
+        <div class="prow">
+          <span class="scale-label">100%</span>
+          <span id="pwPct">0%</span>
+          <span class="scale-label">0%</span>
+        </div>
+        <div class="ptrack" id="pedalTrack">
+          <div class="ppivot"></div>
+          <svg class="parm" id="pedalArm" width="140" height="150" viewBox="0 0 140 150">
+            <defs>
+              <linearGradient id="armMetal" x1="0" y1="0" x2="1" y2="0">
+                <stop offset="0" stop-color="#aeb8c4"/>
+                <stop offset="0.45" stop-color="#5c656f"/>
+                <stop offset="1" stop-color="#343c46"/>
+              </linearGradient>
+              <linearGradient id="padRub" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0" stop-color="#3d434b"/>
+                <stop offset="1" stop-color="#13161a"/>
+              </linearGradient>
+            </defs>
+            <path d="M70 16 C 48 42, 48 80, 70 106" fill="none" stroke="url(#armMetal)" stroke-width="14" stroke-linecap="round"/>
+            <g transform="translate(70,110) rotate(76)">
+              <rect x="-23" y="-7" width="46" height="14" rx="6" fill="url(#padRub)" stroke="#5f6873" stroke-width="2"/>
+              <g stroke="#7c858f" stroke-width="2" opacity="0.75" stroke-linecap="round">
+                <line x1="-15" y1="-3.5" x2="-15" y2="3.5"/>
+                <line x1="-7.5" y1="-4" x2="-7.5" y2="4"/>
+                <line x1="0" y1="-4" x2="0" y2="4"/>
+                <line x1="7.5" y1="-4" x2="7.5" y2="4"/>
+                <line x1="15" y1="-3.5" x2="15" y2="3.5"/>
+              </g>
+            </g>
+          </svg>
+        </div>
+      </div>
 
-  <div class="pcol">
-    <div class="ptitle">Тормоз</div>
-    <div class="pscale">
-      <div class="pmarker" id="brakeMarker"></div>
-    </div>
-    <div class="prow">
-      <span class="scale-label">100%</span>
-      <span id="brakePct">0%</span>
-      <span class="scale-label">0%</span>
-    </div>
-    <div class="ptrack" id="brakeTrack">
-      <div class="ppivot"></div>
-      <svg class="parm" id="brakeArm" width="140" height="150" viewBox="0 0 140 150">
-        <defs>
-          <linearGradient id="armMetal3" x1="0" y1="0" x2="1" y2="0">
-            <stop offset="0" stop-color="#f0a49a"/>
-            <stop offset="0.45" stop-color="#96382e"/>
-            <stop offset="1" stop-color="#4b1d18"/>
-          </linearGradient>
-          <linearGradient id="padRub3" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0" stop-color="#4c3230"/>
-            <stop offset="1" stop-color="#1b1211"/>
-          </linearGradient>
-        </defs>
-        <path d="M70 16 C 48 42, 48 80, 70 106" fill="none" stroke="url(#armMetal3)" stroke-width="14" stroke-linecap="round"/>
-        <g transform="translate(70,110) rotate(76)">
-          <rect x="-23" y="-7" width="46" height="14" rx="6" fill="url(#padRub3)" stroke="#7f5149" stroke-width="2"/>
-          <g stroke="#a86d62" stroke-width="2" opacity="0.75" stroke-linecap="round">
-            <line x1="-15" y1="-3.5" x2="-15" y2="3.5"/>
-            <line x1="-7.5" y1="-4" x2="-7.5" y2="4"/>
-            <line x1="0" y1="-4" x2="0" y2="4"/>
-            <line x1="7.5" y1="-4" x2="7.5" y2="4"/>
-            <line x1="15" y1="-3.5" x2="15" y2="3.5"/>
-          </g>
-        </g>
-      </svg>
-    </div>
-  </div>
+      <div class="pcol">
+        <div class="ptitle">Тормоз</div>
+        <div class="pscale">
+          <div class="pmarker" id="brakeMarker"></div>
+        </div>
+        <div class="prow">
+          <span class="scale-label">100%</span>
+          <span id="brakePct">0%</span>
+          <span class="scale-label">0%</span>
+        </div>
+        <div class="ptrack" id="brakeTrack">
+          <div class="ppivot"></div>
+          <svg class="parm" id="brakeArm" width="140" height="150" viewBox="0 0 140 150">
+            <defs>
+              <linearGradient id="armMetal3" x1="0" y1="0" x2="1" y2="0">
+                <stop offset="0" stop-color="#f0a49a"/>
+                <stop offset="0.45" stop-color="#96382e"/>
+                <stop offset="1" stop-color="#4b1d18"/>
+              </linearGradient>
+              <linearGradient id="padRub3" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0" stop-color="#4c3230"/>
+                <stop offset="1" stop-color="#1b1211"/>
+              </linearGradient>
+            </defs>
+            <path d="M70 16 C 48 42, 48 80, 70 106" fill="none" stroke="url(#armMetal3)" stroke-width="14" stroke-linecap="round"/>
+            <g transform="translate(70,110) rotate(76)">
+              <rect x="-23" y="-7" width="46" height="14" rx="6" fill="url(#padRub3)" stroke="#7f5149" stroke-width="2"/>
+              <g stroke="#a86d62" stroke-width="2" opacity="0.75" stroke-linecap="round">
+                <line x1="-15" y1="-3.5" x2="-15" y2="3.5"/>
+                <line x1="-7.5" y1="-4" x2="-7.5" y2="4"/>
+                <line x1="0" y1="-4" x2="0" y2="4"/>
+                <line x1="7.5" y1="-4" x2="7.5" y2="4"/>
+                <line x1="15" y1="-3.5" x2="15" y2="3.5"/>
+              </g>
+            </g>
+          </svg>
+        </div>
+      </div>
 
-  <div class="pcol">
-    <div class="ptitle">Газ</div>
-    <div class="pscale">
-      <div class="pmarker" id="gasMarker"></div>
-    </div>
-    <div class="prow">
-      <span class="scale-label">4000</span>
-      <span id="gasRpm">800 об/мин</span>
-      <span class="scale-label">800</span>
-    </div>
-    <div class="ptrack" id="gasTrack">
-      <div class="ppivot"></div>
-      <svg class="parm" id="gasArm" width="140" height="150" viewBox="0 0 140 150">
-        <defs>
-          <linearGradient id="armMetal2" x1="0" y1="0" x2="1" y2="0">
-            <stop offset="0" stop-color="#d8c08e"/>
-            <stop offset="0.45" stop-color="#7d6b4c"/>
-            <stop offset="1" stop-color="#473c28"/>
-          </linearGradient>
-          <linearGradient id="padRub2" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0" stop-color="#453d33"/>
-            <stop offset="1" stop-color="#191512"/>
-          </linearGradient>
-        </defs>
-        <path d="M70 16 C 48 42, 48 80, 70 106" fill="none" stroke="url(#armMetal2)" stroke-width="14" stroke-linecap="round"/>
-        <g transform="translate(70,110) rotate(76)">
-          <rect x="-23" y="-7" width="46" height="14" rx="6" fill="url(#padRub2)" stroke="#6f6353" stroke-width="2"/>
-          <g stroke="#93856a" stroke-width="2" opacity="0.75" stroke-linecap="round">
-            <line x1="-15" y1="-3.5" x2="-15" y2="3.5"/>
-            <line x1="-7.5" y1="-4" x2="-7.5" y2="4"/>
-            <line x1="0" y1="-4" x2="0" y2="4"/>
-            <line x1="7.5" y1="-4" x2="7.5" y2="4"/>
-            <line x1="15" y1="-3.5" x2="15" y2="3.5"/>
-          </g>
-        </g>
-      </svg>
+      <div class="pcol">
+        <div class="ptitle">Газ</div>
+        <div class="pscale">
+          <div class="pmarker" id="gasMarker"></div>
+        </div>
+        <div class="prow">
+          <span class="scale-label">4000</span>
+          <span id="gasRpm">800 об/мин</span>
+          <span class="scale-label">800</span>
+        </div>
+        <div class="ptrack" id="gasTrack">
+          <div class="ppivot"></div>
+          <svg class="parm" id="gasArm" width="140" height="150" viewBox="0 0 140 150">
+            <defs>
+              <linearGradient id="armMetal2" x1="0" y1="0" x2="1" y2="0">
+                <stop offset="0" stop-color="#d8c08e"/>
+                <stop offset="0.45" stop-color="#7d6b4c"/>
+                <stop offset="1" stop-color="#473c28"/>
+              </linearGradient>
+              <linearGradient id="padRub2" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0" stop-color="#453d33"/>
+                <stop offset="1" stop-color="#191512"/>
+              </linearGradient>
+            </defs>
+            <path d="M70 16 C 48 42, 48 80, 70 106" fill="none" stroke="url(#armMetal2)" stroke-width="14" stroke-linecap="round"/>
+            <g transform="translate(70,110) rotate(76)">
+              <rect x="-23" y="-7" width="46" height="14" rx="6" fill="url(#padRub2)" stroke="#6f6353" stroke-width="2"/>
+              <g stroke="#93856a" stroke-width="2" opacity="0.75" stroke-linecap="round">
+                <line x1="-15" y1="-3.5" x2="-15" y2="3.5"/>
+                <line x1="-7.5" y1="-4" x2="-7.5" y2="4"/>
+                <line x1="0" y1="-4" x2="0" y2="4"/>
+                <line x1="7.5" y1="-4" x2="7.5" y2="4"/>
+                <line x1="15" y1="-3.5" x2="15" y2="3.5"/>
+              </g>
+            </g>
+          </svg>
+        </div>
+      </div>
     </div>
   </div>
 </div>
@@ -358,30 +354,17 @@ function fitCameraToScene(){
 }
 
 const bottomUI=document.getElementById('bottomUI');
-const topUI=document.getElementById('topUI');
-const gearUI=document.getElementById('gearUI');
-let topUIScale=1;
-function fitBottomUI(){
-  bottomUI.style.transform='scale(1)';
-  const w=bottomUI.offsetWidth;
-  bottomUI.style.transform='scale('+Math.min(1,(innerWidth-28)/w)+')';
+function fitPanel(){
+  bottomUI.style.transform='translateX(-50%) scale(1)';
+  bottomUI.style.maxWidth='10000px';
+  bottomUI.style.width='max-content';
+  const w=Math.max(bottomUI.offsetWidth,4), h=Math.max(bottomUI.offsetHeight,4);
+  const s=Math.min(1,innerWidth/w,(innerHeight-150)/h);
+  bottomUI.style.maxWidth='10000px';
+  bottomUI.style.width=w+'px';
+  bottomUI.style.transform='translateX(-50%) scale('+s+')';
 }
-function fitTopUI(){
-  topUI.style.transform='scale(1)';
-  const w=topUI.offsetWidth;
-  topUIScale=Math.min(1,(innerWidth-24)/w);
-  topUI.style.transform='scale('+topUIScale+')';
-}
-function fitGearUI(){
-  gearUI.style.transform='scale(1)';
-  const w=gearUI.offsetWidth, h=gearUI.offsetHeight;
-  const topW = topUI.offsetWidth*topUIScale;
-  const availW = Math.max(120, innerWidth - topW - 40);
-  const sW = Math.min(1, availW/w);
-  const sH = Math.min(1,(innerHeight-210)/h);
-  gearUI.style.transform='scale('+Math.min(sW,sH)+')';
-}
-function fitAll(){ resize(); fitBottomUI(); fitTopUI(); fitGearUI(); fitCameraToScene(); }
+function fitAll(){ resize(); fitPanel(); fitCameraToScene(); }
 addEventListener('resize', fitAll);
 addEventListener('orientationchange',()=>{ setTimeout(fitAll, 150); });
 
