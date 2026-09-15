@@ -161,12 +161,12 @@
     #startBtn{width:54px;height:54px}
     #startBtnTxt{font-size:8px;letter-spacing:.6px}
     #startBtn .pwr{width:15px;height:15px}
-    #bottomUI{padding:6px 4px 6px}
-    .pcol{flex:0 0 80px;width:80px;padding:0 5px}
-    .pcol.gearcol{flex:0 0 150px;width:150px}
+    #bottomUI{left:8px;right:8px;width:auto;padding:6px 6px}
+    .pcol{flex:1 1 0;width:auto;min-width:0;padding:0 2px}
+    .pcol.gearcol{flex:1.5 1 0;width:auto}
     .ptitle{font-size:9px;margin-bottom:9px}
-    .pedalWrap{width:70px;height:132px}
-    .sliderHalf{width:44px;border-radius:12px}
+    .pedalWrap{width:auto;align-self:stretch;min-width:44px;height:132px}
+    .sliderHalf{width:auto;left:0;right:26px;border-radius:12px}
     .scaleHalf{width:26px}
     .scaleLbl{width:16px;font-size:8px}
     .scaleTick{right:18px;width:4px}
@@ -175,7 +175,7 @@
     .vthumb{height:40px;margin-top:-20px;border-radius:7px}
     .vthumb::after{left:8px;right:8px;top:19px;
          box-shadow:0 -6px 0 rgba(0,0,0,.30), 0 6px 0 rgba(0,0,0,.30)}
-    #gearTrack{width:140px;height:132px}
+    #gearTrack{width:auto;align-self:stretch;min-width:100px;height:132px}
     #gearKnob{width:28px;height:28px;margin:-14px 0 0 -14px}
   }
 </style>
@@ -335,6 +335,7 @@ const bottomUI=document.getElementById('bottomUI');
 const topUI=document.getElementById('topUI');
 function fitBottomUI(){
   bottomUI.style.transform='scale(1)';
+  if(innerWidth<=760) return;
   const w=bottomUI.offsetWidth;
   bottomUI.style.transform='scale('+Math.min(1,(innerWidth-28)/w)+')';
 }
