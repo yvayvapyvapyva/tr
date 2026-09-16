@@ -264,6 +264,14 @@ document.addEventListener('touchmove', e => {
   if (tg && e.touches.length === 1 && e.touches[0].clientY < 50) e.preventDefault();
 }, {passive: false});
 
+let lastTap = 0;
+document.addEventListener('touchend', e => {
+  const now = Date.now();
+  if (now - lastTap < 300) e.preventDefault();
+  lastTap = now;
+}, {passive: false});
+document.addEventListener('dblclick', e => e.preventDefault());
+
 const view = document.getElementById('view');
 const renderer = new THREE.WebGLRenderer({antialias:true});
 renderer.setPixelRatio(Math.min(devicePixelRatio,2));
