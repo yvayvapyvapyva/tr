@@ -282,15 +282,8 @@ const dl2 = new THREE.DirectionalLight(0x88aaff,0.5); dl2.position.set(-9,5,-7);
 const grid = new THREE.GridHelper(40,40,0x6a7a92,0x536078); grid.position.y=-3.834; scene.add(grid);
 
 function resize(){
-  const vv=window.visualViewport||{width:0,height:0};
-  let w=vv.width>0?vv.width:(docEl.clientWidth||innerWidth);
-  let h=vv.height>0?vv.height:(docEl.clientHeight||innerHeight);
-  if(!(w>0)) w=innerWidth||360;
-  if(!(h>0)) h=innerHeight||640;
-  docEl.style.width=w+'px'; docEl.style.height=h+'px';
-  document.body.style.width=w+'px'; document.body.style.height=h+'px';
-  renderer.setSize(w,h);
-  camera.aspect=w/h; camera.updateProjectionMatrix();
+  const w=innerWidth,h=innerHeight;
+  renderer.setSize(w,h); camera.aspect=w/h; camera.updateProjectionMatrix();
 }
 
 const FIT_DIR = new THREE.Vector3(0, 0, 1);
@@ -338,47 +331,35 @@ function fitCameraToScene(){
 
 const bottomUI=document.getElementById('bottomUI');
 const topUI=document.getElementById('topUI');
-const docEl=document.documentElement;
 function fitBottomUI(){
-  const vv=window.visualViewport;
-  const w=vv&&vv.width>0?vv.width:(docEl.clientWidth||innerWidth);
-  const cs=getComputedStyle(bottomUI);
-  const centered=cs.left.indexOf('%')>=0 || cs.right.toLowerCase()==='auto';
-  const pad=centered?14:8;
-  bottomUI.style.width=centered?'max-content':'auto';
-  bottomUI.style.left=centered?(w/2)+'px':'8px';
-  bottomUI.style.right=centered?'auto':'8px';
-  bottomUI.style.transform=centered?'translateX(-50%) scale(1)':'scale(1)';
-  const ww=Math.max(bottomUI.offsetWidth,bottomUI.scrollWidth);
-  if(!(ww>0)) return;
-  const s=Math.min(1,(w-pad*2)/ww);
-  bottomUI.style.transform=(centered?'translateX(-50%) scale(':'scale(')+s+')';
+  if(innerWidth<=760){ bottomUI.style.transform='scale(1)'; return; }
+  bottomUI.style.transform='translateX(-50%) scale(1)';
+  const w=bottomUI.offsetWidth;
+  if(!(w>0)) return;
+  bottomUI.style.transform='translateX(-50%) scale('+Math.min(1,(innerWidth-28)/w)+')';
 }
 function fitTopUI(){
-  const vv=window.visualViewport;
-  const w=vv&&vv.width>0?vv.width:(docEl.clientWidth||innerWidth);
-  topUI.style.width='max-content';
-  topUI.style.left=(w/2)+'px'; topUI.style.right='auto';
   topUI.style.transform='translateX(-50%) scale(1)';
-  const ww=Math.max(topUI.offsetWidth,topUI.scrollWidth);
-  if(!(ww>0)) return;
-  const s=Math.min(1,(w-24)/ww);
-  topUI.style.transform='translateX(-50%) scale('+s+')';
+  const w=topUI.offsetWidth;
+  if(!(w>0)) return;
+  topUI.style.transform='translateX(-50%) scale('+Math.min(1,(innerWidth-24)/w)+')';
 }
 function fitAll(){ resize(); fitBottomUI(); fitTopUI(); fitCameraToScene(); }
 let fitTimer=0;
-function fitSoon(){ clearTimeout(fitTimer); fitTimer=setTimeout(fitAll,120); }
+function fitSoon(){ clearTimeout(fitTimer); fitTimer=setTimeout(fitAll,150); }
 addEventListener('resize', fitSoon);
-addEventListener('orientationchange',()=>{ setTimeout(fitAll, 150); });
-if(window.visualViewport){ visualViewport.addEventListener('resize',fitSoon); visualViewport.addEventListener('scroll',fitSoon); }
-if(tg && tg.onEvent){ try{ tg.onEvent('viewportChanged', fitSoon); }catch(e){} }
+addEventListener('orientationchange',()=>{ setTimeout(fitAll, 200); });
+if(window.visualViewport){ visualViewport.addEventListener('resize',fitSoon); }
+if(tg && tg.onEvent){
+  try{ tg.onEvent('viewportChanged', fitSoon); }catch(e){}
+  const fitStart=Date.now();
+  const fitSettle=setInterval(()=>{
+    fitAll();
+    if(Date.now()-fitStart>1500) clearInterval(fitSettle);
+  },300);
+}
 try{ new ResizeObserver(fitAll).observe(bottomUI); new ResizeObserver(fitAll).observe(topUI); }catch(e){}
 if(document.fonts && document.fonts.ready){ try{ document.fonts.ready.then(fitAll); }catch(e){} }
-const fitStart=Date.now();
-const fitSettle=setInterval(()=>{
-  fitAll();
-  if(Date.now()-fitStart>2500) clearInterval(fitSettle);
-},250);
 
 /* ============ ПРИБОРЫ ============ */
 const SVGNS='http://www.w3.org/2000/svg';
