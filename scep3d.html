@@ -332,12 +332,20 @@ function fitCameraToScene(){
 const bottomUI=document.getElementById('bottomUI');
 const topUI=document.getElementById('topUI');
 const docEl=document.documentElement;
-function availWidth(){ return Math.min(innerWidth, docEl.clientWidth||innerWidth); }
+function availWidth(){
+  let w = innerWidth;
+  const vv = window.visualViewport;
+  if (vv && vv.width>0) w = Math.min(w, vv.width);
+  const cw = docEl.clientWidth;
+  if (cw>0) w = Math.min(w, cw);
+  return w;
+}
 function fitBottomUI(){
   const mobile=innerWidth<=760;
   const tx=mobile?'':'translateX(-50%) ';
   bottomUI.style.transform=tx+'scale(1)';
   const w=Math.max(bottomUI.offsetWidth,bottomUI.scrollWidth);
+  if(!(w>0)) return;
   const avail=availWidth()-(mobile?16:28);
   const s=Math.min(1,avail/w);
   bottomUI.style.transform=tx+'scale('+s+')';
@@ -345,14 +353,20 @@ function fitBottomUI(){
 function fitTopUI(){
   topUI.style.transform='translateX(-50%) scale(1)';
   const w=Math.max(topUI.offsetWidth,topUI.scrollWidth);
+  if(!(w>0)) return;
   const avail=availWidth()-24;
   const s=Math.min(1,avail/w);
   topUI.style.transform='translateX(-50%) scale('+s+')';
 }
 function fitAll(){ resize(); fitBottomUI(); fitTopUI(); fitCameraToScene(); }
-addEventListener('resize', fitAll);
+let fitTimer=0;
+function fitSoon(){ clearTimeout(fitTimer); fitTimer=setTimeout(fitAll,120); }
+addEventListener('resize', fitSoon);
 addEventListener('orientationchange',()=>{ setTimeout(fitAll, 150); });
-if(window.visualViewport){ visualViewport.addEventListener('resize',fitAll); visualViewport.addEventListener('scroll',fitAll); }
+if(window.visualViewport){ visualViewport.addEventListener('resize',fitSoon); visualViewport.addEventListener('scroll',fitSoon); }
+if(tg && tg.onEvent){ try{ tg.onEvent('viewportChanged', fitSoon); }catch(e){} }
+setTimeout(fitAll, 400);
+setTimeout(fitAll, 1500);
 
 /* ============ ПРИБОРЫ ============ */
 const SVGNS='http://www.w3.org/2000/svg';
@@ -1174,7 +1188,6 @@ let lastClutch=0, lastGas=0, lastBrake=0;
 let msgShown=null;
 
 fitAll();
-requestAnimationFrame(fitAll);
 
 const clock=new THREE.Clock(); let hudT=0;
 renderer.setAnimationLoop(()=>{
