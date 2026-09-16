@@ -1087,7 +1087,12 @@ function bindVSlider(wrapEl, fillEl, thumbEl, cursorEl, onChange, onRelease){
     paint(v);
     if(onChange) onChange(v);
   };
+  const sliderEl=wrapEl.querySelector('.sliderHalf');
   wrapEl.addEventListener('pointerdown',e=>{
+    if(sliderEl){
+      const r=sliderEl.getBoundingClientRect();
+      if(e.clientX<r.left || e.clientX>r.right) return;
+    }
     dragging=true;
     try{wrapEl.setPointerCapture(e.pointerId);}catch(_){}
     apply(e.clientY); e.preventDefault();
