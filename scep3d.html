@@ -1286,9 +1286,9 @@ renderer.setAnimationLoop(()=>{
   pedal3D_brake.rotation.x  = sim.brakeP * PEDAL_ANGLE;
   pedal3D_gas.rotation.x    = sim.gasP   * PEDAL_ANGLE;
 
-  wheel.userData.rotor.rotation.x=-sim.axleAng;
-  wheelL.userData.rotor.rotation.x=-sim.axleAng;
-  asphaltGround.tex.offset.y = sim.axleAng * WHEEL_R / (100/12);
+  wheel.userData.rotor.rotation.x=-sim.axleAng*0.25;
+  wheelL.userData.rotor.rotation.x=-sim.axleAng*0.25;
+  asphaltGround.tex.offset.y = sim.axleAng * 0.25 * WHEEL_R / (100/12);
   asphaltGround.lineTex.offset.y = asphaltGround.tex.offset.y * (8.334/12.8);
 
   for(let i=0;i<cylXs.length;i++){
