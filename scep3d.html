@@ -282,7 +282,9 @@ const dl2 = new THREE.DirectionalLight(0x88aaff,0.5); dl2.position.set(-9,5,-7);
 const grid = new THREE.GridHelper(40,40,0x6a7a92,0x536078); grid.position.y=-3.834; scene.add(grid);
 
 function resize(){
-  const w=innerWidth,h=innerHeight;
+  const v=window.visualViewport;
+  const w=(v && v.width>0) ? v.width : innerWidth;
+  const h=(v && v.height>0) ? v.height : innerHeight;
   renderer.setSize(w,h); camera.aspect=w/h; camera.updateProjectionMatrix();
 }
 
@@ -331,18 +333,20 @@ function fitCameraToScene(){
 
 const bottomUI=document.getElementById('bottomUI');
 const topUI=document.getElementById('topUI');
+function vw(){ const v=window.visualViewport; return (v&&v.width>0)?v.width:innerWidth; }
 function fitBottomUI(){
-  if(innerWidth<=760){ bottomUI.style.transform='scale(1)'; return; }
+  const w=vw();
+  if(w<=760){ bottomUI.style.transform='scale(1)'; return; }
   bottomUI.style.transform='translateX(-50%) scale(1)';
-  const w=bottomUI.offsetWidth;
-  if(!(w>0)) return;
-  bottomUI.style.transform='translateX(-50%) scale('+Math.min(1,(innerWidth-28)/w)+')';
+  const bw=bottomUI.offsetWidth;
+  if(!(bw>0)) return;
+  bottomUI.style.transform='translateX(-50%) scale('+Math.min(1,(w-28)/bw)+')';
 }
 function fitTopUI(){
   topUI.style.transform='translateX(-50%) scale(1)';
-  const w=topUI.offsetWidth;
-  if(!(w>0)) return;
-  topUI.style.transform='translateX(-50%) scale('+Math.min(1,(innerWidth-24)/w)+')';
+  const tw=topUI.offsetWidth;
+  if(!(tw>0)) return;
+  topUI.style.transform='translateX(-50%) scale('+Math.min(1,(vw()-24)/tw)+')';
 }
 function fitAll(){ resize(); fitBottomUI(); fitTopUI(); fitCameraToScene(); }
 let fitTimer=0;
