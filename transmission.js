@@ -265,13 +265,13 @@ export class Transmission{
     const brkVisc=PHYS.BRK_VISC*this.brakeP;
     const dCut=gE>0.5?0:Math.max(0,(1-e))*1.6;
     const NSUB=32, h=st/NSUB;
-    const sync=e;
+    const driveCouple=gE*PHYS.GS;
     for(let s=0;s<NSUB;s++){
       const err=this.dOmega*this.curGR-this.aOmega;
       const rotSign=this.aOmega>=0?1:-1;
       const roadLoad=PHYS.ROLL_DECEL*rotSign + PHYS.AERO_K*this.aOmega*this.aOmega*rotSign + brkVisc*this.aOmega;
-      this.dOmega+=h*(clutchT - sync*gE*this.curGR*PHYS.GS*err - dCut*this.dOmega);
-      this.aOmega+=h*(sync*gE*PHYS.GS*err - roadLoad);
+      this.dOmega+=h*(clutchT - driveCouple*this.curGR*err - dCut*this.dOmega);
+      this.aOmega+=h*(driveCouple*err - roadLoad);
     }
     const staticDec=st*(PHYS.HOLD_DECEL + PHYS.BRK_LOCK*this.brakeP);
     if(this.aOmega>staticDec) this.aOmega-=staticDec;
