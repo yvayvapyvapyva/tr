@@ -287,7 +287,53 @@ controls.target.set(-0.2,0.4,0); controls.maxDistance = 60; controls.minDistance
 scene.add(new THREE.HemisphereLight(0xbfd4ff,0x2a231c,1.0));
 const dl = new THREE.DirectionalLight(0xffffff,1.7); dl.position.set(7,12,9); scene.add(dl);
 const dl2 = new THREE.DirectionalLight(0x88aaff,0.5); dl2.position.set(-9,5,-7); scene.add(dl2);
-const grid = new THREE.GridHelper(40,40,0x6a7a92,0x536078); grid.position.y=-3.834; scene.add(grid);
+
+/* ---------- АСФАЛЬТ (прокручивается при движении) ---------- */
+function makeAsphalt(){
+  const c=document.createElement('canvas'); c.width=c.height=256;
+  const g=c.getContext('2d');
+  g.fillStyle='#3a3e44'; g.fillRect(0,0,256,256);
+  for(let i=0;i<9000;i++){
+    const v=Math.random();
+    g.fillStyle=v<.55
+      ?'rgba(255,255,255,'+(0.035+Math.random()*0.05).toFixed(3)+')'
+      :'rgba(0,0,0,'+(0.05+Math.random()*0.09).toFixed(3)+')';
+    g.fillRect(Math.random()*256,Math.random()*256,1,1+Math.random()*3);
+  }
+  for(let i=0;i<60;i++){
+    g.fillStyle='rgba(0,0,0,'+(0.05+Math.random()*0.08).toFixed(3)+')';
+    g.beginPath();
+    g.arc(Math.random()*256,Math.random()*256,3+Math.random()*28,0,7);
+    g.fill();
+  }
+  const tex=new THREE.CanvasTexture(c);
+  tex.wrapS=tex.wrapT=THREE.RepeatWrapping;
+  tex.repeat.set(2.88,12);
+  const mat=new THREE.MeshStandardMaterial({map:tex,color:0xffffff,roughness:.96,metalness:0});
+  const mesh=new THREE.Mesh(new THREE.PlaneGeometry(24,100),mat);
+  mesh.rotation.x=-Math.PI/2;
+  mesh.position.set(-1.49,-3.835,0);
+  mesh.userData.noFit=true;
+  scene.add(mesh);
+
+  const lc=document.createElement('canvas'); lc.width=16; lc.height=256;
+  const lg=lc.getContext('2d');
+  lg.clearRect(0,0,16,256);
+  lg.fillStyle='#f2f4f5';
+  lg.fillRect(0,0,16,78);
+  const ltex=new THREE.CanvasTexture(lc);
+  ltex.wrapS=ltex.wrapT=THREE.RepeatWrapping;
+  ltex.repeat.set(1,7.81);
+  const lmat=new THREE.MeshStandardMaterial({map:ltex,color:0xffffff,roughness:.95,metalness:0,transparent:true});
+  const line=new THREE.Mesh(new THREE.PlaneGeometry(0.4,100),lmat);
+  line.rotation.x=-Math.PI/2;
+  line.position.set(-1.49,-3.831,0);
+  line.userData.noFit=true;
+  scene.add(line);
+  return {mesh,tex,mat,line,lineTex:ltex};
+}
+const asphaltGround=makeAsphalt();
+const WHEEL_R=2.32;
 
 function resize(){
   const v=window.visualViewport;
@@ -303,6 +349,7 @@ function fitCameraToScene(){
   const tmp = new THREE.Box3();
   scene.traverse(obj => {
     if(obj.isGridHelper) return;
+    if(obj.userData && obj.userData.noFit) return;
     if(obj.isLight) return;
     if(obj.isSprite) return;
     if(obj.isPoints) return;
@@ -329,7 +376,7 @@ function fitCameraToScene(){
   const tanH = tanV * camera.aspect;
   const distV = maxUp / tanV;
   const distH = maxRight / tanH;
-  let dist = Math.max(distV, distH) * 0.4;
+  let dist = Math.max(distV, distH) * 1.6;
   camera.position.copy(center).addScaledVector(FIT_DIR, dist);
   camera.lookAt(center);
   controls.target.copy(center);
@@ -1241,6 +1288,8 @@ renderer.setAnimationLoop(()=>{
 
   wheel.userData.rotor.rotation.x=-sim.axleAng;
   wheelL.userData.rotor.rotation.x=-sim.axleAng;
+  asphaltGround.tex.offset.y = sim.axleAng * WHEEL_R / (100/12);
+  asphaltGround.lineTex.offset.y = asphaltGround.tex.offset.y * (8.334/12.8);
 
   for(let i=0;i<cylXs.length;i++){
     const x=cylXs[i], psi=sim.thE+phases[i];
