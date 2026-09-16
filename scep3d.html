@@ -341,12 +341,13 @@ function availWidth(){
   return w;
 }
 function fitBottomUI(){
-  const mobile=innerWidth<=760;
-  const tx=mobile?'':'translateX(-50%) ';
+  const cs=getComputedStyle(bottomUI);
+  const centered=cs.left.indexOf('%')>=0 || cs.right.toLowerCase()==='auto';
+  const tx=centered?'translateX(-50%) ':'';
   bottomUI.style.transform=tx+'scale(1)';
   const w=Math.max(bottomUI.offsetWidth,bottomUI.scrollWidth);
   if(!(w>0)) return;
-  const avail=availWidth()-(mobile?16:28);
+  const avail = centered ? availWidth()-28 : availWidth()-16;
   const s=Math.min(1,avail/w);
   bottomUI.style.transform=tx+'scale('+s+')';
 }
@@ -365,8 +366,9 @@ addEventListener('resize', fitSoon);
 addEventListener('orientationchange',()=>{ setTimeout(fitAll, 150); });
 if(window.visualViewport){ visualViewport.addEventListener('resize',fitSoon); visualViewport.addEventListener('scroll',fitSoon); }
 if(tg && tg.onEvent){ try{ tg.onEvent('viewportChanged', fitSoon); }catch(e){} }
-setTimeout(fitAll, 400);
-setTimeout(fitAll, 1500);
+try{ new ResizeObserver(fitAll).observe(bottomUI); new ResizeObserver(fitAll).observe(topUI); }catch(e){}
+if(document.fonts && document.fonts.ready){ try{ document.fonts.ready.then(fitAll); }catch(e){} }
+setTimeout(fitAll, 500);
 
 /* ============ ПРИБОРЫ ============ */
 const SVGNS='http://www.w3.org/2000/svg';
