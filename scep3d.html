@@ -331,21 +331,28 @@ function fitCameraToScene(){
 
 const bottomUI=document.getElementById('bottomUI');
 const topUI=document.getElementById('topUI');
+const docEl=document.documentElement;
+function availWidth(){ return Math.min(innerWidth, docEl.clientWidth||innerWidth); }
 function fitBottomUI(){
-  if(innerWidth<=760){ bottomUI.style.transform='scale(1)'; return; }
-  bottomUI.style.transform='translateX(-50%) scale(1)';
-  const w=bottomUI.offsetWidth;
-  bottomUI.style.transform='translateX(-50%) scale('+Math.min(1,(innerWidth-28)/w)+')';
+  const mobile=innerWidth<=760;
+  const tx=mobile?'':'translateX(-50%) ';
+  bottomUI.style.transform=tx+'scale(1)';
+  const w=Math.max(bottomUI.offsetWidth,bottomUI.scrollWidth);
+  const avail=availWidth()-(mobile?16:28);
+  const s=Math.min(1,avail/w);
+  bottomUI.style.transform=tx+'scale('+s+')';
 }
 function fitTopUI(){
   topUI.style.transform='translateX(-50%) scale(1)';
-  const w=topUI.offsetWidth;
-  const s=Math.min(1,(innerWidth-24)/w);
+  const w=Math.max(topUI.offsetWidth,topUI.scrollWidth);
+  const avail=availWidth()-24;
+  const s=Math.min(1,avail/w);
   topUI.style.transform='translateX(-50%) scale('+s+')';
 }
 function fitAll(){ resize(); fitBottomUI(); fitTopUI(); fitCameraToScene(); }
 addEventListener('resize', fitAll);
 addEventListener('orientationchange',()=>{ setTimeout(fitAll, 150); });
+if(window.visualViewport){ visualViewport.addEventListener('resize',fitAll); visualViewport.addEventListener('scroll',fitAll); }
 
 /* ============ ПРИБОРЫ ============ */
 const SVGNS='http://www.w3.org/2000/svg';
@@ -1167,6 +1174,7 @@ let lastClutch=0, lastGas=0, lastBrake=0;
 let msgShown=null;
 
 fitAll();
+requestAnimationFrame(fitAll);
 
 const clock=new THREE.Clock(); let hudT=0;
 renderer.setAnimationLoop(()=>{
