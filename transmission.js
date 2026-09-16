@@ -16,7 +16,8 @@ const GEAR_RATIO={1:1,2:2,3:3,4:4,5:5,'R':-1,'N':1};
 
 export const PHYS={
   SLOW:0.1,
-  K:6, GS:30, RR:1.5,
+  K:6, GS:30,
+  ROLL_DECEL:1.2, AERO_K:1.5e-4, HOLD_DECEL:0.05,
   GOV:12, Ie:10, GEAR_LOAD:8,
   BRK_VISC:7.0, BRK_LOCK:2.6,
   FULL_DEPRESS:0.95, REJECT_DUR:1.0,
@@ -168,7 +169,6 @@ export class Transmission{
     const eOmegaTarget=this.rpmTarget*RPM2O;
     const e=friction(this.p);
     const gf=gapF(this.p);
-    const cutDrag=(1-e)*1.6;
     const clutchT=e*PHYS.K*(this.engOmega-this.dOmega);
 
     const blockShift=this.shiftBlocked();
@@ -263,14 +263,17 @@ export class Transmission{
     }
 
     const brkVisc=PHYS.BRK_VISC*this.brakeP;
-    const coastDrag=(1-gE)*PHYS.RR+brkVisc;
+    const dCut=gE>0.5?0:Math.max(0,(1-e))*1.6;
     const NSUB=32, h=st/NSUB;
+    const sync=e;
     for(let s=0;s<NSUB;s++){
       const err=this.dOmega*this.curGR-this.aOmega;
-      this.dOmega+=h*(clutchT - gE*this.curGR*PHYS.GS*err - cutDrag*this.dOmega);
-      this.aOmega+=h*(gE*PHYS.GS*err - coastDrag*this.aOmega);
+      const rotSign=this.aOmega>=0?1:-1;
+      const roadLoad=PHYS.ROLL_DECEL*rotSign + PHYS.AERO_K*this.aOmega*this.aOmega*rotSign + brkVisc*this.aOmega;
+      this.dOmega+=h*(clutchT - sync*gE*this.curGR*PHYS.GS*err - dCut*this.dOmega);
+      this.aOmega+=h*(sync*gE*PHYS.GS*err - roadLoad);
     }
-    const staticDec=st*(0.4*(1-gE)+PHYS.BRK_LOCK*this.brakeP);
+    const staticDec=st*(PHYS.HOLD_DECEL + PHYS.BRK_LOCK*this.brakeP);
     if(this.aOmega>staticDec) this.aOmega-=staticDec;
     else if(this.aOmega<-staticDec) this.aOmega+=staticDec;
     else this.aOmega=0;
