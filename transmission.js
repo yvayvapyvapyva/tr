@@ -84,10 +84,12 @@ export function enginePowerPS(rpm){
   return engineTorqueNm(rpm)*rpm/7021.46;
 }
 
-/* Момент сопротивления на колёсах: качение + аэродинамика + тормоза, Н·м */
+/* Момент сопротивления на колёсах: качение + аэродинамика + тормоза, Н·м.
+   Сопротивление — чисто диссипативное: при нулевой скорости оно равно нулю
+   (иначе покоящуюся машину «тянуло» бы катить назад/вперёд). */
 function loadWheelNm(wa,br){
   const vw=wa*PHYS.RWHEEL;
-  const sign=vw>=0?1:-1;
+  const sign=vw>0?1:(vw<0?-1:0);
   return ((PHYS.ROLL*PHYS.MASS*9.81)*sign
         + (PHYS.AERO*0.5*1.225)*vw*Math.abs(vw)
         + PHYS.BRAKE_F*br*sign)*PHYS.RWHEEL;
@@ -133,11 +135,17 @@ export class Transmission{
      сдвигу (как если бы её толкали с места): стартер на низких передачах
      способен тронуть машину — её сопротивление HOLD_TQ меньше момента на
      колонне, но всё равно не даёт раскрутить коленвал до пусковых оборотов.
+     Если нажат тормоз, машину держат колодки: суммарное сопротивление
+     превышает момент стартера, машина стоит и коленвал не проворачивается.
      Знак повторяет loadWheelNm: на заднем ходу машина сопротивляется качению
      назад, и через отрицательное передаточное число это даёт тормозящий
      момент на коленвале. */
   crankLoad(wa,ratio){
-    if(this.engineState==='cranking' && ratio) return PHYS.HOLD_TQ*(wa>=0?1:-1);
+    if(this.engineState==='cranking' && ratio){
+      const sign=wa>=0?1:-1;
+      const brake=PHYS.BRAKE_F*this.brakeP*PHYS.RWHEEL;
+      return (PHYS.HOLD_TQ+brake)*sign;
+    }
     return loadWheelNm(wa,this.brakeP);
   }
 

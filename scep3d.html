@@ -1174,8 +1174,9 @@ function updateSound(rpmNorm,f,sparkLevel,clash,brakeLevel){
   audio.brkF.frequency.setTargetAtTime(1900+brakeLevel*2200,t,0.10);
   audio.brkG.gain.setTargetAtTime(brakeLevel*1.15,t,0.06);
 }
+let starterStop=null;
 function playStarter(dur){
-  dur=dur||1.25;
+  dur=dur||PHYS.START_DUR;
   if(!audio) audio=initAudio();
   if(audio.ctx.state==='suspended') audio.ctx.resume();
   const ctx=audio.ctx, t0=ctx.currentTime+0.02;
@@ -1201,6 +1202,15 @@ function playStarter(dur){
   o2.start(t0); o2.stop(t0+dur+0.05);
   n.start(t0); n.stop(t0+dur+0.05);
   lfo.start(t0); lfo.stop(t0+dur+0.05);
+  let stopped=false;
+  return ()=>{
+    if(stopped) return; stopped=true;
+    const tc=ctx.currentTime, end=tc+0.1;
+    bus.gain.cancelScheduledValues(tc);
+    bus.gain.setValueAtTime(bus.gain.value,tc);
+    bus.gain.linearRampToValueAtTime(0,tc+0.06);
+    try{ o.stop(end); o2.stop(end); n.stop(end); lfo.stop(end); }catch(e){}
+  };
 }
 
 /* ============================================================
@@ -1377,7 +1387,7 @@ function showMsg(html,cls){ msgEl.innerHTML=html; msgEl.className=cls; }
 function hideMsg(){ msgEl.className=''; msgEl.textContent=''; }
 startBtn.addEventListener('click',()=>{
   const act=sim.pressStart();
-  if(act==='started'){ setSoundOn(); playStarter(1.25); }
+  if(act==='started'){ setSoundOn(); if(starterStop) starterStop(); starterStop=playStarter(); }
 });
 
 /* ============ ФИЗИКА И АНИМАЦИЯ ============ */
@@ -1394,6 +1404,7 @@ renderer.setAnimationLoop(()=>{
 
   sim.setBrakeDragging(brakeSlider.isDragging());
   sim.step(dt);
+  if(sim.engineState!=='cranking' && starterStop){ starterStop(); starterStop=null; }
 
   crank.rotation.x=sim.thE; flywheel.rotation.x=sim.thE;
   clutchDisc.position.x=sim.cdx;
