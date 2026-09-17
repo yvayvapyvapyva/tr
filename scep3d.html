@@ -249,7 +249,9 @@
 <script type="module">
 import * as THREE from 'three';
 import {OrbitControls} from 'three/addons/controls/OrbitControls.js';
-import {Transmission, PHYS, GATE_X, ROW_Y} from './transmission.js';
+import {Transmission} from './transmission.js';
+import {PHYS, GATE_X, ROW_Y, CAR_NAME} from './carConfig.js';
+document.title = CAR_NAME;
 
 const tg = window.Telegram?.WebApp;
 if (tg) {
@@ -489,7 +491,7 @@ function setGauge(g,value){
   g.needle.setAttribute('transform','rotate('+(GA_A0 + t*(GA_A1-GA_A0)).toFixed(2)+')');
 }
 const tacho=buildGauge(document.getElementById('tachoSvg'),{
-  max:5000, step:250, major:1000, redFrom:4000, greenFrom:1500, greenTo:2500,
+  max:7000, step:250, major:1000, redFrom:5800, greenFrom:1500, greenTo:2500,
   divider:1000, color:'#ffd166', needle:'#ff6b4a', unit:'×1000'});
 const speedo=buildGauge(document.getElementById('speedoSvg'),{
   max:180, step:10, major:20, divider:1, numSize:8,
@@ -1247,6 +1249,7 @@ let msgShown=null;
 fitAll();
 
 const clock=new THREE.Clock(); let hudT=0;
+let wheelAngle=0;   /* реальный угол поворота колеса, рад */
 renderer.setAnimationLoop(()=>{
   let dt=Math.min(clock.getDelta(),.05);
 
@@ -1286,10 +1289,12 @@ renderer.setAnimationLoop(()=>{
   pedal3D_brake.rotation.x  = sim.brakeP * PEDAL_ANGLE;
   pedal3D_gas.rotation.x    = sim.gasP   * PEDAL_ANGLE;
 
-  wheel.userData.rotor.rotation.x=-sim.axleAng*0.25;
-  wheelL.userData.rotor.rotation.x=-sim.axleAng*0.25;
-  asphaltGround.tex.offset.y = sim.axleAng * 0.25 * WHEEL_R / (100/12);
-  asphaltGround.lineTex.offset.y = asphaltGround.tex.offset.y * (8.334/12.8);
+  wheelAngle += (sim.aOmega/PHYS.SLOW)*dt;   /* ω колеса = v / R, рад/с */
+  wheel.userData.rotor.rotation.x=-wheelAngle;
+  wheelL.userData.rotor.rotation.x=-wheelAngle;
+  const gOff = wheelAngle * WHEEL_R / (100/12);
+  asphaltGround.tex.offset.y = gOff % 1;
+  asphaltGround.lineTex.offset.y = (gOff * (8.334/12.8)) % 1;
 
   for(let i=0;i<cylXs.length;i++){
     const x=cylXs[i], psi=sim.thE+phases[i];
@@ -1357,7 +1362,7 @@ renderer.setAnimationLoop(()=>{
   M.orange.emissiveIntensity=Math.min(2.0,slipGlow);
 
   const rpmNow=sim.engOmega/PHYS.SLOW*9.549;
-  updateSound(Math.max(0,(rpmNow-PHYS.IDLE_RPM)/3200),rpmNow/60,sparkLevel,clash,brakeLevel);
+  updateSound(Math.max(0,Math.min(1.5,(rpmNow-PHYS.IDLE_RPM)/3200)),rpmNow/60,sparkLevel,clash,brakeLevel);
 
   const wheelRpm=sim.aOmega/PHYS.SLOW*9.549;
   const speedKmh=wheelRpm*PHYS.SPEED_K;

@@ -1,35 +1,28 @@
 /* ============================================================
    ФИЗИКА ТРАНСМИССИИ — чистый модуль без DOM / Three.js
+   Все настройки автомобиля вынесены в carConfig.js
    ============================================================ */
 
-export const GATE_X=[0.10,0.50,0.90];
-export const ROW_Y=[0.17,0.50,0.83];
+import {
+  PHYS, GEAR_RATIO, TQ_CURVE, GATE_X, ROW_Y,
+  SYNC_GAP, ENGAGE_DIST, BAR_THRESH
+} from './carConfig.js';
 
-const ENGAGE_DIST=0.17;
-const BAR_THRESH=0.10;
+/* реэкспорт настроек: удобно импортировать всё из transmission.js */
+export { PHYS, GEAR_RATIO, TQ_CURVE, GATE_X, ROW_Y, CAR_NAME } from './carConfig.js';
 
+/* раскладка передач по воротам рычага */
 const GEAR_NODES=[
   {id:1,gx:0,row:0},{id:2,gx:0,row:2},{id:3,gx:1,row:0},
   {id:4,gx:1,row:2},{id:5,gx:2,row:0},{id:'R',gx:2,row:2},
 ];
-const GEAR_RATIO={1:1,2:2,3:3,4:4,5:5,'R':-1,'N':1};
 
-export const PHYS={
-  SLOW:0.1,
-  K:6, GS:30,
-  ROLL_DECEL:1.2, AERO_K:1.5e-4, HOLD_DECEL:0.05,
-  GOV:12, Ie:10, GEAR_LOAD:8,
-  BRK_VISC:7.0, BRK_LOCK:2.6,
-  FULL_DEPRESS:0.95, REJECT_DUR:1.0,
-  IDLE_RPM:800, STALL_RPM:700, CRANK_RPM:320,
-  BLOCK_MSG_DUR:2.0, FAIL_DUR:0.5,
-  SPEED_K:0.008,
-};
-
-const RPM2O=Math.PI/30*PHYS.SLOW;
-const IDLE_OMEGA=PHYS.IDLE_RPM*RPM2O;
-const STALL_OMEGA=PHYS.STALL_RPM*RPM2O;
-const CRANK_OMEGA=PHYS.CRANK_RPM*RPM2O;
+/* производные величины — считаются из PHYS, вручную не менять */
+const RPM_C=60/(2*Math.PI);       // рад/с → об/мин
+const CRANK_W=PHYS.CRANK_RPM*Math.PI/30;
+const IDLE_W=PHYS.IDLE_RPM*Math.PI/30;
+const ART_REV_W=PHYS.ART_REV_MAX*Math.PI/30;
+const OVERREV_W=PHYS.REV_LIM*Math.PI/30;
 
 function nodePos(g){
   if(String(g)==='N') return {x:GATE_X[1],y:ROW_Y[1]};
@@ -63,13 +56,36 @@ function snapGear(nx,ny){
 function friction(pp){ if(pp<=0.4) return 1; if(pp>=0.6) return 0; return (0.6-pp)/0.2; }
 function gapF(pp){ return Math.max(0,(pp-0.4)/0.6); }
 
+/* Кривая момента задаётся в carConfig.js (TQ_CURVE) */
+function engineTorqueNm(rpm){
+  const a=TQ_CURVE;
+  if(rpm<=a[0][0]) return a[0][1];
+  for(let i=1;i<a.length;i++){
+    if(rpm<=a[i][0]){
+      const p=a[i-1], q=a[i];
+      return p[1]+(q[1]-p[1])*(rpm-p[0])/(q[0]-p[0]);
+    }
+  }
+  const last=a[a.length-1];
+  return Math.max(0,last[1]-(rpm-last[0])*0.08);
+}
+
+/* Момент сопротивления на колёсах: качение + аэродинамика + тормоза, Н·м */
+function loadWheelNm(wa,br){
+  const vw=wa*PHYS.RWHEEL;
+  const sign=vw>=0?1:-1;
+  return ((PHYS.ROLL*PHYS.MASS*9.81)*sign
+        + (PHYS.AERO*0.5*1.225)*vw*Math.abs(vw)
+        + PHYS.BRAKE_F*br*sign)*PHYS.RWHEEL;
+}
+
 export class Transmission{
   constructor(){
     this.reset();
     this.msg={html:'Нажмите «Старт», чтобы завести двигатель',cls:'info',kind:'info'};
   }
   reset(){
-    this.p=0; this.gasP=0; this.brakeP=0; this.rpmTarget=800;
+    this.p=0; this.gasP=0; this.brakeP=0; this.rpmTarget=PHYS.IDLE_RPM;
     this.brakeKey=0; this.brakeReturn=false; this.brakeDragging=false;
     this.gearSel='N';
     this.leverNX=GATE_X[1]; this.leverNY=ROW_Y[1];
@@ -85,13 +101,14 @@ export class Transmission{
     this.gateT=0.5; this.rowT=0.5;
     this.gE=0; this.e=1; this.gf=0; this.slip=0; this.slipN=0;
     this.speedN=0; this.clutchSlipping=false;
-    this.sparkLevel=0; this.cdx=-1.00; this.gx=0;
-    this.clash=0; this.clashActive=false; this.mismatchNow=0;
+    this.sparkLevel=0; this.cdx=-1.00; this.gx=0;    this.clash=0; this.clashActive=false; this.mismatchNow=0;
     this.brakeLevel=0;
+    this.idleI=0;
+    this.bumpArmed=false;
   }
 
   setClutch(v){ this.p=v; }
-  setGas(v){ this.gasP=v; this.rpmTarget=800+v*3200; }
+  setGas(v){ this.gasP=v; this.rpmTarget=PHYS.IDLE_RPM+v*(PHYS.ART_REV_MAX-PHYS.IDLE_RPM); }
   setBrake(v){ this.brakeP=v; this.brakeReturn=false; }
   releaseBrake(){ this.brakeReturn=true; }
   holdBrake(on){ this.brakeKey=on?1:0; this.brakeReturn=!on; }
@@ -151,7 +168,7 @@ export class Transmission{
       return 'lock';
     }
     this.msg=null;
-    this.engineState='cranking'; this.crankT=0; this.failCrankT=0;
+    this.engineState='cranking'; this.crankT=0; this.failCrankT=0; this.idleI=0; this.bumpArmed=false;
     return 'started';
   }
 
@@ -166,10 +183,19 @@ export class Transmission{
       if(this.brakeP<0.004){ this.brakeP=0; this.brakeReturn=false; }
     }
 
-    const eOmegaTarget=this.rpmTarget*RPM2O;
     const e=friction(this.p);
     const gf=gapF(this.p);
-    const clutchT=e*PHYS.K*(this.engOmega-this.dOmega);
+
+    /* внутренние «визуальные» скорости → реальные рад/с */
+    const k=PHYS.SLOW;
+    let we=this.engOmega/k;   // коленвал
+    let wd=this.dOmega/k;     // вход КПП (диск сцепления)
+    let wa=this.aOmega/k;     // сторона колёс
+
+    const inGear=String(this.gearSel)!=='N';
+    const ratio=inGear?GEAR_RATIO[this.gearSel]:0;
+    const Rw=PHYS.RWHEEL;
+    const IwEff=PHYS.IW+PHYS.MASS*Rw*Rw;
 
     const blockShift=this.shiftBlocked();
     if(this.rejectTimer>0){
@@ -208,34 +234,6 @@ export class Transmission{
     this.mismatchNow=mismatchNow;
     this.clashActive=clashActive;
 
-    const govFactor=e>0.5?(1.0-this.brakeP*this.brakeP*0.9):1.0;
-
-    if(this.engineState==='running'){
-      const gearMult=1+this.gElast*PHYS.GEAR_LOAD;
-      this.engOmega+=st*(PHYS.GOV*govFactor*(eOmegaTarget-this.engOmega)-clutchT*gearMult/PHYS.Ie);
-      const isShiftingWithoutClutch=blockShift&&this.tryGear!=null;
-      if(this.engOmega<STALL_OMEGA && this.gElast>0.2 && !isShiftingWithoutClutch && this.noClutchShiftTimer<=0){
-        this.engineState='stalled'; this.rpmTarget=PHYS.IDLE_RPM; this.gasP=0;
-        this.blockMsgTimer=0; this.blocked=0;
-        this.msg=this.brakeP>0.25
-          ?{html:'⚠️ Двигатель заглох — резкое торможение на включённой передаче!<small>Перед торможением выжмите сцепление или выключите передачу, затем нажмите кнопку СТАРТ</small>',cls:'warn',kind:'stall'}
-          :{html:'⚠️ Сцепление отпущено слишком быстро — двигатель заглох!<small>Нажмите кнопку СТАРТ: выжмите сцепление или включите нейтраль, затем отпускайте плавно (зона 40–60%)</small>',cls:'warn',kind:'stall'};
-      }
-    } else if(this.engineState==='cranking'){
-      this.crankT+=dt;
-      this.engOmega+=(CRANK_OMEGA-this.engOmega)*Math.min(1,dt*5);
-      if(this.crankT>1.25){ this.engineState='running'; this.engOmega=Math.max(this.engOmega,IDLE_OMEGA); }
-    } else {
-      if(this.failCrankT>0){
-        this.failCrankT-=dt;
-        this.engOmega=0.55+Math.abs(Math.sin(performance.now()*0.035))*0.75;
-      } else {
-        this.engOmega+=st*(-5*this.engOmega);
-        if(this.engOmega<0.01) this.engOmega=0;
-      }
-    }
-    this.engOmega=Math.max(0,this.engOmega);
-
     if(this.noClutchShiftTimer>0){
       this.noClutchShiftTimer-=dt;
       if(this.noClutchShiftTimer<=0){
@@ -262,31 +260,113 @@ export class Transmission{
       }
     }
 
-    const brkVisc=PHYS.BRK_VISC*this.brakeP;
-    const dCut=gE>0.5?0:Math.max(0,(1-e))*1.6;
-    const NSUB=32, h=st/NSUB;
-    const driveCouple=gE*PHYS.GS;
-    for(let s=0;s<NSUB;s++){
-      const err=this.dOmega*this.curGR-this.aOmega;
-      const rotSign=this.aOmega>=0?1:-1;
-      const roadLoad=PHYS.ROLL_DECEL*rotSign + PHYS.AERO_K*this.aOmega*this.aOmega*rotSign + brkVisc*this.aOmega;
-      this.dOmega+=h*(clutchT - driveCouple*this.curGR*err - dCut*this.dOmega);
-      this.aOmega+=h*(driveCouple*err - roadLoad);
+    const shiftNoClutch=blockShift && this.tryGear!=null;
+    if(this.engineState==='running' && we*RPM_C<PHYS.STALL_RPM && gE>0.2 && this.noClutchShiftTimer<=0 && !shiftNoClutch){
+      this.engineState='stalled'; this.rpmTarget=PHYS.IDLE_RPM; this.gasP=0;
+      this.blockMsgTimer=0; this.blocked=0; this.idleI=0; we=0;
+      this.msg=this.brakeP>0.25
+        ?{html:'⚠️ Двигатель заглох — резкое торможение на включённой передаче!<small>Перед торможением выжмите сцепление или выключите передачу, затем нажмите кнопку СТАРТ</small>',cls:'warn',kind:'stall'}
+        :{html:'⚠️ Сцепление отпущено слишком быстро — двигатель заглох!<small>Нажмите кнопку СТАРТ: выжмите сцепление или включите нейтраль, затем отпускайте плавно (зона 40–60%)</small>',cls:'warn',kind:'stall'};
     }
-    const staticDec=st*(PHYS.HOLD_DECEL + PHYS.BRK_LOCK*this.brakeP);
-    if(this.aOmega>staticDec) this.aOmega-=staticDec;
-    else if(this.aOmega<-staticDec) this.aOmega+=staticDec;
-    else this.aOmega=0;
-    this.dOmega=Math.max(this.dOmega,0);
 
-    if(e>0.98){
-      if(String(this.gearSel)==='N'){
-        this.dOmega=this.engOmega;
+    if(ratio){
+      /* диск и колёса жёстко связаны передачей (скольжение — только на сцеплении) */
+      wd=ratio*wa;
+    }
+
+    /* ------------------- ДВИГАТЕЛЬ + СЦЕПЛЕНИЕ -------------------
+       Модель «замок/проскальзывание»: если сцепление способно
+       удержать момент, коленвал и диск крутятся как одно целое,
+       иначе — проскальзывание с моментом = ёмкость сцепления. */
+    let Te=0, Td=0, capE=0, Tc=0, locked=false;
+
+    if(this.engineState==='running'){
+      const rpm=we*RPM_C;
+      /* педаль газа — задатчик оборотов: 0% → холостые, 100% → 4000.
+         ПИ-регулятор плавно выводит и держит заданные обороты. */
+      const tgtW=IDLE_W+this.gasP*(ART_REV_W-IDLE_W);
+      const err=tgtW-we;
+      const TeMax=engineTorqueNm(rpm);
+      const govPre=err*PHYS.GOV_KP+this.idleI;
+      if(!((govPre>TeMax&&err>0)||(govPre<0&&err<0)))
+        this.idleI=Math.max(0,Math.min(TeMax,this.idleI+err*dt*PHYS.GOV_KI));
+      let gov=err*PHYS.GOV_KP+this.idleI;
+      if(gov>TeMax) gov=TeMax;
+      if(gov<0) gov=0;
+      Te=gov;
+      Td=PHYS.ENG_DRAG_B+PHYS.ENG_DRAG_K*rpm;
+      /* отпущен газ (дроссель закрыт) — добавляем насосные потери:
+         двигатель быстро сбрасывает обороты */
+      if(gov<=0.01) Td+=PHYS.CLOSE_DRAG_B+PHYS.CLOSE_DRAG_K*rpm;
+    } else if(this.engineState!=='cranking' && this.failCrankT<=0){
+      /* двигатель не работает: горения нет, только трение и компрессия.
+         Колёса через сцепление при этом могут раскрутить коленвал. */
+      const rpm=we*RPM_C;
+      Td=PHYS.ENG_DRAG_B+PHYS.ENG_DRAG_K*rpm
+        +PHYS.CLOSE_DRAG_B+PHYS.CLOSE_DRAG_K*rpm;
+    }
+
+    /* сцепление работает всегда, кроме момента работы стартера */
+    if(this.engineState!=='cranking' && this.failCrankT<=0){
+      capE=PHYS.CLUTCH_CAP*e;
+
+      const refS=ratio?loadWheelNm(wa,this.brakeP)/ratio:0;
+      const I2=ratio?(PHYS.ID+IwEff/(ratio*ratio)):PHYS.ID;
+      const Iall=PHYS.IE+I2;
+      const wAcc=(Te-Td-refS)/Iall;
+      const needT=Te-Td-PHYS.IE*wAcc;          // момент сцепления для сохранения захвата
+
+      if(Math.abs(we-wd)<SYNC_GAP && Math.abs(needT)<=capE){
+        /* сцепление держит: коленвал и диск — одно целое */
+        locked=true;
+        const w0=(we+wd)/2;
+        we=w0; wd=w0;
+        we+=st*wAcc; wd+=st*wAcc;
+        if(ratio) wa=wd/ratio;
       } else {
-        const avg=(this.engOmega+this.dOmega)/2;
-        this.engOmega=avg; this.dOmega=avg;
+        /* проскальзывание: передаём ёмкость сцепления в сторону раскрутки */
+        Tc=we>wd?capE:(we<wd?-capE:0);
+        we+=st*(Te-Td-Tc)/PHYS.IE;
       }
     }
+
+    if(this.engineState==='cranking'){
+      this.crankT+=dt;
+      we+=(CRANK_W-we)*Math.min(1,st*5);
+      if(this.crankT>1.25){
+        this.engineState='running';
+        if(we<IDLE_W) we=IDLE_W;
+      }
+    } else if(this.failCrankT>0){
+      this.failCrankT-=dt;
+      we=(0.55+Math.abs(Math.sin(performance.now()*0.035))*0.75)/k;
+    }
+
+    if(!locked){
+      if(ratio){
+        const refS=loadWheelNm(wa,this.brakeP)/ratio;
+        const wdAcc=(Tc-refS)/(PHYS.ID+IwEff/(ratio*ratio));
+        wd+=st*wdAcc;
+        wa=wd/ratio;
+      } else {
+        wd+=st*(Tc-PHYS.DISC_DRAG*wd)/PHYS.ID;
+        wa+=st*(-loadWheelNm(wa,this.brakeP))/IwEff;
+      }
+    }
+    we=Math.max(0,we);
+    if(we>OVERREV_W) we=OVERREV_W;
+    /* нейтраль у неработающего двигателя не должна крутиться назад */
+    if(this.engineState!=='running' && this.engineState!=='cranking' && !ratio) wd=Math.max(0,wd);
+
+    /* запуск «с толкача»: если заглохший двигатель раскрутили колёсами
+       через сцепление (перед этим сцепление выжимали) — он схватывает */
+    if(this.engineState==='stalled' && e<0.5) this.bumpArmed=true;
+    if(this.engineState==='stalled' && this.bumpArmed && e>0.6 && we*RPM_C>=PHYS.BUMP_RPM){
+      this.engineState='running'; this.bumpArmed=false; this.idleI=0;
+      this.msg={html:'✅ Двигатель завёлся с толкача<small>Колёса раскрутили его через сцепление</small>',cls:'info',kind:'bump'};
+    }
+
+    this.engOmega=we*k; this.dOmega=wd*k; this.aOmega=wa*k;
 
     this.thE+=this.engOmega*dt;
     this.discAng+=this.dOmega*dt;
