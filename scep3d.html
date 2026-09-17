@@ -125,6 +125,27 @@
   #brakeCursor {color:#ff6b5a}
   #gasCursor   {color:#ffd166}
 
+  /* ---------- ИНДИКАТОР ЗОНЫ УДЕРЖАНИЯ (левый край, по центру) ---------- */
+  #holdGauge{position:fixed;left:14px;top:50%;transform:translateY(-50%);
+       width:44px;height:min(300px,42vh);z-index:20;pointer-events:none;
+       background:linear-gradient(rgba(22,34,47,.62),rgba(13,23,32,.62));
+       border-radius:10px;overflow:hidden;backdrop-filter:blur(3px);
+       box-shadow:inset 0 0 0 1px rgba(36,56,77,.85),inset 0 2px 12px rgba(0,0,0,.45)}
+  #holdGauge.off{display:none}
+  /* крупная шкала с зелёной зоной — риски и цифры внутри тёмной зоны */
+  #holdGauge .hgScale{position:absolute;inset:0}
+  #holdGauge .scaleTick{left:0;right:auto;width:7px;height:2px}
+  #holdGauge .scaleTick.maj{left:0;right:auto;width:11px;height:2px}
+  #holdGauge .scaleLbl{left:auto;right:3px;width:27px;text-align:right;font-size:13px;line-height:1}
+  #holdGauge .scaleZone{left:0;right:0;background:rgba(46,185,100,.34);
+       box-shadow:inset 0 0 12px rgba(46,185,100,.45)}
+  #holdGauge .hgNow{position:absolute;left:0;right:0;top:3%;height:2px;margin-top:-1px;
+       background:#8fd0ff;box-shadow:0 0 7px #8fd0ff;z-index:3}
+  #holdGauge .hgLimit{position:absolute;left:0;right:0;top:3%;height:3px;margin-top:-1.5px;
+       background:#5dffa0;box-shadow:0 0 8px #5dffa0;z-index:4;
+       transition:background .12s,box-shadow .12s}
+  #holdGauge .hgLimit.danger{background:#ff5a4a;box-shadow:0 0 10px #ff5a4a}
+
   /* ---------- ТРЕК КПП ---------- */
   #gearTrack{position:relative;width:166px;height:150px;cursor:grab;
        overflow:visible;flex:0 0 auto;
@@ -250,6 +271,13 @@
 </div>
 
 <div id="view"></div>
+
+<!-- Динамический индикатор зоны удержания: отдельный элемент у левого края, по центру -->
+<div id="holdGauge" title="Зона удержания сцепления: зелёная метка — предел отпускания, голубая — текущая педаль">
+  <div class="hgScale" id="hgScale"></div>
+  <div class="hgNow" id="hgNow"></div>
+  <div class="hgLimit" id="hgLimit"></div>
+</div>
 
 <!-- ИСПРАВЛЕНО: .vval (число под названием) удалён из всех колонок -->
 <div id="bottomUI">
@@ -1225,6 +1253,10 @@ function playStarter(dur){
 const V_TOP = 17;
 const V_SPAN = 66;
 
+/* индикатор удержания — своя шкала почти без пустых полей сверху/снизу */
+const HG_TOP = 3;
+const HG_SPAN = 94;
+
 function vPosPct(v){ return (V_TOP + v*V_SPAN).toFixed(3)+'%'; }
 function vFillPct(v){ return (V_TOP + v*V_SPAN).toFixed(3)+'%'; }
 
@@ -1238,13 +1270,13 @@ function vFromPointer(rect, cy){
 
 /* риски и подписи шкалы; позиции считаются от тех же V_TOP/V_SPAN,
    поэтому курсор всегда на одной линии с центром ручки */
-function buildScale(el, zone, accent){
+function buildScale(el, zone, accent, t0=V_TOP, sp=V_SPAN){
   el.style.setProperty('--sc',accent);
   if(zone){
     const z=document.createElement('div');
     z.className='scaleZone';
-    const tHi=V_TOP+(zone[0]/100)*V_SPAN;
-    const tLo=V_TOP+(zone[1]/100)*V_SPAN;
+    const tHi=t0+(zone[0]/100)*sp;
+    const tLo=t0+(zone[1]/100)*sp;
     z.style.top=tHi.toFixed(2)+'%';
     z.style.height=(tLo-tHi).toFixed(2)+'%';
     el.appendChild(z);
@@ -1252,7 +1284,7 @@ function buildScale(el, zone, accent){
   const ticks=[], labels=[];
   for(let pc=0; pc<=100; pc+=5){
     const maj=(pc%20===0);
-    const top=V_TOP+(pc/100)*V_SPAN;
+    const top=t0+(pc/100)*sp;
     const t=document.createElement('i');
     t.className='scaleTick'+(maj?' maj':'');
     t.style.top=top.toFixed(2)+'%';
@@ -1311,6 +1343,13 @@ const sim = new Transmission();
 const clutchScaleData = buildScale(document.getElementById('clutchScale'), [40,60],'#8fd0ff');
 const brakeScaleData  = buildScale(document.getElementById('brakeScale'),  null,'#ff6b5a');
 const gasScaleData    = buildScale(document.getElementById('gasScale'),    null,'#ffd166');
+
+/* индикатор зоны удержания: отдельный элемент у левого края */
+const holdGaugeEl =document.getElementById('holdGauge');
+const hgLimitEl   =document.getElementById('hgLimit');
+const hgNowEl     =document.getElementById('hgNow');
+const hgScaleData =buildScale(document.getElementById('hgScale'), [40,60], '#8fd0ff', HG_TOP, HG_SPAN);
+
 function highlightScale(data, pct){
   const lim=pct*100;
   for(const t of data.ticks) t.el.classList.toggle('passed', t.pct<=lim);
@@ -1535,6 +1574,18 @@ renderer.setAnimationLoop(()=>{
   if(sim.p!==lastClutch){ lastClutch=sim.p; clutchSlider.set(sim.p); }
   if(sim.brakeP!==lastBrake){ lastBrake=sim.brakeP; brakeSlider.set(sim.brakeP); }
   if(sim.gasP!==lastGas){ lastGas=sim.gasP; gasSlider.set(sim.gasP); }
+
+  /* индикатор удержания — каждый кадр, чтобы не отставал от педали */
+  const hgLim=sim.releaseLimit();
+  if(hgLim==null){
+    holdGaugeEl.classList.add('off');
+  } else {
+    holdGaugeEl.classList.remove('off');
+    hgLimitEl.style.top=(HG_TOP+hgLim*HG_SPAN).toFixed(2)+'%';
+    hgLimitEl.classList.toggle('danger', sim.p<hgLim-0.005);
+    hgNowEl.style.top=(HG_TOP+sim.p*HG_SPAN).toFixed(2)+'%';
+    highlightScale(hgScaleData, sim.p);
+  }
 
   hudT+=dt;
   if(hudT>0.08){

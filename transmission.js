@@ -130,6 +130,29 @@ export class Transmission{
   holdBrake(on){ this.brakeKey=on?1:0; this.brakeReturn=!on; }
   setBrakeDragging(d){ this.brakeDragging=d; }
 
+  /* Предел отпускания сцепления — до какой позиции педали сейчас можно
+     отпустить и удержать без глоха. Возвращает позицию p: 0 — можно
+     отпустить полностью; ближе к 0.4–0.6 — держать у зоны схватывания.
+     Прогноз: клон состояния удерживает кандидат p и проверяется на глох. */
+  releaseLimit(dt=1/60,horizon=0.5){
+    if(this.engineState!=='running') return null;
+    if(String(this.gearSel)==='N') return 0;
+    const clone=()=>Object.assign(Object.create(Object.getPrototypeOf(this)),this);
+    const n=Math.max(1,Math.round(horizon/dt));
+    const safe=p=>{
+      const c=clone();
+      for(let i=0;i<n;i++){
+        c.setClutch(p); c.step(dt);
+        if(c.engineState!=='running') return false;
+      }
+      return true;
+    };
+    if(safe(0)) return 0;
+    let lo=0,hi=0.6;
+    for(let i=0;i<7;i++){ const m=(lo+hi)/2; if(safe(m)) hi=m; else lo=m; }
+    return hi;
+  }
+
   /* Нагрузка на колёсах, приведённая к коленвалу. При пуске стартером
      включённая передача соединяет коленвал с машиной, которая сопротивляется
      сдвигу (как если бы её толкали с места): стартер на низких передачах
