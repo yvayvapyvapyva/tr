@@ -4,11 +4,11 @@
    ============================================================ */
 
 import {
-  PHYS, GEAR_RATIO, TQ_CURVE, GATE_X, ROW_Y
+PHYS, GEAR_RATIO, TQ_CURVE, GATE_X, ROW_Y, PWR_REF_PS
 } from './carConfig.js';
 
 /* реэкспорт настроек: удобно импортировать всё из transmission.js */
-export { PHYS, GEAR_RATIO, TQ_CURVE, GATE_X, ROW_Y, CAR_NAME } from './carConfig.js';
+export { PHYS, GEAR_RATIO, TQ_CURVE, GATE_X, ROW_Y, CAR_NAME, PWR_REF_PS } from './carConfig.js';
 
 /* раскладка передач по воротам рычага */
 const GEAR_NODES=[
@@ -61,18 +61,29 @@ function snapGear(nx,ny){
 function friction(pp){ if(pp<=0.4) return 1; if(pp>=0.6) return 0; return (0.6-pp)/0.2; }
 function gapF(pp){ return Math.max(0,(pp-0.4)/0.6); }
 
-/* Кривая момента задаётся в carConfig.js (TQ_CURVE) */
+/* Кривая момента задаётся в carConfig.js (TQ_CURVE) — это значения для
+   базовой мощности PWR_REF_PS. Фактический момент масштабируется по текущей
+   мощности: t × PHYS.PWR_PS / PWR_REF_PS. */
 function engineTorqueNm(rpm){
   const a=TQ_CURVE;
-  if(rpm<=a[0][0]) return a[0][1];
-  for(let i=1;i<a.length;i++){
-    if(rpm<=a[i][0]){
-      const p=a[i-1], q=a[i];
-      return p[1]+(q[1]-p[1])*(rpm-p[0])/(q[0]-p[0]);
+  let t;
+  if(rpm<=a[0][0]) t=a[0][1];
+  else{
+    for(let i=1;i<a.length;i++){
+      if(rpm<=a[i][0]){
+        const p=a[i-1], q=a[i];
+        t=p[1]+(q[1]-p[1])*(rpm-p[0])/(q[0]-p[0]);
+        break;
+      }
     }
+    if(t===undefined){ const last=a[a.length-1]; t=Math.max(0,last[1]-(rpm-last[0])*0.08); }
   }
-  const last=a[a.length-1];
-  return Math.max(0,last[1]-(rpm-last[0])*0.08);
+  return t*(PHYS.PWR_PS/PWR_REF_PS);
+}
+
+/* Мощность, л.с., при заданных оборотах: T(Н·м) × rpm / 7021.46 */
+export function enginePowerPS(rpm){
+  return engineTorqueNm(rpm)*rpm/7021.46;
 }
 
 /* Момент сопротивления на колёсах: качение + аэродинамика + тормоза, Н·м */
@@ -198,7 +209,7 @@ export class Transmission{
     let wa=this.aOmega/k;     // сторона колёс
 
     const inGear=String(this.gearSel)!=='N';
-    const ratio=inGear?GEAR_RATIO[this.gearSel]:0;
+    const ratio=inGear?GEAR_RATIO[this.gearSel]*PHYS.FINAL_DRIVE:0;
     const Rw=PHYS.RWHEEL;
     const IwEff=PHYS.IW+PHYS.MASS*Rw*Rw;
 
@@ -228,10 +239,10 @@ export class Transmission{
       let t=1-Math.min(1,d/PHYS.ENGAGE_DIST);
       gE=t*t*(3-2*t);
     }
-    this.curGR=GEAR_RATIO[this.gearSel]||1;
+    this.curGR=inGear?GEAR_RATIO[this.gearSel]*PHYS.FINAL_DRIVE:1;
 
     const clashGear=this.tryGear!=null?this.tryGear:this.gearSel;
-    const mismatchNow=Math.abs(this.dOmega*(GEAR_RATIO[clashGear]||1)-this.aOmega);
+    const mismatchNow=Math.abs(this.dOmega*((GEAR_RATIO[clashGear]||1)*PHYS.FINAL_DRIVE)-this.aOmega);
     const clashActive=blockShift && this.tryGear!=null && String(this.tryGear)!==String(this.gearSel)
                       && gE<0.9 && mismatchNow>0.4;
     if(clashActive) gE=0;

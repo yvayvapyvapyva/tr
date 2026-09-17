@@ -307,7 +307,7 @@
 <script type="module">
 import * as THREE from 'three';
 import {OrbitControls} from 'three/addons/controls/OrbitControls.js';
-import {Transmission, refreshDerived} from './transmission.js';
+import {Transmission, refreshDerived, enginePowerPS} from './transmission.js';
 import {PHYS, GATE_X, ROW_Y, CAR, SETTINGS, cfgGet, cfgSet} from './carConfig.js';
 
 const tg = window.Telegram?.WebApp;
@@ -1053,6 +1053,25 @@ function makeRpmLabel(accent){
   };
   return s;
 }
+function makePsLabel(accent){
+  const c=document.createElement('canvas'); c.width=200; c.height=88;
+  const k=c.getContext('2d');
+  const tex=new THREE.CanvasTexture(c); tex.minFilter=THREE.LinearFilter;
+  const s=new THREE.Sprite(new THREE.SpriteMaterial({map:tex,transparent:true,depthTest:false}));
+  s.scale.set(0.71,0.32,1); s.renderOrder=10;
+  let last=null;
+  s.userData.draw=(ps)=>{
+    const txt=String(ps)+' л.с.'; if(txt===last) return; last=txt;
+    k.clearRect(0,0,200,88);
+    roundRectPath(k,6,10,188,68,14);
+    k.fillStyle='rgba(10,20,32,.78)'; k.fill();
+    k.lineWidth=4; k.strokeStyle=accent; k.stroke();
+    k.font='bold 52px Arial'; k.textAlign='center'; k.textBaseline='middle';
+    k.fillStyle=accent; k.fillText(txt,100,46);
+    tex.needsUpdate=true;
+  };
+  return s;
+}
 function makeSpeedLabel(accent){
   const c=document.createElement('canvas'); c.width=240; c.height=120;
   const k=c.getContext('2d');
@@ -1075,6 +1094,7 @@ function makeSpeedLabel(accent){
   return s;
 }
 const engLabel=makeRpmLabel('#ffd166'); engLabel.position.set(-2.75,2.8,0); scene.add(engLabel); engLabel.userData.draw(0);
+const psLabel=makePsLabel('#9db4cc'); psLabel.position.set(-2.75,2.05,0); scene.add(psLabel); psLabel.userData.draw(0);
 const whlLabel=makeSpeedLabel('#6cf09c'); whlLabel.position.set(WX,OUT_Y+2.94,0); scene.add(whlLabel); whlLabel.userData.draw(0);
 
 /* ============ ЗВУК ============ */
@@ -1512,6 +1532,7 @@ renderer.setAnimationLoop(()=>{
     tacho.dig.textContent=Math.round(tachoShown);
     speedo.dig.textContent=Math.round(speedoShown);
     engLabel.userData.draw(Math.round(rpmNow));
+    psLabel.userData.draw(Math.round(enginePowerPS(rpmNow)));
     whlLabel.userData.draw(Math.round(speedDisp));
     highlightScale(clutchScaleData,sim.p);
     highlightScale(brakeScaleData,sim.brakeP);
