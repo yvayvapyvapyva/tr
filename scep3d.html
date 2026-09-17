@@ -1429,7 +1429,7 @@ renderer.setAnimationLoop(()=>{
   pedal3D_brake.rotation.x  = sim.brakeP * PEDAL_ANGLE;
   pedal3D_gas.rotation.x    = sim.gasP   * PEDAL_ANGLE;
 
-  wheelAngle += (sim.aOmega/PHYS.SLOW)*dt;   /* ω колеса = v / R, рад/с */
+  wheelAngle += (sim.aOmega/PHYS.SLOW)*dt*0.5;   /* ω колеса = v / R, рад/с (×0.5 — наглядность) */
   wheel.userData.rotor.rotation.x=-wheelAngle;
   wheelL.userData.rotor.rotation.x=-wheelAngle;
   const gOff = wheelAngle * WHEEL_R / (100/12);
