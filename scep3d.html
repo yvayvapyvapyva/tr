@@ -1337,6 +1337,8 @@ gearTrack.addEventListener('pointerup',gearRelease);
 gearTrack.addEventListener('pointercancel',gearRelease);
 
 addEventListener('keydown',e=>{
+  const t=e.target;
+  if(t && (t.tagName==='INPUT'||t.tagName==='TEXTAREA'||t.isContentEditable)) return;
   if(e.code==='Space'&&!e.repeat){ sim.setClutch(1); e.preventDefault(); }
   if((e.code==='KeyB'||e.code==='ArrowDown')&&!e.repeat){ sim.holdBrake(true); e.preventDefault(); }
   const k=e.key.toUpperCase();
