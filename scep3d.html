@@ -1485,8 +1485,9 @@ renderer.setAnimationLoop(()=>{
   const wheelRpm=sim.aOmega/PHYS.SLOW*9.549;
   const speedKmh=wheelRpm*PHYS.SPEED_K;
   const absSpeed=Math.abs(speedKmh);
+  const speedDisp=absSpeed*(1+PHYS.SPEED_ERR/100);
   tachoShown += (rpmNow-tachoShown)*Math.min(1,dt*9);
-  speedoShown += (absSpeed-speedoShown)*Math.min(1,dt*9);
+  speedoShown += (speedDisp-speedoShown)*Math.min(1,dt*9);
   setGauge(tacho,tachoShown);
   setGauge(speedo,speedoShown);
 
@@ -1509,7 +1510,7 @@ renderer.setAnimationLoop(()=>{
     tacho.dig.textContent=Math.round(tachoShown);
     speedo.dig.textContent=Math.round(speedoShown);
     engLabel.userData.draw(Math.round(rpmNow));
-    whlLabel.userData.draw(Math.round(absSpeed));
+    whlLabel.userData.draw(Math.round(speedDisp));
     highlightScale(clutchScaleData,sim.p);
     highlightScale(brakeScaleData,sim.brakeP);
     highlightScale(gasScaleData,sim.gasP);

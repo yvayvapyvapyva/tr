@@ -76,6 +76,7 @@ export const BAR_THRESH  = 0.10;   // ширина коридора нейтра
 /* ---------- 10. ПРОЧЕЕ (обычно не меняется) ---------- */
 export const SLOW          = 0.1;     // масштаб скоростей для визуала (НЕ менять)
 export const SPEED_K       = 0.1335;  // (рад/с колёс) → км/ч
+export const SPEED_ERR     = 5;       // погрешность показаний спидометра, % (больше реальной)
 export const REJECT_DUR    = 1.0;     // задержка отказа включения передачи, с
 export const BLOCK_MSG_DUR = 2.0;     // показ сообщения о блокировке, с
 export const FAIL_DUR      = 0.5;     // время неудачного пуска, с
@@ -117,6 +118,7 @@ export const SETTINGS = [
     { label:'Масса, кг', desc:'Полная масса автомобиля', path:'PHYS.MASS', type:'number' },
     { label:'Мощность, л.с.', desc:'Максимальная мощность двигателя', path:'PHYS.PWR_PS', type:'number' },
     { label:'Радиус колеса, м', desc:'Влияет на скорость и момент на колёсах', path:'PHYS.RWHEEL', type:'number', step:0.001 },
+    { label:'Погрешность спидометра, %', desc:'Показание = скорость × (1 + погрешность/100). Положительное — показывает больше реальной', path:'PHYS.SPEED_ERR', type:'number', step:0.1 },
   ]},
   { title:'Передаточные числа КПП', desc:'Включают главную пару (4.3). Больше число — больше момента.', fields:
     ['1','2','3','4','5','R','N'].map(k=>({
@@ -176,6 +178,7 @@ export const PHYS = {
   MASS: CAR_MASS,
   PWR_PS: CAR_POWER_PS,
   RWHEEL: WHEEL_R,
+  SPEED_ERR,
   IE: I_ENGINE,
   ID: I_DISC,
   IW: I_WHEELS,
