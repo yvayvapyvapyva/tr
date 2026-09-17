@@ -18,12 +18,10 @@ const GEAR_NODES=[
 
 /* производные величины — пересчитываются после изменения настроек */
 const RPM_C=60/(2*Math.PI);       // рад/с → об/мин
-let CRANK_W=PHYS.CRANK_RPM*Math.PI/30;
 let IDLE_W=PHYS.IDLE_RPM*Math.PI/30;
 let ART_REV_W=PHYS.ART_REV_MAX*Math.PI/30;
 let OVERREV_W=PHYS.REV_LIM*Math.PI/30;
 export function refreshDerived(){
-  CRANK_W=PHYS.CRANK_RPM*Math.PI/30;
   IDLE_W=PHYS.IDLE_RPM*Math.PI/30;
   ART_REV_W=PHYS.ART_REV_MAX*Math.PI/30;
   OVERREV_W=PHYS.REV_LIM*Math.PI/30;
@@ -130,6 +128,19 @@ export class Transmission{
   holdBrake(on){ this.brakeKey=on?1:0; this.brakeReturn=!on; }
   setBrakeDragging(d){ this.brakeDragging=d; }
 
+  /* Нагрузка на колёсах, приведённая к коленвалу. При пуске стартером
+     включённая передача соединяет коленвал с машиной, которая сопротивляется
+     сдвигу (как если бы её толкали с места): стартер на низких передачах
+     способен тронуть машину — её сопротивление HOLD_TQ меньше момента на
+     колонне, но всё равно не даёт раскрутить коленвал до пусковых оборотов.
+     Знак повторяет loadWheelNm: на заднем ходу машина сопротивляется качению
+     назад, и через отрицательное передаточное число это даёт тормозящий
+     момент на коленвале. */
+  crankLoad(wa,ratio){
+    if(this.engineState==='cranking' && ratio) return PHYS.HOLD_TQ*(wa>=0?1:-1);
+    return loadWheelNm(wa,this.brakeP);
+  }
+
   shiftBlocked(){ return this.engineState==='running' && this.p<PHYS.FULL_DEPRESS; }
 
   beginGearDrag(){ this.rejectTimer=0; this.pendingGear=null; }
@@ -176,13 +187,6 @@ export class Transmission{
       return 'stop';
     }
     if(this.engineState==='cranking') return 'busy';
-    const clutchOut=this.p<0.5;
-    const gearOn=String(this.gearSel)!=='N';
-    if(clutchOut && gearOn){
-      this.msg={html:'⚠️ Для запуска выжмите сцепление или включите нейтраль<small>Стартер крутит, но двигатель не запускается — включена передача</small>',cls:'warn',kind:'startlock'};
-      this.failCrankT=PHYS.FAIL_DUR;
-      return 'lock';
-    }
     this.msg=null;
     this.engineState='cranking'; this.crankT=0; this.failCrankT=0; this.idleI=0; this.bumpArmed=false;
     return 'started';
@@ -314,7 +318,18 @@ export class Transmission{
       /* отпущен газ (дроссель закрыт) — добавляем насосные потери:
          двигатель быстро сбрасывает обороты */
       if(gov<=0.01) Td+=PHYS.CLOSE_DRAG_B+PHYS.CLOSE_DRAG_K*rpm;
-    } else if(this.engineState!=='cranking' && this.failCrankT<=0){
+    } else if(this.engineState==='cranking'){
+      /* стартер — машина постоянного тока с ограниченным моментом:
+         максимален на нулевых оборотах и падает до 0 на холостом ходу.
+         Если передача включена и сцепление не выжато, через колонну
+         коленвал тащит машину: на низких передачах стартер её толкает,
+         но из-за сопротивления сдвигу (HOLD_TQ) не может раскрутить
+         коленвал до пусковой скорости — запуск срывается. */
+      const rpm=we*RPM_C;
+      Te=Math.max(0,PHYS.START_TQ*(1-rpm/PHYS.START_FREE_RPM));
+      Td=PHYS.ENG_DRAG_B+PHYS.ENG_DRAG_K*rpm
+        +PHYS.CLOSE_DRAG_B+PHYS.CLOSE_DRAG_K*rpm;
+    } else {
       /* двигатель не работает: горения нет, только трение и компрессия.
          Колёса через сцепление при этом могут раскрутить коленвал. */
       const rpm=we*RPM_C;
@@ -322,11 +337,12 @@ export class Transmission{
         +PHYS.CLOSE_DRAG_B+PHYS.CLOSE_DRAG_K*rpm;
     }
 
-    /* сцепление работает всегда, кроме момента работы стартера */
-    if(this.engineState!=='cranking' && this.failCrankT<=0){
+    /* сцепление работает всегда, включая момент работы стартера:
+       включённая передача соединяет коленвал с колонной */
+    {
       capE=PHYS.CLUTCH_CAP*e;
 
-      const refS=ratio?loadWheelNm(wa,this.brakeP)/ratio:0;
+      const refS=ratio?this.crankLoad(wa,ratio)/ratio:0;
       const I2=ratio?(PHYS.ID+IwEff/(ratio*ratio)):PHYS.ID;
       const Iall=PHYS.IE+I2;
       const wAcc=(Te-Td-refS)/Iall;
@@ -348,19 +364,22 @@ export class Transmission{
 
     if(this.engineState==='cranking'){
       this.crankT+=dt;
-      we+=(CRANK_W-we)*Math.min(1,st*5);
-      if(this.crankT>1.25){
+      if(we*RPM_C >= PHYS.CRANK_RPM){
+        /* коленвал достиг пусковой скорости — двигатель схватил */
         this.engineState='running';
+        this.idleI=0;
         if(we<IDLE_W) we=IDLE_W;
+        this.msg=null;
+      } else if(this.crankT>PHYS.START_DUR){
+        /* стартер отработал, а раскрутить не смог — запуск сорван */
+        this.engineState='off';
+        this.msg={html:'Стартер толкает машину, но раскрутить двигатель не смог<small>Включена передача — выжмите сцепление и заводите двигатель</small>',cls:'warn',kind:'startfail'};
       }
-    } else if(this.failCrankT>0){
-      this.failCrankT-=dt;
-      we=(0.55+Math.abs(Math.sin(performance.now()*0.035))*0.75)/k;
     }
 
     if(!locked){
       if(ratio){
-        const refS=loadWheelNm(wa,this.brakeP)/ratio;
+        const refS=this.crankLoad(wa,ratio)/ratio;
         const wdAcc=(Tc-refS)/(PHYS.ID+IwEff/(ratio*ratio));
         wd+=st*wdAcc;
         wa=wd/ratio;
@@ -371,8 +390,16 @@ export class Transmission{
     }
     we=Math.max(0,we);
     if(we>OVERREV_W) we=OVERREV_W;
-    /* нейтраль у неработающего двигателя не должна крутиться назад */
-    if(this.engineState!=='running' && this.engineState!=='cranking' && !ratio) wd=Math.max(0,wd);
+    /* выключенный двигатель не должен прокручивать вал и колёса «назад» из
+       покоя: трение двигателя уводило сцепленную систему в минус, когда
+       включена передача, — колонна медленно раскручивалась. Исключение —
+       реальное качение назад (стартер толкнул машину на заднем ходу): его
+       не срезаем, машина сама докатится до остановки. */
+    if(this.engineState!=='running'){
+      const revRoll=ratio<0 && wa<-0.05;
+      if(!revRoll && wd<0) wd=0;
+      if(ratio && !revRoll && wa<0) wa=0;
+    }
 
     /* запуск «с толкача»: если заглохший двигатель раскрутили колёсами
        через сцепление (перед этим сцепление выжимали) — он схватывает */

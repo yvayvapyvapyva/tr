@@ -1378,7 +1378,6 @@ function hideMsg(){ msgEl.className=''; msgEl.textContent=''; }
 startBtn.addEventListener('click',()=>{
   const act=sim.pressStart();
   if(act==='started'){ setSoundOn(); playStarter(1.25); }
-  else if(act==='lock'){ playStarter(PHYS.FAIL_DUR); }
 });
 
 /* ============ ФИЗИКА И АНИМАЦИЯ ============ */
@@ -1532,7 +1531,7 @@ renderer.setAnimationLoop(()=>{
     tacho.dig.textContent=Math.round(tachoShown);
     speedo.dig.textContent=Math.round(speedoShown);
     engLabel.userData.draw(Math.round(rpmNow));
-    psLabel.userData.draw(Math.round(enginePowerPS(rpmNow)));
+    psLabel.userData.draw(sim.engineState==='running'?Math.round(enginePowerPS(rpmNow)):0);
     whlLabel.userData.draw(Math.round(speedDisp));
     highlightScale(clutchScaleData,sim.p);
     highlightScale(brakeScaleData,sim.brakeP);
