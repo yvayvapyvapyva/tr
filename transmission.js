@@ -4,8 +4,7 @@
    ============================================================ */
 
 import {
-  PHYS, GEAR_RATIO, TQ_CURVE, GATE_X, ROW_Y,
-  SYNC_GAP, ENGAGE_DIST, BAR_THRESH
+  PHYS, GEAR_RATIO, TQ_CURVE, GATE_X, ROW_Y
 } from './carConfig.js';
 
 /* реэкспорт настроек: удобно импортировать всё из transmission.js */
@@ -17,12 +16,18 @@ const GEAR_NODES=[
   {id:4,gx:1,row:2},{id:5,gx:2,row:0},{id:'R',gx:2,row:2},
 ];
 
-/* производные величины — считаются из PHYS, вручную не менять */
+/* производные величины — пересчитываются после изменения настроек */
 const RPM_C=60/(2*Math.PI);       // рад/с → об/мин
-const CRANK_W=PHYS.CRANK_RPM*Math.PI/30;
-const IDLE_W=PHYS.IDLE_RPM*Math.PI/30;
-const ART_REV_W=PHYS.ART_REV_MAX*Math.PI/30;
-const OVERREV_W=PHYS.REV_LIM*Math.PI/30;
+let CRANK_W=PHYS.CRANK_RPM*Math.PI/30;
+let IDLE_W=PHYS.IDLE_RPM*Math.PI/30;
+let ART_REV_W=PHYS.ART_REV_MAX*Math.PI/30;
+let OVERREV_W=PHYS.REV_LIM*Math.PI/30;
+export function refreshDerived(){
+  CRANK_W=PHYS.CRANK_RPM*Math.PI/30;
+  IDLE_W=PHYS.IDLE_RPM*Math.PI/30;
+  ART_REV_W=PHYS.ART_REV_MAX*Math.PI/30;
+  OVERREV_W=PHYS.REV_LIM*Math.PI/30;
+}
 
 function nodePos(g){
   if(String(g)==='N') return {x:GATE_X[1],y:ROW_Y[1]};
@@ -32,7 +37,7 @@ function nodePos(g){
 
 let curGate=1;
 function constrainToH(nx,ny){
-  const onBarZone=Math.abs(ny-ROW_Y[1])<BAR_THRESH;
+  const onBarZone=Math.abs(ny-ROW_Y[1])<PHYS.BAR_THRESH;
   if(onBarZone){
     let gi=0,bd=Infinity;
     for(let i=0;i<3;i++){ const d=Math.abs(nx-GATE_X[i]); if(d<bd){bd=d;gi=i;} }
@@ -220,7 +225,7 @@ export class Transmission{
     if(String(this.gearSel)!=='N'){
       const np=nodePos(this.gearSel);
       const d=Math.hypot(this.leverNX-np.x, this.leverNY-np.y);
-      let t=1-Math.min(1,d/ENGAGE_DIST);
+      let t=1-Math.min(1,d/PHYS.ENGAGE_DIST);
       gE=t*t*(3-2*t);
     }
     this.curGR=GEAR_RATIO[this.gearSel]||1;
@@ -316,7 +321,7 @@ export class Transmission{
       const wAcc=(Te-Td-refS)/Iall;
       const needT=Te-Td-PHYS.IE*wAcc;          // момент сцепления для сохранения захвата
 
-      if(Math.abs(we-wd)<SYNC_GAP && Math.abs(needT)<=capE){
+      if(Math.abs(we-wd)<PHYS.SYNC_GAP && Math.abs(needT)<=capE){
         /* сцепление держит: коленвал и диск — одно целое */
         locked=true;
         const w0=(we+wd)/2;

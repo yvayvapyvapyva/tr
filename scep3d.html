@@ -148,6 +148,42 @@
   #msg.warn{display:block;background:rgba(90,20,20,.82);color:#ffc2b7;border:2px solid rgba(192,57,43,.7);box-shadow:0 4px 20px rgba(192,57,43,.5)}
   #msg.info{display:block;background:rgba(18,49,79,.82);color:#a8d4ff;border:2px solid rgba(42,111,159,.7);box-shadow:0 4px 24px rgba(42,111,159,.45)}
 
+  /* ---------- ОКНО НАСТРОЕК ---------- */
+  #settingsBtn{position:fixed;top:calc(8px + env(safe-area-inset-top));right:calc(10px + env(safe-area-inset-right));
+       z-index:30;width:40px;height:40px;border-radius:50%;border:1px solid #26374d;cursor:pointer;padding:0;
+       background:rgba(10,16,26,.88);color:#a8d4ff;display:flex;align-items:center;justify-content:center;
+       box-shadow:0 4px 16px rgba(0,0,0,.45);-webkit-tap-highlight-color:transparent;transition:transform .08s ease,color .2s ease}
+  #settingsBtn:hover{background:rgba(18,30,46,.95);color:#7fb7ff}
+  #settingsBtn:active{transform:scale(.92)}
+  #settingsOverlay{position:fixed;inset:0;z-index:40;background:rgba(4,8,14,.55);
+       display:none;align-items:center;justify-content:center;padding:14px}
+  #settingsOverlay.open{display:flex}
+  #settingsPanel{width:min(500px,96vw);max-height:calc(100vh - 32px);
+       background:rgba(13,21,32,.97);border:1px solid #2b3f58;border-radius:16px;
+       box-shadow:0 18px 50px rgba(0,0,0,.6);display:flex;flex-direction:column;overflow:hidden}
+  #settingsHead{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;
+       border-bottom:1px solid #26374d}
+  #settingsHead h3{margin:0;font-size:15px;color:#e8f1fb;text-transform:uppercase;letter-spacing:.6px}
+  #settingsClose{background:none;border:none;color:#8fa3bb;font-size:20px;cursor:pointer;line-height:1;padding:0 4px}
+  #settingsClose:hover{color:#fff}
+  #settingsBody{overflow-y:auto;padding:8px 10px 12px}
+  #settingsBody h4{margin:14px 0 2px;font-size:12px;color:#6fb4e8;text-transform:uppercase;letter-spacing:.4px}
+  #settingsBody .gdesc{margin:0 0 6px;font-size:11px;color:#718aa4}
+  .settingsRow{display:flex;align-items:center;gap:10px;padding:5px 8px;border-radius:8px}
+  .settingsRow:hover{background:rgba(44,66,92,.35)}
+  .settingsRow .slab{flex:1;min-width:0}
+  .settingsRow .sname{font-size:12.5px;color:#e8f1fb}
+  .settingsRow .sdesc{font-size:10.5px;color:#718aa4;margin-top:1px}
+  .settingsRow input{width:92px;flex:0 0 auto;background:#0a1420;color:#fff;border:1px solid #2b3f58;
+       border-radius:7px;padding:5px 7px;font-size:12.5px;text-align:right;font-variant-numeric:tabular-nums}
+  .settingsRow input:focus{outline:none;border-color:#6fb4e8;box-shadow:0 0 0 2px rgba(111,180,232,.25)}
+  #settingsFoot{display:flex;gap:10px;justify-content:flex-end;padding:12px 16px;border-top:1px solid #26374d}
+  #settingsFoot button{border:none;border-radius:10px;padding:8px 16px;font-size:13px;font-weight:bold;cursor:pointer}
+  #settingsApply{background:linear-gradient(180deg,#4f9bdd,#2a6fb4);color:#fff}
+  #settingsApply:hover{background:#5aa8e8}
+  #settingsReset{background:rgba(44,66,92,.5);color:#a8d4ff}
+  #settingsReset:hover{background:rgba(56,82,112,.6)}
+
   @media (max-width:760px){
     #msg{font-size:13px;padding:10px 14px;top:calc(108px + env(safe-area-inset-top));max-width:94vw}
     #msg small{font-size:11px}
@@ -177,6 +213,28 @@
 </head>
 <body>
 <div id="msg" class="info">Нажмите «Старт», чтобы завести двигатель</div>
+
+<button id="settingsBtn" type="button" aria-label="Настройки">
+  <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"
+       stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+    <circle cx="12" cy="12" r="3"/>
+    <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09a1.65 1.65 0 0 0-1-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09a1.65 1.65 0 0 0 1.51-1 1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33h0a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51h0a1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82v0a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+  </svg>
+</button>
+
+<div id="settingsOverlay">
+  <div id="settingsPanel">
+    <div id="settingsHead">
+      <h3>Настройки</h3>
+      <button id="settingsClose" type="button" aria-label="Закрыть">✕</button>
+    </div>
+    <div id="settingsBody"></div>
+    <div id="settingsFoot">
+      <button id="settingsReset" type="button">Сбросить</button>
+      <button id="settingsApply" type="button">Применить</button>
+    </div>
+  </div>
+</div>
 
 <div id="topUI">
   <div class="gauge"><svg id="tachoSvg"  viewBox="-60 -60 120 120"></svg></div>
@@ -249,8 +307,8 @@
 <script type="module">
 import * as THREE from 'three';
 import {OrbitControls} from 'three/addons/controls/OrbitControls.js';
-import {Transmission} from './transmission.js';
-import {PHYS, GATE_X, ROW_Y, CAR_NAME} from './carConfig.js';
+import {Transmission, refreshDerived} from './transmission.js';
+import {PHYS, GATE_X, ROW_Y, CAR_NAME, CAR, SETTINGS, cfgGet, cfgSet} from './carConfig.js';
 document.title = CAR_NAME;
 
 const tg = window.Telegram?.WebApp;
@@ -490,12 +548,74 @@ function setGauge(g,value){
   const t=Math.max(0,Math.min(1,value/g.max));
   g.needle.setAttribute('transform','rotate('+(GA_A0 + t*(GA_A1-GA_A0)).toFixed(2)+')');
 }
-const tacho=buildGauge(document.getElementById('tachoSvg'),{
-  max:7000, step:250, major:1000, redFrom:5800, greenFrom:1500, greenTo:2500,
+let tacho=buildGauge(document.getElementById('tachoSvg'),{
+  max:PHYS.REV_LIM, step:250, major:1000, redFrom:PHYS.REV_MAX, greenFrom:1500, greenTo:2500,
   divider:1000, color:'#ffd166', needle:'#ff6b4a', unit:'×1000'});
 const speedo=buildGauge(document.getElementById('speedoSvg'),{
   max:180, step:10, major:20, divider:1, numSize:8,
   color:'#6cf09c', needle:'#6cf09c', unit:'км/ч'});
+
+/* ============ ОКНО НАСТРОЕК ============ */
+const settingsBtn=document.getElementById('settingsBtn');
+const settingsOverlay=document.getElementById('settingsOverlay');
+const settingsBody=document.getElementById('settingsBody');
+const settingsFields=[];
+const defaultValues={}; // заводские значения — снимок при загрузке страницы
+
+function rebuildTacho(){
+  tacho=buildGauge(document.getElementById('tachoSvg'),{
+    max:PHYS.REV_LIM, step:250, major:1000, redFrom:PHYS.REV_MAX, greenFrom:1500, greenTo:2500,
+    divider:1000, color:'#ffd166', needle:'#ff6b4a', unit:'×1000'});
+}
+
+function buildSettings(){
+  settingsBody.innerHTML='';
+  settingsFields.length=0;
+  SETTINGS.forEach(g=>{
+    const h=document.createElement('h4'); h.textContent=g.title; settingsBody.appendChild(h);
+    if(g.desc){ const p=document.createElement('p'); p.className='gdesc'; p.textContent=g.desc; settingsBody.appendChild(p); }
+    g.fields.forEach(f=>{
+      const row=document.createElement('div'); row.className='settingsRow';
+      const lab=document.createElement('div'); lab.className='slab';
+      const name=document.createElement('div'); name.className='sname'; name.textContent=f.label;
+      const desc=document.createElement('div'); desc.className='sdesc'; desc.textContent=f.desc;
+      lab.appendChild(name); lab.appendChild(desc);
+      const inp=document.createElement('input');
+      inp.type=f.type==='text'?'text':'number';
+      if(f.step!=null) inp.step=f.step;
+      row.appendChild(lab); row.appendChild(inp);
+      settingsBody.appendChild(row);
+      settingsFields.push({f,inp});
+      if(!(f.path in defaultValues)) defaultValues[f.path]=cfgGet(f.path);
+    });
+  });
+}
+function loadSettings(){
+  settingsFields.forEach(({f,inp})=>{ inp.value=String(cfgGet(f.path)); });
+}
+function applySettings(){
+  settingsFields.forEach(({f,inp})=>{
+    if(f.type==='text'){ cfgSet(f.path, inp.value.trim()); return; }
+    const v=parseFloat(inp.value);
+    if(Number.isFinite(v)) cfgSet(f.path, v);
+  });
+  refreshDerived();
+  document.title=CAR.NAME;
+  rebuildTacho();
+  settingsOverlay.classList.remove('open');
+}
+function openSettings(){ loadSettings(); settingsOverlay.classList.add('open'); }
+function closeSettings(){ settingsOverlay.classList.remove('open'); }
+
+settingsBtn.addEventListener('click', openSettings);
+document.getElementById('settingsClose').addEventListener('click', closeSettings);
+settingsOverlay.addEventListener('click', e=>{ if(e.target===settingsOverlay) closeSettings(); });
+document.getElementById('settingsApply').addEventListener('click', applySettings);
+document.getElementById('settingsReset').addEventListener('click', ()=>{
+  settingsFields.forEach(({f,inp})=>{ inp.value=String(defaultValues[f.path]); });
+  applySettings();
+});
+buildSettings();
 
 /* ============ СХЕМА «Ж» ============ */
 const gateSvg=document.getElementById('gateSvg');
