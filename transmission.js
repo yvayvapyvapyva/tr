@@ -56,7 +56,15 @@ function snapGear(nx,ny){
   return best;
 }
 
-function friction(pp){ if(pp<=0.4) return 1; if(pp>=0.6) return 0; return (0.6-pp)/0.2; }
+function friction(pp){
+  if(pp<=0.4) return 1;
+  if(pp>=0.6) return 0;
+  const u=(0.6-pp)/0.2;
+  const t0=PHYS.CLUTCH_T0;
+  if(u<t0) return PHYS.CLUTCH_E0*(u/t0);
+  const e0=PHYS.CLUTCH_E0;
+  return e0+(1-e0)*Math.pow((u-t0)/(1-t0),PHYS.CLUTCH_E);
+}
 function gapF(pp){ return Math.max(0,(pp-0.4)/0.6); }
 
 /* Кривая момента задаётся в carConfig.js (TQ_CURVE) — это значения для
@@ -246,7 +254,7 @@ export class Transmission{
     const inGear=String(this.gearSel)!=='N';
     const ratio=inGear?GEAR_RATIO[this.gearSel]*PHYS.FINAL_DRIVE:0;
     const Rw=PHYS.RWHEEL;
-    const IwEff=PHYS.IW+PHYS.MASS*Rw*Rw;
+    const IwEff=PHYS.IW+PHYS.MASS*PHYS.INERTIA_K*Rw*Rw;
 
     const blockShift=this.shiftBlocked();
     if(this.rejectTimer>0){
