@@ -254,7 +254,7 @@ export class Transmission{
     const inGear=String(this.gearSel)!=='N';
     const ratio=inGear?GEAR_RATIO[this.gearSel]*PHYS.FINAL_DRIVE:0;
     const Rw=PHYS.RWHEEL;
-    const IwEff=PHYS.IW+PHYS.MASS*PHYS.INERTIA_K*Rw*Rw;
+    const IwEff=PHYS.IW+PHYS.MASS*Rw*Rw;
 
     const blockShift=this.shiftBlocked();
     if(this.rejectTimer>0){
@@ -424,8 +424,13 @@ export class Transmission{
         wa=wd/ratio;
       } else {
         wd+=st*(Tc-PHYS.DISC_DRAG*wd)/PHYS.ID;
-        wa+=st*(-loadWheelNm(wa,this.brakeP))/IwEff;
       }
+    }
+    /* нейтраль: колёса отсоединены от трансмиссии — их замедление (качение,
+       аэродинамика, тормоза) должно работать всегда, в т.ч. когда сцепление
+       отпущено и двигатель с диском заблокированы на сцеплении */
+    if(!ratio){
+      wa+=st*(-loadWheelNm(wa,this.brakeP))/IwEff;
     }
     we=Math.max(0,we);
     if(we>OVERREV_W) we=OVERREV_W;
