@@ -108,10 +108,26 @@ function pumpDragNm(rpm){
   return (PHYS.CLOSE_DRAG_B + PHYS.CLOSE_DRAG_K*rpm) * (PHYS.PWR_PS/PWR_REF_PS);
 }
 
-/* Ёмкость сцепления, Н·м. Задана в конфиге для базовой мощности и тоже
-   масштабируется текущей мощностью: мощный мотор = более сильное сцепление. */
+/* Трение двигателя, Н·м. Тоже задано для базовой мощности и масштабируется
+   текущей: мощный мотор — больше трения (при работе и при прокрутке
+   стартером), и стартер должен его преодолевать. */
+function engDragNm(rpm){
+  return (PHYS.ENG_DRAG_B + PHYS.ENG_DRAG_K*rpm) * (PHYS.PWR_PS/PWR_REF_PS);
+}
+
+/* Пиковый момент двигателя под текущую мощность: максимум из TQ_CURVE,
+   масштабированный, как вся кривая, по PWR_PS/PWR_REF_PS. */
+function engineMaxTorqueNm(){
+  let m=0;
+  for(const pt of TQ_CURVE) if(pt[1]>m) m=pt[1];
+  return m*(PHYS.PWR_PS/PWR_REF_PS);
+}
+
+/* Ёмкость сцепления, Н·м = CLUTCH_CAP_PCT % от пикового момента двигателя.
+   Меняешь мощность — масштабируется и пик двигателя, и сцепление;
+   меняешь % — сила сцепления относительно мотора. */
 function clutchCapNm(){
-  return PHYS.CLUTCH_CAP * (PHYS.PWR_PS/PWR_REF_PS);
+  return engineMaxTorqueNm()*(PHYS.CLUTCH_CAP_PCT/100);
 }
 
 export class Transmission{
@@ -396,8 +412,9 @@ export class Transmission{
         /* нагрузка на коленвале учитывается только пока сцепление введено:
            при выжатом (e=0) мотор свободен и не должен зависеть от передачи */
         const refS=(e>0.02 && ratio)?Math.abs(this.crankLoad(wa,ratio)/ratio):0;
-        const A=PHYS.ENG_DRAG_B+refS;
-        const c=PHYS.ENG_DRAG_K;
+        const dScale=PHYS.PWR_PS/PWR_REF_PS;
+        const A=PHYS.ENG_DRAG_B*dScale+refS;
+        const c=PHYS.ENG_DRAG_K*dScale;
         const disc=Math.max(0,A*A+4*c*Pw*7021.46);
         rEq=c>0?(Math.sqrt(disc)-A)/(2*c):0;   // об/мин
         const errR=(rEq-rpm)/RPM_C; // ошибка в рад/с (коленвал)
@@ -407,7 +424,7 @@ export class Transmission{
       }
       Te=Math.min(TeMax, Math.max(gov, Tpw+corr));
 
-      Td=PHYS.ENG_DRAG_B+PHYS.ENG_DRAG_K*rpm;
+      Td=engDragNm(rpm);
       /* закрытый дроссель: насосные потери (торможение двигателем)
          плавно растут при отпускании педали — от полного газа (0) до
          полностью закрытого (максимум). Это ускоряет сброс оборотов
@@ -424,15 +441,13 @@ export class Transmission{
          но из-за сопротивления сдвигу (HOLD_TQ) не может раскрутить
          коленвал до пусковой скорости — запуск срывается. */
       const rpm=we*RPM_C;
-      Te=Math.max(0,PHYS.START_TQ*(1-rpm/PHYS.START_FREE_RPM));
-      Td=PHYS.ENG_DRAG_B+PHYS.ENG_DRAG_K*rpm
-        +pumpDragNm(rpm);
+      Te=Math.max(0,PHYS.START_TQ*(PHYS.PWR_PS/PWR_REF_PS)*(1-rpm/PHYS.START_FREE_RPM));
+      Td=engDragNm(rpm)+pumpDragNm(rpm);
     } else {
       /* двигатель не работает: горения нет, только трение и компрессия.
          Колёса через сцепление при этом могут раскрутить коленвал. */
       const rpm=we*RPM_C;
-      Td=PHYS.ENG_DRAG_B+PHYS.ENG_DRAG_K*rpm
-        +pumpDragNm(rpm);
+      Td=engDragNm(rpm)+pumpDragNm(rpm);
     }
 
     /* сцепление работает всегда, включая момент работы стартера:
