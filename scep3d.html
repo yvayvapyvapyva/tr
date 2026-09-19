@@ -1909,15 +1909,23 @@ renderer.setAnimationLoop(()=>{
      процентов — фильтр тянет отображаемое значение к цели плавно, без
      скачков. Опасная зона при этом считается по истинному пределу. */
   const hgLim=PHYS.SHOW_HOLD_GAUGE?sim.releaseLimit():null;
-  if(hgLim==null){
+  if(!PHYS.SHOW_HOLD_GAUGE){
     holdGaugeEl.classList.add('off');
     hgLimShown=null;
   } else {
     holdGaugeEl.classList.remove('off');
-    if(hgLimShown==null) hgLimShown=hgLim;
-    else hgLimShown+=(hgLim-hgLimShown)*Math.min(1,dt*8);
-    hgLimitEl.style.top=(HG_TOP+hgLimShown*HG_SPAN).toFixed(2)+'%';
-    hgLimitEl.classList.toggle('danger', sim.p<hgLim-0.005);
+    if(hgLim==null){
+      /* шкала видна всегда (движок выключен / нейтраль): скрываем только
+         зелёную метку предела — её считать нечего */
+      hgLimShown=null;
+      hgLimitEl.style.display='none';
+    } else {
+      hgLimitEl.style.display='';
+      if(hgLimShown==null) hgLimShown=hgLim;
+      else hgLimShown+=(hgLim-hgLimShown)*Math.min(1,dt*8);
+      hgLimitEl.style.top=(HG_TOP+hgLimShown*HG_SPAN).toFixed(2)+'%';
+      hgLimitEl.classList.toggle('danger', sim.p<hgLim-0.005);
+    }
     hgNowEl.style.top=(HG_TOP+sim.p*HG_SPAN).toFixed(2)+'%';
     highlightScale(hgScaleData, sim.p);
   }
