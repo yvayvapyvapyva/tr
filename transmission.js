@@ -19,11 +19,9 @@ const GEAR_NODES=[
 /* производные величины — пересчитываются после изменения настроек */
 const RPM_C=60/(2*Math.PI);       // рад/с → об/мин
 let IDLE_W=PHYS.IDLE_RPM*Math.PI/30;
-let ART_REV_W=PHYS.ART_REV_MAX*Math.PI/30;
 let OVERREV_W=PHYS.REV_LIM*Math.PI/30;
 export function refreshDerived(){
   IDLE_W=PHYS.IDLE_RPM*Math.PI/30;
-  ART_REV_W=PHYS.ART_REV_MAX*Math.PI/30;
   OVERREV_W=PHYS.REV_LIM*Math.PI/30;
 }
 
@@ -109,7 +107,7 @@ export class Transmission{
     this.msg={html:'Нажмите «Старт», чтобы завести двигатель',cls:'info',kind:'info'};
   }
   reset(){
-    this.p=0; this.gasP=0; this.brakeP=0; this.rpmTarget=PHYS.IDLE_RPM;
+    this.p=0; this.gasP=0; this.brakeP=0;
     this.brakeKey=0; this.brakeReturn=false; this.brakeDragging=false;
     this.gearSel='N';
     this.leverNX=GATE_X[1]; this.leverNY=ROW_Y[1];
@@ -132,7 +130,7 @@ export class Transmission{
   }
 
   setClutch(v){ this.p=v; }
-  setGas(v){ this.gasP=v; this.rpmTarget=PHYS.IDLE_RPM+v*(PHYS.ART_REV_MAX-PHYS.IDLE_RPM); }
+  setGas(v){ this.gasP=v; }
   setBrake(v){ this.brakeP=v; this.brakeReturn=false; }
   releaseBrake(){ this.brakeReturn=true; }
   holdBrake(on){ this.brakeKey=on?1:0; this.brakeReturn=!on; }
@@ -221,7 +219,7 @@ export class Transmission{
   }
   pressStart(){
     if(this.engineState==='running'){
-      this.engineState='off'; this.rpmTarget=PHYS.IDLE_RPM; this.gasP=0;
+      this.engineState='off'; this.gasP=0;
       this.msg={html:'Двигатель заглушен.<small>Нажмите круглую кнопку СТАРТ, чтобы завести снова.</small>',cls:'info',kind:'kill'};
       return 'stop';
     }
@@ -321,7 +319,7 @@ export class Transmission{
 
     const shiftNoClutch=blockShift && this.tryGear!=null;
     if(this.engineState==='running' && we*RPM_C<PHYS.STALL_RPM && gE>0.2 && this.noClutchShiftTimer<=0 && !shiftNoClutch){
-      this.engineState='stalled'; this.rpmTarget=PHYS.IDLE_RPM; this.gasP=0;
+      this.engineState='stalled'; this.gasP=0;
       this.blockMsgTimer=0; this.blocked=0; this.idleI=0; we=0;
       this.msg=this.brakeP>0.25
         ?{html:'⚠️ Двигатель заглох — резкое торможение на включённой передаче!<small>Перед торможением выжмите сцепление или выключите передачу, затем нажмите кнопку СТАРТ</small>',cls:'warn',kind:'stall'}
@@ -341,22 +339,44 @@ export class Transmission{
 
     if(this.engineState==='running'){
       const rpm=we*RPM_C;
-      /* педаль газа — задатчик оборотов: 0% → холостые, 100% → 4000.
-         ПИ-регулятор плавно выводит и держит заданные обороты. */
-      const tgtW=IDLE_W+this.gasP*(ART_REV_W-IDLE_W);
-      const err=tgtW-we;
       const TeMax=engineTorqueNm(rpm);
+      /* Педаль газа — задатчик МОЩНОСТИ: P = газ × максимальная мощность.
+         Момент, который двигатель может отдать на этих оборотах:
+         T = P / ω, но не больше физического предела по кривой момента.
+         Обороты не задаются напрямую — они устанавливаются сами, из баланса
+         мощности двигателя и нагрузки на коленвале (передача + дорога).
+         Поэтому на первой передаче (большое передаточное число, малая
+         нагрузка на коленвале) при том же газе обороты поднимутся выше,
+         на второй — чуть ниже, и т.д. */
+      /* Регулятор холостого хода работает ВСЕГДА как «пол»: если мощность
+         на этих оборотах тянет хуже, чем нужно, он не даёт двигателю
+         провалиться ниже холостых. Над холостыми (err<0) gov уходит в 0
+         и не мешает газу. */
+      const err=IDLE_W-we;
       const govPre=err*PHYS.GOV_KP+this.idleI;
       if(!((govPre>TeMax&&err>0)||(govPre<0&&err<0)))
         this.idleI=Math.max(0,Math.min(TeMax,this.idleI+err*dt*PHYS.GOV_KI));
       let gov=err*PHYS.GOV_KP+this.idleI;
       if(gov>TeMax) gov=TeMax;
       if(gov<0) gov=0;
-      Te=gov;
+
+      /* Педаль газа — нелинейный задатчик мощности: P = 82 × газ².
+         Базовая добавка GAS_POWER_MIN обеспечивает реакцию уже с 1% нажатия
+         (мощность не стартует строго с нуля), а степень EXP делает малые
+         нажатия «короткими»: обороты поднимаются плавно, от холостых вверх.
+         Момент = P / ω, но не больше предела кривой момента. Обороты не
+         задаются — они сами вылезают из баланса мощности и нагрузки. */
+      const pwBase=PHYS.GAS_POWER_MIN;
+      const pwDyn=(1-pwBase)*Math.pow(this.gasP, PHYS.GAS_POWER_EXP);
+      const Pw=(pwBase+pwDyn)*PHYS.PWR_PS; // запрошенная мощность, л.с.
+      const Tpw=we>0.001?Pw*7021.46/(we*RPM_C):TeMax; // момент под эту мощность
+      Te=Math.min(TeMax, Math.max(gov, Tpw));
+
       Td=PHYS.ENG_DRAG_B+PHYS.ENG_DRAG_K*rpm;
-      /* отпущен газ (дроссель закрыт) — добавляем насосные потери:
-         двигатель быстро сбрасывает обороты */
-      if(gov<=0.01) Td+=PHYS.CLOSE_DRAG_B+PHYS.CLOSE_DRAG_K*rpm;
+      /* закрытый дроссель: насосные потери (торможение двигателем)
+         добавляем только когда холостой регулятор не тянет — т.е.
+         обороты выше холостых или газа нет вообще */
+      if(this.gasP<0.01 && gov<=0.01) Td+=PHYS.CLOSE_DRAG_B+PHYS.CLOSE_DRAG_K*rpm;
     } else if(this.engineState==='cranking'){
       /* стартер — машина постоянного тока с ограниченным моментом:
          максимален на нулевых оборотах и падает до 0 на холостом ходу.
