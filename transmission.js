@@ -347,7 +347,7 @@ export class Transmission{
     }
 
     const shiftNoClutch=blockShift && this.tryGear!=null;
-    if(this.engineState==='running' && we*RPM_C<PHYS.STALL_RPM && gE>0.2 && this.noClutchShiftTimer<=0 && !shiftNoClutch){
+    if(this.engineState==='running' && we*RPM_C<PHYS.STALL_RPM && e>0.02 && gE>0.2 && this.noClutchShiftTimer<=0 && !shiftNoClutch){
       this.engineState='stalled'; this.gasP=0;
       this.blockMsgTimer=0; this.blocked=0; this.idleI=0; we=0;
       this.msg=this.brakeP>0.25
@@ -380,12 +380,15 @@ export class Transmission{
       /* Регулятор холостого хода работает ВСЕГДА как «пол»: если мощность
          на этих оборотах тянет хуже, чем нужно, он не даёт двигателю
          провалиться ниже холостых. Над холостыми (err<0) gov уходит в 0
-         и не мешает газу. */
+         и не мешает газу. Коэффициенты масштабируются мощностью так же,
+         как трение и насосные потери: на мощном моторе регулятор должен
+         перекрывать его большие потери. */
+      const dScale=PHYS.PWR_PS/PWR_REF_PS;
       const err=IDLE_W-we;
-      const govPre=err*PHYS.GOV_KP+this.idleI;
+      const govPre=err*PHYS.GOV_KP*dScale+this.idleI;
       if(!((govPre>TeMax&&err>0)||(govPre<0&&err<0)))
-        this.idleI=Math.max(0,Math.min(TeMax,this.idleI+err*dt*PHYS.GOV_KI));
-      let gov=err*PHYS.GOV_KP+this.idleI;
+        this.idleI=Math.max(0,Math.min(TeMax,this.idleI+err*dt*PHYS.GOV_KI*dScale));
+      let gov=err*PHYS.GOV_KP*dScale+this.idleI;
       if(gov>TeMax) gov=TeMax;
       if(gov<0) gov=0;
 
@@ -470,7 +473,17 @@ export class Transmission{
         if(ratio) wa=wd/ratio;
       } else {
         /* проскальзывание: передаём ёмкость сцепления в сторону раскрутки */
-        Tc=we>wd?capE:(we<wd?-capE:0);
+        let cap=capE;
+        if(!ratio){
+          /* Нейтраль: диску не нужна полная ёмкость — её хватает, чтобы
+             синхронизировать диск с коленвалом за один кадр. Иначе при
+             большой мощности (ёмкость растёт с мощностью) реакция полного
+             момента гасит обороты коленвала ниже холостых — двигатель
+             «задыхается». Ограничиваем передаваемый момент моментом,
+             нужным для выравнивания скоростей за кадр. */
+          cap=Math.min(capE, PHYS.ID*Math.abs(we-wd)/st + PHYS.DISC_DRAG*Math.abs(wd));
+        }
+        Tc=we>wd?cap:(we<wd?-cap:0);
         we+=st*(Te-Td-Tc)/PHYS.IE;
       }
     }
@@ -498,6 +511,15 @@ export class Transmission{
         wa=wd/ratio;
       } else {
         wd+=st*(Tc-PHYS.DISC_DRAG*wd)/PHYS.ID;
+        /* «Останов» рассогласования: малая инерция диска за один кадр
+           перебрасывает его мимо оборотов коленвала — скорости никогда
+           не попадают в зону захвата (SYNC_GAP), и диск уходит в
+           установившееся проскальзывание (wd = Tc/DISC_DRAG ~ 4000 рад/с),
+           а холостой ход не стабилизируется. Не даём диску перелететь
+           скорость коленвала: как только скорости сошлись, следующий
+           кадр даёт захват. */
+        if(Tc>0 && wd>we) wd=we;
+        if(Tc<0 && wd<we) wd=we;
       }
     }
     /* нейтраль: колёса отсоединены от трансмиссии — их замедление (качение,
