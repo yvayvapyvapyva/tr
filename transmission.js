@@ -498,7 +498,17 @@ export class Transmission{
       const TracL=PHYS.TIRE_MU*PHYS.MASS*9.81*Rw;   // предел сцепления шин (у колёс)
       const I2spin=ratio?(PHYS.ID+PHYS.IW/(ratio*ratio)):PHYS.ID; // диск+колёса без кузова
 
-      const canLock=e>0.02 && Math.abs(we-wd)<PHYS.SYNC_GAP && Math.abs(rigidNeedT)<=capE;
+      /* Полностью отпущенное сцепление (e≈1) — ЖЁСТКАЯ механическая связь:
+         коленвал и диск скользить друг относительно друга не могут вообще.
+         SYNC_GAP («зазор захвата») нужен только для частичного сцепления,
+         когда диск «ловит» обороты коленвала. Если при e≈1 оставить захват
+         завязанным на SYNC_GAP, то при большой мощности (ёмкость сцепления
+         растёт достичь огромных значений, а инерция колонны колёс через
+         передачу мала) явный интегратор зацикливается: кадр за кадром
+         колонна разгоняется до сотен рад/с и подтормаживается полной
+         ёмкостью сцепления — машина буксует и едет вечно даже без тяги. */
+      const solidLock=e>0.98;
+      const canLock=(e>0.02 && (solidLock || Math.abs(we-wd)<PHYS.SYNC_GAP)) && Math.abs(rigidNeedT)<=capE;
       let tracNeed, TcT=0;
       if(canLock){
         /* сцепление держит в жёсткой модели — запрос тяги от разгона с кузовом */
@@ -539,7 +549,7 @@ export class Transmission{
         if(canLock){
           /* сцепление держит: колонна без кузова раскручивается на излишек */
           const needTS=Te-Td-PHYS.IE*wSAcc;      // момент сцепления для раскрутки колонны
-          if(e>0.02 && Math.abs(we-wd)<PHYS.SYNC_GAP && Math.abs(needTS)<=capE){
+          if(e>0.02 && (solidLock || Math.abs(we-wd)<PHYS.SYNC_GAP) && Math.abs(needTS)<=capE){
             locked=true;
             const w0=(we+wd)/2;
             we=w0; wd=w0;
