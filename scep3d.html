@@ -152,30 +152,32 @@
        background:linear-gradient(rgba(22,34,47,.62),rgba(13,23,32,.62));
        border-radius:12px;overflow:hidden;backdrop-filter:blur(3px);
        box-shadow:inset 0 0 0 1px rgba(36,56,77,.85),inset 0 2px 12px rgba(0,0,0,.45);
-       padding:8px 7px}
-  #scomGauges .scomTitle{font-size:8.5px;font-weight:bold;color:#8fa3bb;text-align:center;
-       letter-spacing:.6px;text-transform:uppercase;margin:0 0 7px;white-space:nowrap}
-  #scomGauges .scomRow{display:flex;gap:8px;align-items:stretch}
-  .scomScale{position:relative;width:47px;display:flex;flex-direction:column;align-items:center}
-  .scomHead{font-size:9px;font-weight:bold;line-height:1.05;text-align:center;
-       color:#dbe7f5;margin-bottom:4px;white-space:nowrap}
-  .scomTrack{position:relative;width:100%;height:min(250px,38vh);flex:0 0 auto;
+       padding:8px 6px}
+  #scomScale{display:flex;flex-direction:column;align-items:center}
+  #scomGauges .scomHeads,#scomGauges .scomDigs{display:flex;width:100%}
+  #scomGauges .scomHeads>*,#scomGauges .scomDigs>*{flex:1 1 50%;width:50%;text-align:center}
+  /* подписи повёрнуты на 90° (вертикальные) — не расширяют панель */
+  .scomHead{writing-mode:vertical-rl;font-size:8px;font-weight:bold;letter-spacing:.5px;
+       color:#dbe7f5;line-height:1;display:flex;justify-content:center}
+  .scomTrack{position:relative;width:40px;height:min(250px,38vh);flex:0 0 auto;
        background:rgba(9,16,26,.66);border-radius:8px;overflow:visible;
        box-shadow:inset 0 0 0 1px rgba(38,58,80,.7),inset 0 2px 10px rgba(0,0,0,.5)}
   /* риски и подписи шкалы: слева от трека */
-  .scomTrack .gTick{position:absolute;left:0;width:6px;height:1px;background:#42566d;
+  .scomTrack .gTick{position:absolute;left:0;width:5px;height:1px;background:#42566d;
        transform:translateY(-50%);pointer-events:none}
-  .scomTrack .gTick.maj{width:9px;height:2px;background:#93a6bb}
-  .scomTrack .gTick.passed{background:var(--sc);box-shadow:0 0 4px var(--sc)}
-  .scomTrack .gTick.maj.passed{background:var(--sc);box-shadow:0 0 6px var(--sc),0 0 2px var(--sc)}
-  .scomTrack .gLbl{position:absolute;left:11px;font-size:8.5px;line-height:1;font-weight:bold;
+  .scomTrack .gTick.maj{width:8px;height:2px;background:#93a6bb}
+  .scomTrack .gLbl{position:absolute;left:9px;font-size:8px;line-height:1;font-weight:bold;
        color:#aebfd3;font-variant-numeric:tabular-nums;white-space:nowrap;
        text-shadow:0 1px 2px rgba(0,0,0,.7);transform:translateY(-50%);pointer-events:none}
-  /* курсор текущего значения — поперёк трека */
-  .scomTrack .gCursor{position:absolute;left:0;right:0;height:2px;margin-top:-1px;
+  /* курсоры: каждый в своей половине шкалы */
+  .scomTrack .gCursor{position:absolute;height:2px;margin-top:-1px;
        background:currentColor;box-shadow:0 0 7px currentColor;z-index:3;pointer-events:none;border-radius:1px}
-  .scomDig{font-size:11px;font-weight:bold;line-height:1;margin-top:5px;white-space:nowrap;
-       font-variant-numeric:tabular-nums}
+  .scomTrack .gCursor.curFW{left:0;right:50%}
+  .scomTrack .gCursor.curDS{left:50%;right:0}
+  .scomDig{font-size:9.5px;font-weight:bold;line-height:1;margin-top:5px;white-space:nowrap;
+       font-variant-numeric:tabular-nums;display:block}
+  #scomDigFW{color:#ffd166;text-shadow:0 0 8px rgba(255,209,102,.55)}
+  #scomDigDS{color:#8fd0ff;text-shadow:0 0 8px rgba(143,208,255,.55)}
   #scomDigFW{color:#ffd166;text-shadow:0 0 8px rgba(255,209,102,.55)}
   #scomDigDS{color:#8fd0ff;text-shadow:0 0 8px rgba(143,208,255,.55)}
 
@@ -350,19 +352,17 @@
   <div class="hgLimit" id="hgLimit"></div>
 </div>
 
-<!-- Правые шкалы оборотов: маховик и диск сцепления -->
+<!-- Правая шкала оборотов: одна шкала на два поля (маховик / диск) -->
 <div id="scomGauges" title="Обороты маховика и диска сцепления">
-  <div class="scomTitle">Обороты</div>
-  <div class="scomRow">
-    <div class="scomScale">
-      <div class="scomHead">Маховик</div>
-      <div class="scomTrack" id="scomTrackFW"></div>
-      <div class="scomDig" id="scomDigFW">0</div>
+  <div id="scomScale">
+    <div class="scomHeads">
+      <span class="scomHead">Маховик</span>
+      <span class="scomHead">Диск</span>
     </div>
-    <div class="scomScale">
-      <div class="scomHead">Диск</div>
-      <div class="scomTrack" id="scomTrackDS"></div>
-      <div class="scomDig" id="scomDigDS">0</div>
+    <div class="scomTrack" id="scomTrack"></div>
+    <div class="scomDigs">
+      <span class="scomDig" id="scomDigFW">0</span>
+      <span class="scomDig" id="scomDigDS">0</span>
     </div>
   </div>
 </div>
@@ -1550,19 +1550,18 @@ const hgLimitEl   =document.getElementById('hgLimit');
 const hgNowEl     =document.getElementById('hgNow');
 const hgScaleData =buildScale(document.getElementById('hgScale'), [40,60], '#8fd0ff', HG_TOP, HG_SPAN);
 
-/* правые шкалы оборотов: маховик и диск сцепления.
-   Шкала от 0 до REV_LIM (по нему строится тахометр) */
-const scomTrackFW=document.getElementById('scomTrackFW');
-const scomTrackDS=document.getElementById('scomTrackDS');
+/* правая шкала оборотов: одна шкала на два поля — маховик и диск сцепления.
+   Разметка (риски 0..REV_CUT) общая — выше отсечки не раскручивается,
+   поэтому шкалу строим ровно до неё. Курсоры бегают каждый в своей половине */
+const scomTrack=document.getElementById('scomTrack');
 const scomDigFW=document.getElementById('scomDigFW');
 const scomDigDS=document.getElementById('scomDigDS');
 const scomCursorFW=document.createElement('div'), scomCursorDS=document.createElement('div');
-scomCursorFW.className='gCursor'; scomCursorFW.style.color='#ffd166';
-scomCursorDS.className='gCursor'; scomCursorDS.style.color='#8fd0ff';
-function buildScomTicks(trackEl, accent){
-  trackEl.style.setProperty('--sc',accent);
+scomCursorFW.className='gCursor curFW'; scomCursorFW.style.color='#ffd166';
+scomCursorDS.className='gCursor curDS'; scomCursorDS.style.color='#8fd0ff';
+function buildScomTicks(trackEl){
   const ticks=[];
-  const max=PHYS.REV_LIM;
+  const max=PHYS.REV_CUT;
   const n=Math.round(max/500);
   for(let i=0;i<=n;i++){
     const v=i*500, pct=100*v/max;
@@ -1582,26 +1581,22 @@ function buildScomTicks(trackEl, accent){
   }
   return ticks;
 }
+const scomTicks=[];
 function rebuildScomScales(){
-  scomTrackFW.innerHTML=''; scomTrackDS.innerHTML='';
-  const fw=buildScomTicks(scomTrackFW,'#ffd166');
-  const ds=buildScomTicks(scomTrackDS,'#8fd0ff');
-  scomTicksFW.length=0; scomTicksDS.length=0;
-  scomTicksFW.push(...fw); scomTicksDS.push(...ds);
-  scomTrackFW.appendChild(scomCursorFW); scomTrackDS.appendChild(scomCursorDS);
+  scomTrack.innerHTML='';
+  const tks=buildScomTicks(scomTrack);
+  scomTicks.length=0; scomTicks.push(...tks);
+  scomTrack.appendChild(scomCursorFW);
+  scomTrack.appendChild(scomCursorDS);
   setScomCursor(scomCursorFW, scomDigFW, 0);
   setScomCursor(scomCursorDS, scomDigDS, 0);
 }
-const scomTicksFW=[], scomTicksDS=[];
 function setScomCursor(cursorEl, digEl, rpm){
-  const max=PHYS.REV_LIM;
+  const max=PHYS.REV_CUT;
   const pct=Math.max(0,Math.min(100,100*rpm/max));
   cursorEl.style.top=(100-pct).toFixed(2)+'%';   /* низ = 0, верх = максимум */
   const r=Math.round(rpm);
   digEl.textContent=(r>=1000)?(r/1000).toFixed(1).replace(/\.0$/,'')+'k':String(r);
-}
-function highlightScomTicks(data, pct){
-  for(const t of data) t.el.classList.toggle('passed', t.pct<=pct);
 }
 rebuildScomScales();
 
@@ -1841,8 +1836,6 @@ renderer.setAnimationLoop(()=>{
   const rpmDS=sim.dOmega/PHYS.SLOW*9.549;    /* диск сцепления */
   setScomCursor(scomCursorFW, scomDigFW, rpmFW);
   setScomCursor(scomCursorDS, scomDigDS, rpmDS);
-  highlightScomTicks(scomTicksFW, 100*rpmFW/PHYS.REV_LIM);
-  highlightScomTicks(scomTicksDS, 100*rpmDS/PHYS.REV_LIM);
 
   const wheelRpm=sim.aOmega/PHYS.SLOW*9.549;
   const speedKmh=wheelRpm*PHYS.SPEED_K;
