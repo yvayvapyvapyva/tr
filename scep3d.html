@@ -11,7 +11,7 @@
   canvas{display:block}
 
   /* ---------- ПАНЕЛЬ ПРИБОРОВ ---------- */
-  #topUI{position:fixed;top:calc(8px + env(safe-area-inset-top));left:50%;
+  #topUI{position:fixed;top:calc(22px + env(safe-area-inset-top));left:50%;
        transform:translateX(-50%);transform-origin:top center;z-index:12;
        display:flex;gap:12px;align-items:flex-start;padding:6px 14px;
        background:rgba(10,16,26,.88);border:1px solid #26374d;border-radius:20px;
@@ -202,7 +202,7 @@
        box-shadow:0 4px 14px rgba(0,0,0,.8),inset 0 2px 4px rgba(255,255,255,.32)}
 
   /* ---------- ИНФОРМАЦИОННЫЕ ТАБЛИЧКИ ---------- */
-  #msg{position:fixed;top:calc(146px + env(safe-area-inset-top));left:50%;
+  #msg{position:fixed;top:calc(160px + env(safe-area-inset-top));left:50%;
        transform:translateX(-50%);z-index:20;
        padding:12px 22px;border-radius:14px;font-size:15px;font-weight:bold;text-align:center;display:none;max-width:92vw}
   #msg small{display:block;font-weight:normal;font-size:12px;margin-top:5px;opacity:.85}
@@ -279,7 +279,7 @@
   #expertWrap{display:none;border-top:1px dashed #26374d;margin-top:10px;padding-top:2px}
 
   @media (max-width:760px){
-    #msg{font-size:13px;padding:10px 14px;top:calc(108px + env(safe-area-inset-top));max-width:94vw}
+    #msg{font-size:13px;padding:10px 14px;top:calc(160px + env(safe-area-inset-top));max-width:94vw}
     #msg small{font-size:11px}
     .gauge{width:116px}
     #topUI{gap:8px;padding:5px 10px}
