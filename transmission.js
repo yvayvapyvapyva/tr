@@ -273,7 +273,7 @@ export class Transmission{
     if(this.brakeKey>0){
       this.brakeReturn=false;
       if(this.brakeP<1 && !this.brakeDragging) this.brakeP=Math.min(1,this.brakeP+dt*3);
-    } else if(this.brakeReturn && !this.brakeDragging){
+    } else if(PHYS.PEDAL_RETURN && this.brakeReturn && !this.brakeDragging){
       this.brakeP+=(0-this.brakeP)*Math.min(1,dt*12);
       if(this.brakeP<0.004){ this.brakeP=0; this.brakeReturn=false; }
     }
@@ -281,14 +281,14 @@ export class Transmission{
     /* газ, как и тормоз, отпускается сам: как только педаль бросили,
        пружина плавно возвращает её к нулю. Пока ползунок ведут (setGas
        сбрасывает gasReturn) автовозврат не вмешивается. */
-    if(this.gasReturn){
+    if(PHYS.PEDAL_RETURN && this.gasReturn){
       this.gasP+=(0-this.gasP)*Math.min(1,dt*12);
       if(this.gasP<0.004){ this.gasP=0; this.gasReturn=false; }
     }
 
     /* сцепление тоже с пружиной: бросили педаль — само возвращается к нулю
        (отпущенное = зацеплено). setClutch при ведении сбрасывает флаг. */
-    if(this.clutchReturn){
+    if(PHYS.PEDAL_RETURN && this.clutchReturn){
       this.p+=(0-this.p)*Math.min(1,dt*12);
       if(this.p<0.004){ this.p=0; this.clutchReturn=false; }
     }

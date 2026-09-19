@@ -241,6 +241,15 @@
   .settingsRow input{width:92px;flex:0 0 auto;background:#0a1420;color:#fff;border:1px solid #2b3f58;
        border-radius:7px;padding:5px 7px;font-size:16px;text-align:right;font-variant-numeric:tabular-nums}
   .settingsRow input:focus{outline:none;border-color:#6fb4e8;box-shadow:0 0 0 2px rgba(111,180,232,.25)}
+  /* переключатель «Автовозврат педалей» */
+  .settingsRow.switchRow input[type=checkbox]{width:46px;height:26px;-webkit-appearance:none;appearance:none;
+       background:#1b2a3a;border:1px solid #2b3f58;border-radius:13px;cursor:pointer;position:relative;
+       transition:background .18s ease,border-color .18s ease;padding:0;margin:0}
+  .settingsRow.switchRow input[type=checkbox]::before{content:'';position:absolute;top:2px;left:2px;
+       width:20px;height:20px;border-radius:50%;background:#8fa3bb;
+       box-shadow:0 1px 3px rgba(0,0,0,.5);transition:left .18s ease,background .18s ease}
+  .settingsRow.switchRow input[type=checkbox]:checked{background:#2a6fb4;border-color:#4f9bdd}
+  .settingsRow.switchRow input[type=checkbox]:checked::before{left:22px;background:#fff}
   #settingsFoot{display:flex;gap:10px;justify-content:flex-end;padding:12px 16px;border-top:1px solid #26374d}
   #settingsFoot button{border:none;border-radius:10px;padding:8px 16px;font-size:13px;font-weight:bold;cursor:pointer}
   #settingsApply{background:linear-gradient(180deg,#4f9bdd,#2a6fb4);color:#fff}
@@ -695,7 +704,11 @@ function renderGroup(g, wrap){
     const desc=document.createElement('div'); desc.className='sdesc'; desc.textContent=f.desc;
     lab.appendChild(name); lab.appendChild(desc);
     const inp=document.createElement('input');
-    inp.type=f.type==='text'?'text':'number';
+    if(f.type==='checkbox'){
+      inp.type='checkbox'; row.classList.add('switchRow');
+    } else {
+      inp.type=f.type==='text'?'text':'number';
+    }
     if(f.step!=null) inp.step=f.step;
     row.appendChild(lab); row.appendChild(inp);
     wrap.appendChild(row);
@@ -713,10 +726,14 @@ function buildSettings(){
   settingsBody.appendChild(expWrap);
 }
 function loadSettings(){
-  settingsFields.forEach(({f,inp})=>{ inp.value=String(cfgGet(f.path)); });
+  settingsFields.forEach(({f,inp})=>{
+    if(f.type==='checkbox') inp.checked=!!cfgGet(f.path);
+    else inp.value=String(cfgGet(f.path));
+  });
 }
 function applySettings(){
   settingsFields.forEach(({f,inp})=>{
+    if(f.type==='checkbox'){ cfgSet(f.path, inp.checked); return; }
     if(f.type==='text'){ cfgSet(f.path, inp.value.trim()); return; }
     const v=parseFloat(inp.value);
     if(Number.isFinite(v)) cfgSet(f.path, v);
