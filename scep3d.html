@@ -1398,9 +1398,9 @@ function updateSound(rpmNorm,f,sparkLevel,clash,brakeLevel,burnLevel){
   audio.o4.frequency.setTargetAtTime(f*6,t,k);
   audio.o5.frequency.setTargetAtTime(f*10,t,k);
   audio.engF.frequency.setTargetAtTime(900+f*12,t,k);
-  audio.engG.gain.setTargetAtTime((0.9+1.4*rpmNorm)*act*duck,t,k);
+  audio.engG.gain.setTargetAtTime((0.9+1.4*rpmNorm)*0.35*act*duck,t,k);
   audio.exhF.frequency.setTargetAtTime(400+f*8,t,k);
-  audio.exhG.gain.setTargetAtTime((0.5+0.9*rpmNorm)*act*duck,t,k);
+  audio.exhG.gain.setTargetAtTime((0.5+0.9*rpmNorm)*0.35*act*duck,t,k);
   audio.slipG.gain.setTargetAtTime(sparkLevel*2.2,t,0.05);
   audio.grindLevel.gain.setTargetAtTime(clash*1.0,t,0.03);
   audio.brkF.frequency.setTargetAtTime(1900+brakeLevel*2200,t,0.10);
