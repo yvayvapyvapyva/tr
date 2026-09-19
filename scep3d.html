@@ -1549,7 +1549,7 @@ startBtn.addEventListener('click',()=>{
 });
 
 /* ============ ФИЗИКА И АНИМАЦИЯ ============ */
-let tachoShown=0, speedoShown=0;
+let tachoShown=0, speedoShown=0, hgLimShown=null;
 let lastClutch=0, lastGas=0, lastBrake=0;
 let msgShown=null;
 
@@ -1721,13 +1721,20 @@ renderer.setAnimationLoop(()=>{
   if(sim.brakeP!==lastBrake){ lastBrake=sim.brakeP; brakeSlider.set(sim.brakeP); }
   if(sim.gasP!==lastGas){ lastGas=sim.gasP; gasSlider.set(sim.gasP); }
 
-  /* индикатор удержания — каждый кадр, чтобы не отставал от педали */
+  /* индикатор удержания — каждый кадр, чтобы не отставал от педали.
+     Положение полоски предела сглаживается: releaseLimit() пересчитывается
+     по живому состоянию симуляции и между кадрами «дёргается» на несколько
+     процентов — фильтр тянет отображаемое значение к цели плавно, без
+     скачков. Опасная зона при этом считается по истинному пределу. */
   const hgLim=sim.releaseLimit();
   if(hgLim==null){
     holdGaugeEl.classList.add('off');
+    hgLimShown=null;
   } else {
     holdGaugeEl.classList.remove('off');
-    hgLimitEl.style.top=(HG_TOP+hgLim*HG_SPAN).toFixed(2)+'%';
+    if(hgLimShown==null) hgLimShown=hgLim;
+    else hgLimShown+=(hgLim-hgLimShown)*Math.min(1,dt*8);
+    hgLimitEl.style.top=(HG_TOP+hgLimShown*HG_SPAN).toFixed(2)+'%';
     hgLimitEl.classList.toggle('danger', sim.p<hgLim-0.005);
     hgNowEl.style.top=(HG_TOP+sim.p*HG_SPAN).toFixed(2)+'%';
     highlightScale(hgScaleData, sim.p);
