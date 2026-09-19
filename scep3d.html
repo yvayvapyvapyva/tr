@@ -1596,7 +1596,8 @@ const clutchSlider=bindVSlider(
   document.getElementById('clutchFill'),
   document.getElementById('clutchThumb'),
   document.getElementById('clutchCursor'),
-  v=>{ sim.setClutch(v); });
+  v=>{ sim.setClutch(v); },
+  ()=>{ sim.releaseClutch(); });
 
 const brakeSlider=bindVSlider(
   document.getElementById('brakeTrack'),
@@ -1611,7 +1612,8 @@ const gasSlider=bindVSlider(
   document.getElementById('gasFill'),
   document.getElementById('gasThumb'),
   document.getElementById('gasCursor'),
-  v=>{ sim.setGas(v); });
+  v=>{ sim.setGas(v); },
+  ()=>{ sim.releaseGas(); });
 
 clutchSlider.set(0); brakeSlider.set(0); gasSlider.set(0);
 

@@ -153,6 +153,8 @@ export class Transmission{
     this.wc=0; this.wheelSpin=false;
     this.gElast=0; this.curGR=1; this.blocked=0; this.blockMsgTimer=0;
     this.brakeHeat=0;
+    this.gasReturn=false;
+    this.clutchReturn=false;
     this.gateT=0.5; this.rowT=0.5;
     this.gE=0; this.e=1; this.gf=0; this.slip=0; this.slipN=0;
     this.speedN=0; this.clutchSlipping=false;
@@ -163,10 +165,12 @@ export class Transmission{
     this.cutOn=false;
   }
 
-  setClutch(v){ this.p=v; }
-  setGas(v){ this.gasP=v; }
+  setClutch(v){ this.p=v; this.clutchReturn=false; }
+  setGas(v){ this.gasP=v; this.gasReturn=false; }
   setBrake(v){ this.brakeP=v; this.brakeReturn=false; }
   releaseBrake(){ this.brakeReturn=true; }
+  releaseGas(){ this.gasReturn=true; }
+  releaseClutch(){ this.clutchReturn=true; }
   holdBrake(on){ this.brakeKey=on?1:0; this.brakeReturn=!on; }
   setBrakeDragging(d){ this.brakeDragging=d; }
 
@@ -272,6 +276,21 @@ export class Transmission{
     } else if(this.brakeReturn && !this.brakeDragging){
       this.brakeP+=(0-this.brakeP)*Math.min(1,dt*12);
       if(this.brakeP<0.004){ this.brakeP=0; this.brakeReturn=false; }
+    }
+
+    /* газ, как и тормоз, отпускается сам: как только педаль бросили,
+       пружина плавно возвращает её к нулю. Пока ползунок ведут (setGas
+       сбрасывает gasReturn) автовозврат не вмешивается. */
+    if(this.gasReturn){
+      this.gasP+=(0-this.gasP)*Math.min(1,dt*12);
+      if(this.gasP<0.004){ this.gasP=0; this.gasReturn=false; }
+    }
+
+    /* сцепление тоже с пружиной: бросили педаль — само возвращается к нулю
+       (отпущенное = зацеплено). setClutch при ведении сбрасывает флаг. */
+    if(this.clutchReturn){
+      this.p+=(0-this.p)*Math.min(1,dt*12);
+      if(this.p<0.004){ this.p=0; this.clutchReturn=false; }
     }
 
     const e=friction(this.p);
