@@ -444,23 +444,11 @@ document.addEventListener('touchmove', e => {
   if (tg && e.touches.length === 1 && e.touches[0].clientY < 50) e.preventDefault();
 }, {passive: false});
 
-/* Защита от зума по двойному тапу. Подавляем только настоящий дабл-тап
-   (два тапа быстро и в одном месте), и только если второй тап НЕ пришёлся
-   на интерактивные элементы (педали, КПП, кнопки, настройки). Раньше любой
-   второй тап в 300 мс получал preventDefault — он гасил синтетический click,
-   и кнопка СТАРТ не срабатывала сразу после нажатия педали. */
-const lastTap = {x:0, y:0, t:0};
-const TAP_CTRL = '#startBtn,#pedalTrack,#brakeTrack,#gasTrack,#gearTrack,#settingsBtn,#settingsOverlay';
+let lastTap = 0;
 document.addEventListener('touchend', e => {
-  const t = e.changedTouches && e.changedTouches[0];
-  if (!t) return;
   const now = Date.now();
-  const isTapZoom = (now - lastTap.t) < 300
-    && Math.hypot(t.clientX - lastTap.x, t.clientY - lastTap.y) < 45;
-  const el = e.target;
-  const onControl = el && el.closest && el.closest(TAP_CTRL);
-  if (isTapZoom && !onControl) e.preventDefault();
-  lastTap.x = t.clientX; lastTap.y = t.clientY; lastTap.t = now;
+  if (now - lastTap < 300) e.preventDefault();
+  lastTap = now;
 }, {passive: false});
 document.addEventListener('dblclick', e => e.preventDefault());
 
@@ -1722,9 +1710,31 @@ const startBtn=document.getElementById('startBtn');
 const startBtnTxt=document.getElementById('startBtnTxt');
 function showMsg(html,cls){ msgEl.innerHTML=html; msgEl.className=cls; }
 function hideMsg(){ msgEl.className=''; msgEl.textContent=''; }
-startBtn.addEventListener('click',()=>{
+/* Кнопка СТАРТ работает и на pointer-событиях (как педали), а не только на click:
+   глобальный хендлер touchend гасит синтетический click второго тапа в 300 мс,
+   поэтому клик по СТАРТ сразу после нажатия педали (или параллельно с ней) не
+   генерировался. Pointer-путь срабатывает до touchend — кнопка всегда отзывается.
+   click остаётся для клавиатуры/мыши и защищён от двойного срабатывания. */
+function doStart(){
   const act=sim.pressStart();
   if(act==='started'){ setSoundOn(); if(starterStop) starterStop(); starterStop=playStarter(); }
+}
+let startByPointer=0; /* 0 — нет pointer-сессии, 1 — идёт нажатие, 2 — ждём/гасим click */
+startBtn.addEventListener('pointerdown',e=>{
+  startByPointer=1;
+  try{startBtn.setPointerCapture(e.pointerId);}catch(_){}
+  e.preventDefault();
+});
+startBtn.addEventListener('pointerup',e=>{
+  const r=startBtn.getBoundingClientRect();
+  const inside=e.clientX>=r.left&&e.clientX<=r.right&&e.clientY>=r.top&&e.clientY<=r.bottom;
+  startByPointer=2;
+  setTimeout(()=>{ if(startByPointer===2) startByPointer=0; },500);
+  if(inside) doStart();
+});
+startBtn.addEventListener('click',()=>{
+  if(startByPointer){ startByPointer=0; return; } /* уже отработал pointer-путь */
+  doStart();
 });
 
 /* ============ ФИЗИКА И АНИМАЦИЯ ============ */
