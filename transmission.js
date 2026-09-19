@@ -108,6 +108,12 @@ function pumpDragNm(rpm){
   return (PHYS.CLOSE_DRAG_B + PHYS.CLOSE_DRAG_K*rpm) * (PHYS.PWR_PS/PWR_REF_PS);
 }
 
+/* Ёмкость сцепления, Н·м. Задана в конфиге для базовой мощности и тоже
+   масштабируется текущей мощностью: мощный мотор = более сильное сцепление. */
+function clutchCapNm(){
+  return PHYS.CLUTCH_CAP * (PHYS.PWR_PS/PWR_REF_PS);
+}
+
 export class Transmission{
   constructor(){
     this.reset();
@@ -432,7 +438,7 @@ export class Transmission{
     /* сцепление работает всегда, включая момент работы стартера:
        включённая передача соединяет коленвал с колонной */
     {
-      capE=PHYS.CLUTCH_CAP*e;
+      capE=clutchCapNm()*e;
 
       const refS=ratio?this.crankLoad(wa,ratio)/ratio:0;
       const I2=ratio?(PHYS.ID+IwEff/(ratio*ratio)):PHYS.ID;
