@@ -178,6 +178,11 @@
        font-variant-numeric:tabular-nums;display:block}
   #scomDigFW{color:#ffd166;text-shadow:0 0 8px rgba(255,209,102,.55)}
   #scomDigDS{color:#8fd0ff;text-shadow:0 0 8px rgba(143,208,255,.55)}
+  /* при выжатом сцеплении и сходившихся оборотах (±100) шкала светится зелёным */
+  #scomGauges.synced{box-shadow:0 0 18px rgba(47,174,95,.55),inset 0 0 0 1px rgba(90,220,140,.75),inset 0 0 22px rgba(47,174,95,.35)}
+  #scomGauges.synced .scomTrack{box-shadow:inset 0 0 0 1px rgba(90,220,140,.8),inset 0 0 18px rgba(47,174,95,.5)}
+  #scomGauges.synced .gCursor.curFW,#scomGauges.synced .gCursor.curDS{background:#2fae5f;box-shadow:0 0 10px #2fae5f}
+  #scomGauges.synced #scomDigFW,#scomGauges.synced #scomDigDS{color:#62e58a;text-shadow:0 0 10px rgba(98,229,138,.8)}
   #scomDigFW{color:#ffd166;text-shadow:0 0 8px rgba(255,209,102,.55)}
   #scomDigDS{color:#8fd0ff;text-shadow:0 0 8px rgba(143,208,255,.55)}
 
@@ -1554,6 +1559,7 @@ const hgScaleData =buildScale(document.getElementById('hgScale'), [40,60], '#8fd
    Разметка (риски 0..REV_CUT) общая — выше отсечки не раскручивается,
    поэтому шкалу строим ровно до неё. Курсоры бегают каждый в своей половине */
 const scomTrack=document.getElementById('scomTrack');
+const scomGaugesEl=document.getElementById('scomGauges');
 const scomDigFW=document.getElementById('scomDigFW');
 const scomDigDS=document.getElementById('scomDigDS');
 const scomCursorFW=document.createElement('div'), scomCursorDS=document.createElement('div');
@@ -1836,6 +1842,10 @@ renderer.setAnimationLoop(()=>{
   const rpmDS=sim.dOmega/PHYS.SLOW*9.549;    /* диск сцепления */
   setScomCursor(scomCursorFW, scomDigFW, rpmFW);
   setScomCursor(scomCursorDS, scomDigDS, rpmDS);
+  /* при выжатом сцеплении, если маховик и диск сошлись в пределах ±100 об/мин —
+     вся шкала светится зелёным (готовность к включению передачи) */
+  const scomSynced = sim.p>=PHYS.FULL_DEPRESS && Math.abs(rpmFW-rpmDS)<=100;
+  scomGaugesEl.classList.toggle('synced', scomSynced);
 
   const wheelRpm=sim.aOmega/PHYS.SLOW*9.549;
   const speedKmh=wheelRpm*PHYS.SPEED_K;
