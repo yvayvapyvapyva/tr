@@ -444,11 +444,23 @@ document.addEventListener('touchmove', e => {
   if (tg && e.touches.length === 1 && e.touches[0].clientY < 50) e.preventDefault();
 }, {passive: false});
 
-let lastTap = 0;
+/* Защита от зума по двойному тапу. Подавляем только настоящий дабл-тап
+   (два тапа быстро и в одном месте), и только если второй тап НЕ пришёлся
+   на интерактивные элементы (педали, КПП, кнопки, настройки). Раньше любой
+   второй тап в 300 мс получал preventDefault — он гасил синтетический click,
+   и кнопка СТАРТ не срабатывала сразу после нажатия педали. */
+const lastTap = {x:0, y:0, t:0};
+const TAP_CTRL = '#startBtn,#pedalTrack,#brakeTrack,#gasTrack,#gearTrack,#settingsBtn,#settingsOverlay';
 document.addEventListener('touchend', e => {
+  const t = e.changedTouches && e.changedTouches[0];
+  if (!t) return;
   const now = Date.now();
-  if (now - lastTap < 300) e.preventDefault();
-  lastTap = now;
+  const isTapZoom = (now - lastTap.t) < 300
+    && Math.hypot(t.clientX - lastTap.x, t.clientY - lastTap.y) < 45;
+  const el = e.target;
+  const onControl = el && el.closest && el.closest(TAP_CTRL);
+  if (isTapZoom && !onControl) e.preventDefault();
+  lastTap.x = t.clientX; lastTap.y = t.clientY; lastTap.t = now;
 }, {passive: false});
 document.addEventListener('dblclick', e => e.preventDefault());
 
