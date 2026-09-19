@@ -1654,17 +1654,40 @@ function gearFromPointer(cx,cy){
   const ny=Math.max(0,Math.min(1,(cy-rect.top)/rect.height));
   sim.dragGear(nx,ny);
 }
+/* Тап по точке с нужной передачей = включить сразу, без перетаскивания */
+function gearTapSelect(cx,cy){
+  const rect=gearTrack.getBoundingClientRect();
+  const nx=Math.max(0,Math.min(1,(cx-rect.left)/rect.width));
+  const ny=Math.max(0,Math.min(1,(cy-rect.top)/rect.height));
+  let gi=0,bd=Infinity;
+  for(let i=0;i<GATE_X.length;i++){ const d=Math.abs(nx-GATE_X[i]); if(d<bd){bd=d;gi=i;} }
+  let ri=0; bd=Infinity;
+  for(let i=0;i<ROW_Y.length;i++){ const d=Math.abs(ny-ROW_Y[i]); if(d<bd){bd=d;ri=i;} }
+  const k=ri===1?'N':(ri===0?['1','3','5'][gi]:['2','4','R'][gi]);
+  sim.keyGear(k);
+  shifter.position.x=String(sim.gearSel)==='N'?0.55:0.30;
+}
 function gearRelease(){
   if(!gearDrag) return;
   gearDrag=false;
-  sim.releaseGear();
+  if(!gearTapMoved){
+    gearTapSelect(gearTapX,gearTapY);
+  } else {
+    sim.releaseGear();
+  }
 }
+let gearTapX=0, gearTapY=0, gearTapMoved=false;
 gearTrack.addEventListener('pointerdown',e=>{
   gearDrag=true; sim.beginGearDrag();
+  gearTapX=e.clientX; gearTapY=e.clientY; gearTapMoved=false;
   try{gearTrack.setPointerCapture(e.pointerId);}catch(_){}
   gearFromPointer(e.clientX,e.clientY); e.preventDefault();
 });
-gearTrack.addEventListener('pointermove',e=>{ if(gearDrag) gearFromPointer(e.clientX,e.clientY); });
+gearTrack.addEventListener('pointermove',e=>{
+  if(!gearDrag) return;
+  if(Math.hypot(e.clientX-gearTapX,e.clientY-gearTapY)>12) gearTapMoved=true;
+  gearFromPointer(e.clientX,e.clientY);
+});
 gearTrack.addEventListener('pointerup',gearRelease);
 gearTrack.addEventListener('pointercancel',gearRelease);
 
