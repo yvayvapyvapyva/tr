@@ -162,7 +162,9 @@ TQ_CURVE.forEach((_, i)=>{
 /* Основные настройки — видны всем. Редкие/специфические — в EXPERT_SETTINGS. */
 export const SETTINGS = [
   { title:'Автомобиль', fields:[
-    { label:'Автовозврат педалей', desc:'Педали (сцепление, тормоз, газ) возвращаются к нулю, когда их отпускают. Выключите — педали останутся в том же положении после отпускания', path:'PHYS.PEDAL_RETURN', type:'checkbox' },
+    { label:'Автовозврат: сцепление', desc:'Педаль сама возвращается к нулю, когда её отпустили', path:'PHYS.PEDAL_RETURN_CLUTCH', type:'checkbox' },
+    { label:'Автовозврат: тормоз', desc:'Педаль сама возвращается к нулю, когда её отпустили', path:'PHYS.PEDAL_RETURN_BRAKE', type:'checkbox' },
+    { label:'Автовозврат: газ', desc:'Педаль сама возвращается к нулю, когда её отпустили', path:'PHYS.PEDAL_RETURN_GAS', type:'checkbox' },
     { label:'Название', desc:'Показывается в заголовке страницы', path:'CAR.NAME', type:'text' },
     { label:'Масса, кг', desc:'Полная масса автомобиля', path:'PHYS.MASS', type:'number' },
     { label:'Мощность, л.с.', desc:'Задаёт мощность двигателя: Н·м = кривая момента × мощность/82, педаль газа выдаёт долю этой мощности', path:'PHYS.PWR_PS', type:'number' },
@@ -263,5 +265,7 @@ export const PHYS = {
   SPEED_K,
   SYNC_GAP, ENGAGE_DIST, BAR_THRESH,
   CLUTCH_E, CLUTCH_E0, CLUTCH_T0,
-  PEDAL_RETURN: true,
+  PEDAL_RETURN_CLUTCH: true,
+  PEDAL_RETURN_BRAKE: true,
+  PEDAL_RETURN_GAS: true,
 };
