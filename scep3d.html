@@ -1696,7 +1696,13 @@ fitAll();
 
 const clock=new THREE.Clock(); let hudT=0;
 let wheelAngle=0;   /* реальный угол поворота колеса, рад */
+let _lastFrame=0;
 renderer.setAnimationLoop(()=>{
+  /* жёсткое ограничение ~60 кадров/с: на экранах с частотой выше 60 Гц
+     пропускаем лишние срабатывания — рендер не грузит видеокарту вхолостую */
+  const _now=performance.now();
+  if(_lastFrame && _now-_lastFrame<1000/60) return;
+  _lastFrame=_now;
   let dt=Math.min(clock.getDelta(),.05);
 
   sim.setBrakeDragging(brakeSlider.isDragging());
