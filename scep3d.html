@@ -279,10 +279,11 @@
   #expertWrap{display:none;border-top:1px dashed #26374d;margin-top:10px;padding-top:2px}
 
   @media (max-width:760px){
-    #msg{font-size:13px;padding:10px 14px;top:calc(108px + env(safe-area-inset-top));max-width:94vw}
+    #msg{font-size:13px;padding:10px 14px;top:calc(140px + env(safe-area-inset-top));max-width:94vw}
     #msg small{font-size:11px}
-    .gauge{width:86px}
-    #topUI{gap:8px;padding:5px 10px}
+    .gauge{flex:1 1 0;width:auto;min-width:0;max-width:116px}
+    #topUI{left:8px;right:8px;width:auto;transform:none;gap:8px;padding:5px 8px;
+       justify-content:center;border-radius:16px}
     #startBtn{width:54px;height:54px;margin:auto 0 3px 0}
     #startBtnTxt{font-size:8px;letter-spacing:.6px}
     #startBtn .pwr{width:15px;height:15px}
@@ -578,6 +579,9 @@ function fitBottomUI(){
   bottomUI.style.transform='translateX(-50%) scale('+Math.min(1,(w-28)/bw)+')';
 }
 function fitTopUI(){
+  /* на мобильных панель растянута на всю ширину (left/right в CSS) —
+     трансформации не нужны */
+  if(vw()<=760){ topUI.style.transform='none'; return; }
   topUI.style.transform='translateX(-50%) scale(1)';
   const tw=topUI.offsetWidth;
   if(!(tw>0)) return;
