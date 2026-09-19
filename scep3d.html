@@ -1243,6 +1243,25 @@ function initAudio(){
   brkLFO.connect(brkLFOG); brkLFOG.connect(brkF.frequency);
   noise.connect(brkF); brkF.connect(brkG); brkG.connect(master);
   brkLFO.start();
+  /* визг шин при пробуксовке: пронзительный тональный «крик» из трёх
+     резонансных полос шума — низкий гул резины, основной пронзительный
+     вой (узкая полоса 3.6 кГц = «свист»), широкий воющий слой с LFO,
+     плюс двигатель на время буксы чуть заглушается, чтобы визг пере-
+     крывал мотор даже на отсечке */
+  const burnFund=ctx.createBiquadFilter(); burnFund.type='bandpass'; burnFund.frequency.value=1100; burnFund.Q.value=2.4;
+  const burnFundG=ctx.createGain(); burnFundG.gain.value=0.55;
+  const burnF=ctx.createBiquadFilter(); burnF.type='bandpass'; burnF.frequency.value=2400; burnF.Q.value=3.0;
+  const burnHi=ctx.createBiquadFilter(); burnHi.type='bandpass'; burnHi.frequency.value=3600; burnHi.Q.value=9;
+  const burnHG=ctx.createGain(); burnHG.gain.value=1.1;
+  const burnG=ctx.createGain(); burnG.gain.value=0;
+  const burnLFO=ctx.createOscillator(); burnLFO.type='sine'; burnLFO.frequency.value=13;
+  const burnLFOG=ctx.createGain(); burnLFOG.gain.value=900;
+  burnLFO.connect(burnLFOG); burnLFOG.connect(burnF.frequency);
+  noise.connect(burnFund); burnFund.connect(burnFundG); burnFundG.connect(burnG);
+  noise.connect(burnF); burnF.connect(burnG);
+  noise.connect(burnHi); burnHi.connect(burnHG); burnHG.connect(burnG);
+  burnG.connect(master);
+  burnLFO.start();
   noise.start();
   const engF=ctx.createBiquadFilter(); engF.type='lowpass'; engF.Q.value=0.7; engF.frequency.value=1400;
   const engPeak=ctx.createBiquadFilter(); engPeak.type='peaking'; engPeak.frequency.value=450; engPeak.Q.value=0.9; engPeak.gain.value=12;
@@ -1260,7 +1279,7 @@ function initAudio(){
   o1.connect(engF); o2.connect(g2); g2.connect(engF); o3.connect(g3); g3.connect(engF);
   o4.connect(g4); g4.connect(engF); o5.connect(g5); g5.connect(engF);
   o1.start(); o2.start(); o3.start(); o4.start(); o5.start();
-  return {ctx,master,comp,o1,o2,o3,o4,o5,engF,engG,exhF,exhG,slipG,grindLevel,brkF,brkG,noiseBuf:nb};
+  return {ctx,master,comp,o1,o2,o3,o4,o5,engF,engG,exhF,exhG,slipG,grindLevel,brkF,brkG,burnG,noiseBuf:nb};
 }
 function setSoundOn(){
   if(!audio) audio=initAudio();
@@ -1268,23 +1287,28 @@ function setSoundOn(){
   soundOn=true;
   audio.master.gain.setTargetAtTime(1.0,audio.ctx.currentTime,0.05);
 }
-function updateSound(rpmNorm,f,sparkLevel,clash,brakeLevel){
+function updateSound(rpmNorm,f,sparkLevel,clash,brakeLevel,burnLevel){
   if(!audio||!soundOn) return;
+  burnLevel=burnLevel||0;
   const t=audio.ctx.currentTime, k=0.08;
   const act=f>0.8?1:0;
+  /* на время пробуксовки слегка глушим двигатель, чтобы визг шин был чётко
+     слышен даже на фоне мотора в отсечку */
+  const duck=1-0.65*Math.min(1,burnLevel);
   audio.o1.frequency.setTargetAtTime(f,t,k);
   audio.o2.frequency.setTargetAtTime(f*2,t,k);
   audio.o3.frequency.setTargetAtTime(f*3,t,k);
   audio.o4.frequency.setTargetAtTime(f*6,t,k);
   audio.o5.frequency.setTargetAtTime(f*10,t,k);
   audio.engF.frequency.setTargetAtTime(900+f*12,t,k);
-  audio.engG.gain.setTargetAtTime((0.9+1.4*rpmNorm)*act,t,k);
+  audio.engG.gain.setTargetAtTime((0.9+1.4*rpmNorm)*act*duck,t,k);
   audio.exhF.frequency.setTargetAtTime(400+f*8,t,k);
-  audio.exhG.gain.setTargetAtTime((0.5+0.9*rpmNorm)*act,t,k);
+  audio.exhG.gain.setTargetAtTime((0.5+0.9*rpmNorm)*act*duck,t,k);
   audio.slipG.gain.setTargetAtTime(sparkLevel*2.2,t,0.05);
   audio.grindLevel.gain.setTargetAtTime(clash*1.0,t,0.03);
   audio.brkF.frequency.setTargetAtTime(1900+brakeLevel*2200,t,0.10);
   audio.brkG.gain.setTargetAtTime(brakeLevel*1.15,t,0.06);
+  if(audio.burnG) audio.burnG.gain.setTargetAtTime(burnLevel*2.6,t,0.03);
 }
 let starterStop=null;
 function playStarter(dur){
@@ -1662,7 +1686,7 @@ renderer.setAnimationLoop(()=>{
   M.orange.emissiveIntensity=Math.min(2.0,slipGlow);
 
   const rpmNow=sim.engOmega/PHYS.SLOW*9.549;
-  updateSound(Math.max(0,Math.min(1.5,(rpmNow-PHYS.IDLE_RPM)/3200)),rpmNow/60,sparkLevel,clash,brakeLevel);
+  updateSound(Math.max(0,Math.min(1.5,(rpmNow-PHYS.IDLE_RPM)/3200)),rpmNow/60,sparkLevel,clash,brakeLevel,burnN);
 
   const wheelRpm=sim.aOmega/PHYS.SLOW*9.549;
   const speedKmh=wheelRpm*PHYS.SPEED_K;
