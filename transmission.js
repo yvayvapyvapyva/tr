@@ -370,13 +370,39 @@ export class Transmission{
       const pwDyn=(1-pwBase)*Math.pow(this.gasP, PHYS.GAS_POWER_EXP);
       const Pw=(pwBase+pwDyn)*PHYS.PWR_PS; // запрошенная мощность, л.с.
       const Tpw=we>0.001?Pw*7021.46/(we*RPM_C):TeMax; // момент под эту мощность
-      Te=Math.min(TeMax, Math.max(gov, Tpw));
+
+      /* Равновесные обороты из баланса мощности и нагрузки:
+         P / ω = сопротивление двигателя (растёт с оборотами) + приведённая
+         нагрузка колёс. Пропорциональный «разгонный» момент тянет обороты
+         к равновесию быстро, а в самой точке равновесия обращается в 0 —
+         поэтому сами равновесные обороты (и зависимость от передачи) не
+         меняются. Без него кривая T = P/ω почти плоская у равновесия и
+         мотор «устаканивается» очень долго. */
+      let rEq=0, corr=0;
+      if(Pw>0.001 && PHYS.REV_GOV_KP>0){
+        /* нагрузка на коленвале учитывается только пока сцепление введено:
+           при выжатом (e=0) мотор свободен и не должен зависеть от передачи */
+        const refS=(e>0.02 && ratio)?Math.abs(this.crankLoad(wa,ratio)/ratio):0;
+        const A=PHYS.ENG_DRAG_B+refS;
+        const c=PHYS.ENG_DRAG_K;
+        const disc=Math.max(0,A*A+4*c*Pw*7021.46);
+        rEq=c>0?(Math.sqrt(disc)-A)/(2*c):0;   // об/мин
+        const errR=(rEq-rpm)/RPM_C; // ошибка в рад/с (коленвал)
+        corr=PHYS.REV_GOV_KP*errR;
+        if(corr>TeMax*0.5) corr=TeMax*0.5;
+        if(corr<-TeMax*0.5) corr=-TeMax*0.5;
+      }
+      Te=Math.min(TeMax, Math.max(gov, Tpw+corr));
 
       Td=PHYS.ENG_DRAG_B+PHYS.ENG_DRAG_K*rpm;
       /* закрытый дроссель: насосные потери (торможение двигателем)
-         добавляем только когда холостой регулятор не тянет — т.е.
-         обороты выше холостых или газа нет вообще */
-      if(this.gasP<0.01 && gov<=0.01) Td+=PHYS.CLOSE_DRAG_B+PHYS.CLOSE_DRAG_K*rpm;
+         плавно растут при отпускании педали — от полного газа (0) до
+         полностью закрытого (максимум). Это ускоряет сброс оборотов
+         при частичном отпускании, а на холостых их держит регулятор
+         (gov>0), поэтому здесь они не мешают. */
+      const closure=Math.max(0, Math.min(1, 1-this.gasP/PHYS.GAS_CLOSE_POS));
+      if(gov<=0.01 && closure>0)
+        Td+=(PHYS.CLOSE_DRAG_B+PHYS.CLOSE_DRAG_K*rpm)*closure;
     } else if(this.engineState==='cranking'){
       /* стартер — машина постоянного тока с ограниченным моментом:
          максимален на нулевых оборотах и падает до 0 на холостом ходу.
@@ -407,7 +433,7 @@ export class Transmission{
       const wAcc=(Te-Td-refS)/Iall;
       const needT=Te-Td-PHYS.IE*wAcc;          // момент сцепления для сохранения захвата
 
-      if(Math.abs(we-wd)<PHYS.SYNC_GAP && Math.abs(needT)<=capE){
+      if(e>0.02 && Math.abs(we-wd)<PHYS.SYNC_GAP && Math.abs(needT)<=capE){
         /* сцепление держит: коленвал и диск — одно целое */
         locked=true;
         const w0=(we+wd)/2;
