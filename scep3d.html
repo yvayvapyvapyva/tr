@@ -79,9 +79,9 @@
 
   .vfill{position:absolute;left:3px;right:3px;top:0;height:0;
        border-radius:11px;pointer-events:none;opacity:.9}
-  #clutchFill{background:linear-gradient(180deg,#4d90d8,#1d4f80)}
+  #clutchFill{background:linear-gradient(180deg,#e09840,#8f5a16)}
   #brakeFill {background:linear-gradient(180deg,#f0705a,#8f2418)}
-  #gasFill   {background:linear-gradient(180deg,#f0c65a,#8f6a1c)}
+  #gasFill   {background:linear-gradient(180deg,#b8c9db,#71859c)}
 
 /* зона 40–60% пересчитана под V_TOP=17 / V_SPAN=66 */
   /* (зелёная зона оставлена только на шкале — см. .scaleZone) */
@@ -96,9 +96,9 @@
   .vthumb::after{content:'';position:absolute;left:11px;right:11px;top:24px;height:2px;
        border-radius:1px;background:rgba(0,0,0,.30);
        box-shadow:0 -8px 0 rgba(0,0,0,.30), 0 8px 0 rgba(0,0,0,.30)}
-  #clutchThumb{background:linear-gradient(180deg,#7cb4ec 0%,#5490d0 48%,#2c5f96 100%);border:1px solid #9ccbf7}
+  #clutchThumb{background:linear-gradient(180deg,#f2ae64 0%,#d9822b 48%,#9c5a16 100%);border:1px solid #ffcf99}
   #brakeThumb {background:linear-gradient(180deg,#ef7a68 0%,#d0402e 48%,#8c2317 100%);border:1px solid #ff9d8f}
-  #gasThumb   {background:linear-gradient(180deg,#ffdf8a 0%,#f2c14e 48%,#a37c1d 100%);border:1px solid #ffe9b0}
+  #gasThumb   {background:linear-gradient(180deg,#cfe0f2 0%,#9fb4c8 48%,#6f839a 100%);border:1px solid #dceaf7}
 
   /* ---------- ШКАЛА: ПРИЖАТА К ПРАВОМУ КРАЮ ---------- */
   .scaleHalf{position:absolute;right:0;top:0;bottom:0;width:32px}
@@ -121,9 +121,9 @@
   .scaleCursor{position:absolute;right:0;width:32px;height:2px;margin-top:-1px;
        background:currentColor;pointer-events:none;border-radius:1px;z-index:3;
        box-shadow:0 0 6px currentColor}
-  #clutchCursor{color:#8fd0ff}
+  #clutchCursor{color:#ffb166}
   #brakeCursor {color:#ff6b5a}
-  #gasCursor   {color:#ffd166}
+  #gasCursor   {color:#d0e0f2}
 
   /* ---------- ИНДИКАТОР ЗОНЫ УДЕРЖАНИЯ (левый край, по центру) ---------- */
   #holdGauge{position:fixed;left:14px;top:50%;transform:translateY(-50%);
@@ -140,7 +140,7 @@
   #holdGauge .scaleZone{left:0;right:0;background:rgba(46,185,100,.34);
        box-shadow:inset 0 0 12px rgba(46,185,100,.45)}
   #holdGauge .hgNow{position:absolute;left:0;right:0;top:3%;height:2px;margin-top:-1px;
-       background:#8fd0ff;box-shadow:0 0 7px #8fd0ff;z-index:3}
+       background:#ffb166;box-shadow:0 0 7px #ffb166;z-index:3}
   #holdGauge .hgLimit{position:absolute;left:0;right:0;top:3%;height:3px;margin-top:-1.5px;
        background:#5dffa0;box-shadow:0 0 8px #5dffa0;z-index:4;
        transition:background .12s,box-shadow .12s}
@@ -1069,9 +1069,9 @@ scene.add(pedals3D);
 const pedalsBracket = new THREE.Mesh(new THREE.BoxGeometry(2.7, 0.18, 1.0), glass());
 pedalsBracket.position.set(0, 0.55, 0);
 pedals3D.add(pedalsBracket);
-const padClutchMat = new THREE.MeshStandardMaterial({color:0x5490d0, metalness:.4, roughness:.5});
+const padClutchMat = new THREE.MeshStandardMaterial({color:0xd9822b, metalness:.4, roughness:.5});
 const padBrakeMat  = new THREE.MeshStandardMaterial({color:0xd0402e, metalness:.4, roughness:.5});
-const padGasMat    = new THREE.MeshStandardMaterial({color:0xf2c14e, metalness:.4, roughness:.5});
+const padGasMat    = new THREE.MeshStandardMaterial({color:0x9fb4c8, metalness:.4, roughness:.5});
 function makeRoundedSquareGeo(size, radius, depth){
   const s = new THREE.Shape();
   const h = size/2, r = Math.min(radius, h);
@@ -1546,15 +1546,15 @@ function bindVSlider(wrapEl, fillEl, thumbEl, cursorEl, onChange, onRelease){
 
 const sim = new Transmission();
 
-const clutchScaleData = buildScale(document.getElementById('clutchScale'), [40,60],'#8fd0ff');
+const clutchScaleData = buildScale(document.getElementById('clutchScale'), [40,60],'#ffb166');
 const brakeScaleData  = buildScale(document.getElementById('brakeScale'),  null,'#ff6b5a');
-const gasScaleData    = buildScale(document.getElementById('gasScale'),    null,'#ffd166');
+const gasScaleData    = buildScale(document.getElementById('gasScale'),    null,'#d0e0f2');
 
 /* индикатор зоны удержания: отдельный элемент у левого края */
 const holdGaugeEl =document.getElementById('holdGauge');
 const hgLimitEl   =document.getElementById('hgLimit');
 const hgNowEl     =document.getElementById('hgNow');
-const hgScaleData =buildScale(document.getElementById('hgScale'), [40,60], '#8fd0ff', HG_TOP, HG_SPAN);
+const hgScaleData =buildScale(document.getElementById('hgScale'), [40,60], '#ffb166', HG_TOP, HG_SPAN);
 
 /* правая шкала оборотов: одна шкала на два поля — маховик и диск сцепления.
    Разметка (риски 0..REV_CUT) общая — выше отсечки не раскручивается,
