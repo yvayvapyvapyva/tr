@@ -165,6 +165,8 @@ export const SETTINGS = [
     { label:'Автовозврат: сцепление', desc:'Педаль сама возвращается к нулю, когда её отпустили', path:'PHYS.PEDAL_RETURN_CLUTCH', type:'checkbox' },
     { label:'Автовозврат: тормоз', desc:'Педаль сама возвращается к нулю, когда её отпустили', path:'PHYS.PEDAL_RETURN_BRAKE', type:'checkbox' },
     { label:'Автовозврат: газ', desc:'Педаль сама возвращается к нулю, когда её отпустили', path:'PHYS.PEDAL_RETURN_GAS', type:'checkbox' },
+    { label:'Шкала удержания (слева)', desc:'Шкала оптимального удержания сцепления при троганье', path:'PHYS.SHOW_HOLD_GAUGE', type:'checkbox' },
+    { label:'Шкала оборотов (справа)', desc:'Шкала оборотов оптимального переключения передач', path:'PHYS.SHOW_COM_GAUGES', type:'checkbox' },
     { label:'Название', desc:'Модель авто', path:'CAR.NAME', type:'text' },
     { label:'Масса, кг', desc:'Полная масса автомобиля', path:'PHYS.MASS', type:'number' },
     { label:'Мощность, л.с.', desc:'Задаёт мощность двигателя: Н·м = кривая момента × мощность/82, педаль газа выдаёт долю этой мощности', path:'PHYS.PWR_PS', type:'number' },
@@ -268,4 +270,6 @@ export const PHYS = {
   PEDAL_RETURN_CLUTCH: false,
   PEDAL_RETURN_BRAKE: true,
   PEDAL_RETURN_GAS: false,
+  SHOW_HOLD_GAUGE: true,
+  SHOW_COM_GAUGES: true,
 };

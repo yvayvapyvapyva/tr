@@ -746,6 +746,7 @@ function applySettings(){
   refreshDerived();
   rebuildTacho();
   rebuildScomScales();
+  updateGaugeVisibility();
   settingsOverlay.classList.remove('open');
 }
 function openSettings(){ loadSettings(); settingsOverlay.classList.add('open'); }
@@ -1606,6 +1607,10 @@ function setScomCursor(cursorEl, digEl, rpm){
 }
 rebuildScomScales();
 
+function updateGaugeVisibility(){
+  scomGaugesEl.style.display = PHYS.SHOW_COM_GAUGES ? '' : 'none';
+}
+
 function highlightScale(data, pct){
   const lim=pct*100;
   for(const t of data.ticks) t.el.classList.toggle('passed', t.pct<=lim);
@@ -1880,7 +1885,7 @@ renderer.setAnimationLoop(()=>{
      по живому состоянию симуляции и между кадрами «дёргается» на несколько
      процентов — фильтр тянет отображаемое значение к цели плавно, без
      скачков. Опасная зона при этом считается по истинному пределу. */
-  const hgLim=sim.releaseLimit();
+  const hgLim=PHYS.SHOW_HOLD_GAUGE?sim.releaseLimit():null;
   if(hgLim==null){
     holdGaugeEl.classList.add('off');
     hgLimShown=null;
