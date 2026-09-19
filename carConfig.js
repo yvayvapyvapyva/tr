@@ -165,7 +165,7 @@ export const SETTINGS = [
     { label:'Автовозврат: сцепление', desc:'Педаль сама возвращается к нулю, когда её отпустили', path:'PHYS.PEDAL_RETURN_CLUTCH', type:'checkbox' },
     { label:'Автовозврат: тормоз', desc:'Педаль сама возвращается к нулю, когда её отпустили', path:'PHYS.PEDAL_RETURN_BRAKE', type:'checkbox' },
     { label:'Автовозврат: газ', desc:'Педаль сама возвращается к нулю, когда её отпустили', path:'PHYS.PEDAL_RETURN_GAS', type:'checkbox' },
-    { label:'Название', desc:'Показывается в заголовке страницы', path:'CAR.NAME', type:'text' },
+    { label:'Название', desc:'Модель авто', path:'CAR.NAME', type:'text' },
     { label:'Масса, кг', desc:'Полная масса автомобиля', path:'PHYS.MASS', type:'number' },
     { label:'Мощность, л.с.', desc:'Задаёт мощность двигателя: Н·м = кривая момента × мощность/82, педаль газа выдаёт долю этой мощности', path:'PHYS.PWR_PS', type:'number' },
     { label:'Отсечка, об/мин', desc:'Искусственный ограничитель: при полном газе коленвал не раскручивается выше этого значения (режет подачу). Обычно ≤ жёсткий лимит, по которому строится тахометр', path:'PHYS.REV_CUT', type:'number' },
