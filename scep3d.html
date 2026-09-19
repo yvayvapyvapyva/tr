@@ -1078,6 +1078,56 @@ function makeWheel(flip){
 }
 const wheel=makeWheel(); wheel.position.set(WX,OUT_Y,0); wheel.scale.setScalar(WSCALE); scene.add(wheel);
 const wheelL=makeWheel(-1); wheelL.position.set(LWX,OUT_Y,0); wheelL.scale.setScalar(WSCALE); scene.add(wheelL);
+
+/* ============ ДЫМ ПРОБУКСОВКИ ============ */
+function tireSmokeTex(){
+  const c=document.createElement('canvas'); c.width=c.height=64;
+  const k=c.getContext('2d');
+  const g=k.createRadialGradient(32,32,1,32,32,32);
+  g.addColorStop(0,  'rgba(255,255,255,1)');
+  g.addColorStop(0.35,'rgba(255,255,255,0.78)');
+  g.addColorStop(0.7, 'rgba(230,230,235,0.36)');
+  g.addColorStop(1,   'rgba(215,215,220,0)');
+  k.fillStyle=g; k.fillRect(0,0,64,64);
+  return new THREE.CanvasTexture(c);
+}
+const SMOKE_N=380;
+const smokePos=new Float32Array(SMOKE_N*3), smokeVel=new Float32Array(SMOKE_N*3);
+const smokeLife=new Float32Array(SMOKE_N), smokeMax=new Float32Array(SMOKE_N);
+const smokeSize=new Float32Array(SMOKE_N), smokeA=new Float32Array(SMOKE_N);
+const smokeAttrS=new Float32Array(SMOKE_N), smokeAttrA=new Float32Array(SMOKE_N);
+for(let i=0;i<SMOKE_N;i++){ smokePos[i*3+1]=-999; }
+const smokeGeo=new THREE.BufferGeometry();
+smokeGeo.setAttribute('position',new THREE.BufferAttribute(smokePos,3));
+smokeGeo.setAttribute('size',new THREE.BufferAttribute(smokeAttrS,1));
+smokeGeo.setAttribute('alpha',new THREE.BufferAttribute(smokeAttrA,1));
+const smokeMat=new THREE.ShaderMaterial({
+  transparent:true, depthWrite:false,
+  uniforms:{ tex:{value:tireSmokeTex()} },
+  vertexShader:
+    'attribute float size;attribute float alpha;varying float vA;'+
+    'void main(){vA=alpha;vec4 mv=modelViewMatrix*vec4(position,1.0);'+
+    'gl_PointSize=max(0.01,size*(260.0/ -mv.z));gl_Position=projectionMatrix*mv;}',
+  fragmentShader:
+    'uniform sampler2D tex;varying float vA;'+
+    'void main(){vec4 c=texture2D(tex,gl_PointCoord);'+
+    'gl_FragColor=vec4(vec3(0.94,0.94,0.97),c.a*vA);}'
+});
+const smoke=new THREE.Points(smokeGeo,smokeMat); smoke.frustumCulled=false; scene.add(smoke);
+let smokeHead=0, smokeAcc=0;
+function spawnSmoke(wx,burnN){
+  const i=smokeHead; smokeHead=(smokeHead+1)%SMOKE_N;
+  const s=0.6+1.4*burnN;
+  smokePos[i*3  ]=wx+(Math.random()-0.5)*0.9;
+  smokePos[i*3+1]=OUT_Y-WHEEL_R*0.85+Math.random()*0.55;
+  smokePos[i*3+2]=(Math.random()-0.5)*1.3;
+  smokeVel[i*3  ]=-s*(1.0+Math.random()*1.6);
+  smokeVel[i*3+1]=0.4+Math.random()*s*1.6;
+  smokeVel[i*3+2]=(Math.random()-0.5)*1.9*s;
+  smokeMax[i]=smokeLife[i]=0.55+Math.random()*0.8;
+  smokeSize[i]=0.8+Math.random()*1.2;
+  smokeA[i]=0.55+Math.random()*0.35;
+}
 const brakes=[];
 [[WX,1],[LWX,-1]].forEach(([wx,f])=>{
   const dx=-0.25*f*WSCALE;
@@ -1558,6 +1608,33 @@ renderer.setAnimationLoop(()=>{
     while(grindAcc>=1){ grindAcc-=1; spawnGearSpark(); }
   } else grindAcc=0;
   grindLight.intensity=clash>0?clash*(6.0+Math.random()*4.5):0;
+
+  /* дым от пробуксовки: чем сильнее колёса обгоняют кузов, тем гуще */
+  const spinDiff=Math.abs(sim.aOmega-sim.wc);
+  const burnN=Math.max(0,Math.min(1,(spinDiff/PHYS.SLOW-1.5)/5));
+  if(burnN>0.02){
+    smokeAcc+=dt*(30+650*burnN);
+    while(smokeAcc>=1){ smokeAcc-=1; spawnSmoke(Math.random()<0.5?WX:LWX,burnN); }
+  } else smokeAcc=0;
+  for(let i=0;i<SMOKE_N;i++){
+    if(smokeLife[i]>0){
+      smokeLife[i]-=dt;
+      smokeVel[i*3+1]+=1.0*dt;                       /* дым поднимается */
+      smokeVel[i*3  ]-=smokeVel[i*3  ]*0.35*dt;      /* и оседает на месте */
+      smokeVel[i*3+2]-=smokeVel[i*3+2]*0.35*dt;
+      smokePos[i*3  ]+=smokeVel[i*3  ]*dt;
+      smokePos[i*3+1]+=smokeVel[i*3+1]*dt;
+      smokePos[i*3+2]+=smokeVel[i*3+2]*dt;
+      const f=Math.max(0,smokeLife[i]/smokeMax[i]);
+      const fA=f*f;
+      smokeAttrS[i]=smokeSize[i]*(1.9-1.1*f);        /* клубок растёт */
+      smokeAttrA[i]=smokeA[i]*fA;                    /* и тает */
+      if(f<=0){ smokePos[i*3+1]=-999; smokeAttrS[i]=0; smokeAttrA[i]=0; }
+    }
+  }
+  smokeGeo.attributes.position.needsUpdate=true;
+  smokeGeo.attributes.size.needsUpdate=true;
+  smokeGeo.attributes.alpha.needsUpdate=true;
 
   for(let i=0;i<SPARK_N;i++){
     if(sparkLife[i]>0){

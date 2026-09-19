@@ -147,6 +147,7 @@ export class Transmission{
     this.engineState='off'; this.crankT=0; this.failCrankT=0;
     this.thE=0; this.discAng=0; this.axleAng=0;
     this.engOmega=0; this.dOmega=0; this.aOmega=0;
+    this.wc=0; this.wheelSpin=false;
     this.gElast=0; this.curGR=1; this.blocked=0; this.blockMsgTimer=0;
     this.brakeHeat=0;
     this.gateT=0.5; this.rowT=0.5;
@@ -277,6 +278,7 @@ export class Transmission{
     let we=this.engOmega/k;   // коленвал
     let wd=this.dOmega/k;     // вход КПП (диск сцепления)
     let wa=this.aOmega/k;     // сторона колёс
+    let wc=this.wc/k;         // скорость кузова (в об/с колёс): при пробуксовке расходится с wa
 
     const inGear=String(this.gearSel)!=='N';
     const ratio=inGear?GEAR_RATIO[this.gearSel]*PHYS.FINAL_DRIVE:0;
@@ -455,6 +457,7 @@ export class Transmission{
 
     /* сцепление работает всегда, включая момент работы стартера:
        включённая передача соединяет коленвал с колонной */
+    let spin=false, tracL=0;                 // пробуксовка и реальный момент дороги
     {
       capE=clutchCapNm()*e;
 
@@ -462,9 +465,84 @@ export class Transmission{
       const I2=ratio?(PHYS.ID+IwEff/(ratio*ratio)):PHYS.ID;
       const Iall=PHYS.IE+I2;
       const wAcc=(Te-Td-refS)/Iall;
-      const needT=Te-Td-PHYS.IE*wAcc;          // момент сцепления для сохранения захвата
+      const rigidNeedT=Te-Td-PHYS.IE*wAcc;   // момент сцепления для жёсткого разгона с кузовом
 
-      if(e>0.02 && Math.abs(we-wd)<PHYS.SYNC_GAP && Math.abs(needT)<=capE){
+      /* Пробуксовка: момент, который дорога обязана передать кузову, ограничен
+         пределом трения шин TracL. Пока запрос умещается в предел — кузов и
+         колёса жёстко связаны (как раньше). Как только разгон требует от
+         дороги больше лимита — излишек уходит в раскрутку колёс (колонна
+         легчает на вес кузова), а кузов едет только на тяге в пределах
+         лимита. Когда разгон кузова снова может поглотить весь момент —
+         букса выключается.
+         Запрос считаем от РЕАЛЬНО переданного колёсам момента: если сцепление
+         не держит (выжато/буксует), дороге доступен лишь тот момент, что
+         реально передаёт сцепление, — иначе выжатое сцепление с газом в пол
+         «поехало» бы на непередаваемой тяге. */
+      const Mah=PHYS.MASS*Rw*Rw;               // кузов, приведённый к колёсам
+      const TracL=PHYS.TIRE_MU*PHYS.MASS*9.81*Rw;   // предел сцепления шин (у колёс)
+      const I2spin=ratio?(PHYS.ID+PHYS.IW/(ratio*ratio)):PHYS.ID; // диск+колёса без кузова
+
+      const canLock=e>0.02 && Math.abs(we-wd)<PHYS.SYNC_GAP && Math.abs(rigidNeedT)<=capE;
+      let tracNeed, TcT=0;
+      if(canLock){
+        /* сцепление держит в жёсткой модели — запрос тяги от разгона с кузовом */
+        tracNeed=Mah*(wAcc/ratio)+refS*ratio;
+      } else {
+        /* сцепление буксует (или выжато): до колёс доходит только Tc */
+        TcT=we>wd?capE:(we<wd?-capE:0);
+        tracNeed=TcT*ratio;
+      }
+      spin=ratio!==0 && Math.abs(tracNeed)>(TracL*(this.wheelSpin?0.96:1.05));
+      /* Пробуксовка живёт и дольше, пока колёса заметно обгоняют кузов: при
+         затяжной буксе на лимитере жёсткая оценка по моменту почти нулевая
+         (двигатель у лимитера уже не может разогнать колонну с кузовом), и
+         по ней букса «закончилась» при wc≪wa — кузов дёргался бы до уровня
+         wa рывком. Держим буксу, пока wc не приблизится к wa. */
+      const overrun=Math.abs(wa-wc);
+      if(ratio && overrun>(this.wheelSpin?0.5:0.9)) spin=true;
+      this.wheelSpin=spin;
+
+      if(spin){
+        /* дорога не держит — момент дороги равен пределу и всегда
+           противодействует проскальзыванию шин: колёса обгоняют кузов
+           (wa−wc>0) → тяга вперёд, кузов обгоняет колёса (торможение) →
+           тяга назад. Направление тут нельзя брать от момента в сцеплении:
+           при затяжной буксе на лимитере диск зажат красной зоной и может
+           крутиться быстрее коленвала — по сцеплению усилие читается
+           «тормозящим», и кузов встал бы на месте.
+           Величина тяги ограничена и тем, что реально может отдать транс-
+           миссия: слабый мотор не передаст дороге больше своего момента —
+           иначе «плавная» букса давала бы кузову тягу на весь предел шин. */
+        const tRef0=TracL/ratio;                 // предварительный разгон колонны
+        const wSAcc=canLock?(Te-Td-tRef0)/(PHYS.IE+I2spin):0;
+        const avW=canLock
+          ?Math.abs((Te-Td-PHYS.IE*wSAcc)*ratio)
+          :Math.abs(TcT*ratio);
+        tracL=Math.sign(wa-wc)*Math.min(TracL,avW);
+        const tRef=tracL/ratio;                  // приведён к коленвалу
+        if(canLock){
+          /* сцепление держит: колонна без кузова раскручивается на излишек */
+          const needTS=Te-Td-PHYS.IE*wSAcc;      // момент сцепления для раскрутки колонны
+          if(e>0.02 && Math.abs(we-wd)<PHYS.SYNC_GAP && Math.abs(needTS)<=capE){
+            locked=true;
+            const w0=(we+wd)/2;
+            we=w0; wd=w0;
+            we+=st*wSAcc; wd+=st*wSAcc;
+            if(ratio) wa=wd/ratio;
+          } else {
+            /* проскальзывание: передаём ёмкость сцепления в сторону раскрутки */
+            Tc=we>wd?capE:(we<wd?-capE:0);
+            we+=st*(Te-Td-Tc)/PHYS.IE;
+          }
+        } else {
+          /* сцепление буксует: колонна крутится на Tc минус тяга, колёса
+             раскручиваются на излишке */
+          Tc=we>wd?capE:(we<wd?-capE:0);
+          we+=st*(Te-Td-Tc)/PHYS.IE;
+        }
+        /* кузов едет на тяге в пределах лимита минус сопротивление */
+        wc+=st*(tracL-loadWheelNm(wc,this.brakeP))/Mah;
+      } else if(canLock){
         /* сцепление держит: коленвал и диск — одно целое */
         locked=true;
         const w0=(we+wd)/2;
@@ -505,10 +583,19 @@ export class Transmission{
 
     if(!locked){
       if(ratio){
-        const refS=this.crankLoad(wa,ratio)/ratio;
-        const wdAcc=(Tc-refS)/(PHYS.ID+IwEff/(ratio*ratio));
-        wd+=st*wdAcc;
-        wa=wd/ratio;
+        if(spin){
+          /* колонна без кузова: диск раскручивается на излишек момента,
+             который дорога не смогла передать кузову */
+          const wdAcc=(Tc-tracL/ratio)/(PHYS.ID+PHYS.IW/(ratio*ratio));
+          wd+=st*wdAcc;
+          wa=wd/ratio;
+        } else {
+          const refS=this.crankLoad(wa,ratio)/ratio;
+          const wdAcc=(Tc-refS)/(PHYS.ID+IwEff/(ratio*ratio));
+          wd+=st*wdAcc;
+          wa=wd/ratio;
+          wc=wa;
+        }
       } else {
         wd+=st*(Tc-PHYS.DISC_DRAG*wd)/PHYS.ID;
         /* «Останов» рассогласования: малая инерция диска за один кадр
@@ -521,6 +608,8 @@ export class Transmission{
         if(Tc>0 && wd>we) wd=we;
         if(Tc<0 && wd<we) wd=we;
       }
+    } else if(ratio && !spin){
+      wc=wa;
     }
     /* нейтраль: колёса отсоединены от трансмиссии — их замедление (качение,
        аэродинамика, тормоза) должно работать всегда, в т.ч. когда сцепление
@@ -530,6 +619,14 @@ export class Transmission{
     }
     we=Math.max(0,we);
     if(we>OVERREV_W) we=OVERREV_W;
+    /* красная зона: зубчатая пара жёсткая, поэтому диск и колёса не могут
+       крутиться быстрее лимита коленвала даже при пробуксовке. Без этого
+       лимита диск «улетает» за коленвал при затяжной буксографии на газе
+       в пол (800 л.с. на 1-й): кадр за кадром захват/проскальзывание
+       сцепления сменяют друг друга, и стрелка дёргается туда-сюда. */
+    if(wd>OVERREV_W) wd=OVERREV_W;
+    if(wd<-OVERREV_W) wd=-OVERREV_W;
+    if(ratio) wa=wd/ratio;
     /* выключенный двигатель не должен прокручивать вал и колёса «назад» из
        покоя: трение двигателя уводило сцепленную систему в минус, когда
        включена передача, — колонна медленно раскручивалась. Исключение —
@@ -541,6 +638,10 @@ export class Transmission{
       if(ratio && !revRoll && wa<0) wa=0;
     }
 
+    /* без пробуксовки кузов жёстко следует за колёсами (обнуления выше,
+       нейтраль, жёсткое качение — всё уже учтено в wa) */
+    if(!this.wheelSpin) wc=wa;
+
     /* запуск «с толкача»: если заглохший двигатель раскрутили колёсами
        через сцепление (перед этим сцепление выжимали) — он схватывает */
     if(this.engineState==='stalled' && e<0.5) this.bumpArmed=true;
@@ -549,7 +650,7 @@ export class Transmission{
       this.msg={html:'✅ Двигатель завёлся с толкача<small>Колёса раскрутили его через сцепление</small>',cls:'info',kind:'bump'};
     }
 
-    this.engOmega=we*k; this.dOmega=wd*k; this.aOmega=wa*k;
+    this.engOmega=we*k; this.dOmega=wd*k; this.aOmega=wa*k; this.wc=wc*k;
 
     this.thE+=this.engOmega*dt;
     this.discAng+=this.dOmega*dt;
