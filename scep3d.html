@@ -13,15 +13,15 @@
   /* ---------- ПАНЕЛЬ ПРИБОРОВ ---------- */
   #topUI{position:fixed;top:calc(8px + env(safe-area-inset-top));left:50%;
        transform:translateX(-50%);transform-origin:top center;z-index:12;
-       display:flex;gap:12px;align-items:center;padding:6px 14px;
+       display:flex;gap:12px;align-items:flex-start;padding:6px 14px;
        background:rgba(10,16,26,.88);border:1px solid #26374d;border-radius:20px;
        backdrop-filter:blur(4px);box-shadow:0 6px 24px rgba(0,0,0,.45);
        user-select:none;-webkit-user-select:none;pointer-events:none}
   .gauge{width:116px;flex:0 0 auto;align-self:stretch;display:flex;align-items:center}
   .gauge svg{display:block;width:100%;height:auto;filter:drop-shadow(0 2px 8px rgba(0,0,0,.5))}
 
-  #startBtn{position:relative;flex:0 0 auto;
-       width:66px;height:66px;border-radius:50%;border:none;cursor:pointer;padding:0;margin:0;
+  #startBtn{position:relative;flex:0 0 auto;margin:auto 0 4px 0;
+       width:66px;height:66px;border-radius:50%;border:none;cursor:pointer;padding:0;
        background:radial-gradient(circle at 34% 28%, #46586c 0%, #243141 46%, #0e1620 100%);
        color:#6cf09c;
        display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;
@@ -169,13 +169,23 @@
   #msg.warn{display:block;background:rgba(90,20,20,.82);color:#ffc2b7;border:2px solid rgba(192,57,43,.7);box-shadow:0 4px 20px rgba(192,57,43,.5)}
   #msg.info{display:block;background:rgba(18,49,79,.82);color:#a8d4ff;border:2px solid rgba(42,111,159,.7);box-shadow:0 4px 24px rgba(42,111,159,.45)}
 
-  /* ---------- ОКНО НАСТРОЕК ---------- */
-  #settingsBtn{position:fixed;top:calc(8px + env(safe-area-inset-top));right:calc(10px + env(safe-area-inset-right));
-       z-index:30;width:40px;height:40px;border-radius:50%;border:1px solid #26374d;cursor:pointer;padding:0;
-       background:rgba(10,16,26,.88);color:#a8d4ff;display:flex;align-items:center;justify-content:center;
-       box-shadow:0 4px 16px rgba(0,0,0,.45);-webkit-tap-highlight-color:transparent;transition:transform .08s ease,color .2s ease}
-  #settingsBtn:hover{background:rgba(18,30,46,.95);color:#7fb7ff}
-  #settingsBtn:active{transform:scale(.92)}
+  /* ---------- КНОПКА НАСТРОЕК — маленькая, притянута к верхнему правому
+     углу панели приборов (#topUI) ---------- */
+  #settingsBtn{position:absolute;top:6px;right:6px;flex:0 0 auto;
+       width:32px;height:32px;border-radius:50%;border:none;cursor:pointer;padding:0;margin:0;
+       background:radial-gradient(circle at 34% 28%, #3c4d66 0%, #202e40 46%, #0d1622 100%);
+       color:#a8d4ff;
+       display:flex;align-items:center;justify-content:center;
+       pointer-events:auto;touch-action:manipulation;
+       box-shadow:0 0 0 2px #33465c,0 0 0 4px #131c26,
+         inset 0 1px 3px rgba(255,255,255,.18),inset 0 -3px 6px rgba(0,0,0,.55),
+         0 2px 8px rgba(0,0,0,.5);
+       transition:transform .08s ease,box-shadow .25s ease,color .25s ease;
+       -webkit-tap-highlight-color:transparent}
+  #settingsBtn svg{display:block;width:15px;height:15px;filter:drop-shadow(0 0 3px currentColor)}
+  #settingsBtn:hover{background:radial-gradient(circle at 34% 28%, #47608a 0%, #273950 46%, #111d2e 100%);color:#dcecff}
+  #settingsBtn:active{transform:scale(.9);
+       box-shadow:0 0 0 2px #33465c,0 0 0 4px #131c26,0 0 10px rgba(120,180,255,.45)}
   #settingsOverlay{position:fixed;inset:0;z-index:40;background:rgba(4,8,14,.55);
        display:none;align-items:center;justify-content:center;padding:14px}
   #settingsOverlay.open{display:flex}
@@ -224,9 +234,11 @@
     #msg small{font-size:11px}
     .gauge{width:86px}
     #topUI{gap:8px;padding:5px 10px}
-    #startBtn{width:54px;height:54px}
+    #startBtn{width:54px;height:54px;margin:auto 0 3px 0}
     #startBtnTxt{font-size:8px;letter-spacing:.6px}
     #startBtn .pwr{width:15px;height:15px}
+    #settingsBtn{width:32px;height:32px;top:6px;right:6px}
+    #settingsBtn svg{width:15px;height:15px}
     #bottomUI{left:8px;right:8px;width:auto;padding:6px 6px}
     .pcol{flex:1 1 0;width:auto;min-width:0;padding:0 2px}
     .pcol.gearcol{flex:1.5 1 0;width:auto}
@@ -248,14 +260,6 @@
 </head>
 <body>
 <div id="msg" class="info">Нажмите «Старт», чтобы завести двигатель</div>
-
-<button id="settingsBtn" type="button" aria-label="Настройки">
-  <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"
-       stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-    <circle cx="12" cy="12" r="3"/>
-    <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09a1.65 1.65 0 0 0-1-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09a1.65 1.65 0 0 0 1.51-1 1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33h0a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51h0a1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82v0a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
-  </svg>
-</button>
 
 <div id="settingsOverlay">
   <div id="settingsPanel">
@@ -285,6 +289,13 @@
             stroke-linecap="round" fill="none"/>
     </svg>
     <span id="startBtnTxt">СТАРТ</span>
+  </button>
+  <button id="settingsBtn" type="button" aria-label="Настройки">
+    <svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="2"
+         stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <circle cx="12" cy="12" r="3"/>
+      <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09a1.65 1.65 0 0 0-1-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09a1.65 1.65 0 0 0 1.51-1 1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33h0a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51h0a1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82v0a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+    </svg>
   </button>
 </div>
 
