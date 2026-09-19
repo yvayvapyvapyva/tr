@@ -205,6 +205,20 @@
   #settingsReset{background:rgba(44,66,92,.5);color:#a8d4ff}
   #settingsReset:hover{background:rgba(56,82,112,.6)}
 
+  /* ---------- Кнопка раскрытия экспертных настроек ---------- */
+  #expertBtn{display:block;width:calc(100% - 20px);margin:6px 10px 0;padding:10px 12px;
+       border:none;border-radius:10px;cursor:pointer;
+       background:rgba(44,66,92,.4);color:#8fa3bb;
+       font-family:Arial,sans-serif;font-size:12.5px;font-weight:bold;letter-spacing:.4px;
+       text-align:center;text-transform:uppercase;
+       -webkit-tap-highlight-color:transparent;transition:background .15s ease,color .15s ease}
+  #expertBtn:hover{background:rgba(56,82,112,.55);color:#c6d9ee}
+  #expertBtn .exptxt{display:inline}
+  #expertBtn.open .exptxt{display:none}
+  #expertBtn .expopen{display:none}
+  #expertBtn.open .expopen{display:inline}
+  #expertWrap{display:none;border-top:1px dashed #26374d;margin-top:10px;padding-top:2px}
+
   @media (max-width:760px){
     #msg{font-size:13px;padding:10px 14px;top:calc(108px + env(safe-area-inset-top));max-width:94vw}
     #msg small{font-size:11px}
@@ -250,6 +264,10 @@
       <button id="settingsClose" type="button" aria-label="Закрыть">✕</button>
     </div>
     <div id="settingsBody"></div>
+    <button id="expertBtn" type="button">
+      <span class="exptxt">⚙ Экспертные настройки</span>
+      <span class="expopen">▾ Скрыть экспертные настройки</span>
+    </button>
     <div id="settingsFoot">
       <button id="settingsReset" type="button">Сбросить</button>
       <button id="settingsApply" type="button">Применить</button>
@@ -336,7 +354,7 @@
 import * as THREE from 'three';
 import {OrbitControls} from 'three/addons/controls/OrbitControls.js';
 import {Transmission, refreshDerived, enginePowerPS} from './transmission.js';
-import {PHYS, GATE_X, ROW_Y, CAR, SETTINGS, cfgGet, cfgSet} from './carConfig.js';
+import {PHYS, GATE_X, ROW_Y, CAR, SETTINGS, EXPERT_SETTINGS, cfgGet, cfgSet} from './carConfig.js';
 
 const tg = window.Telegram?.WebApp;
 if (tg) {
@@ -595,27 +613,32 @@ function rebuildTacho(){
     divider:1000, color:'#ffd166', needle:'#ff6b4a', unit:'×1000'});
 }
 
+function renderGroup(g, wrap){
+  const h=document.createElement('h4'); h.textContent=g.title; wrap.appendChild(h);
+  if(g.desc){ const p=document.createElement('p'); p.className='gdesc'; p.textContent=g.desc; wrap.appendChild(p); }
+  g.fields.forEach(f=>{
+    const row=document.createElement('div'); row.className='settingsRow';
+    const lab=document.createElement('div'); lab.className='slab';
+    const name=document.createElement('div'); name.className='sname'; name.textContent=f.label;
+    const desc=document.createElement('div'); desc.className='sdesc'; desc.textContent=f.desc;
+    lab.appendChild(name); lab.appendChild(desc);
+    const inp=document.createElement('input');
+    inp.type=f.type==='text'?'text':'number';
+    if(f.step!=null) inp.step=f.step;
+    row.appendChild(lab); row.appendChild(inp);
+    wrap.appendChild(row);
+    settingsFields.push({f,inp});
+    if(!(f.path in defaultValues)) defaultValues[f.path]=cfgGet(f.path);
+  });
+}
 function buildSettings(){
   settingsBody.innerHTML='';
   settingsFields.length=0;
-  SETTINGS.forEach(g=>{
-    const h=document.createElement('h4'); h.textContent=g.title; settingsBody.appendChild(h);
-    if(g.desc){ const p=document.createElement('p'); p.className='gdesc'; p.textContent=g.desc; settingsBody.appendChild(p); }
-    g.fields.forEach(f=>{
-      const row=document.createElement('div'); row.className='settingsRow';
-      const lab=document.createElement('div'); lab.className='slab';
-      const name=document.createElement('div'); name.className='sname'; name.textContent=f.label;
-      const desc=document.createElement('div'); desc.className='sdesc'; desc.textContent=f.desc;
-      lab.appendChild(name); lab.appendChild(desc);
-      const inp=document.createElement('input');
-      inp.type=f.type==='text'?'text':'number';
-      if(f.step!=null) inp.step=f.step;
-      row.appendChild(lab); row.appendChild(inp);
-      settingsBody.appendChild(row);
-      settingsFields.push({f,inp});
-      if(!(f.path in defaultValues)) defaultValues[f.path]=cfgGet(f.path);
-    });
-  });
+  SETTINGS.forEach(g=>renderGroup(g, settingsBody));
+  const expWrap=document.createElement('div');
+  expWrap.id='expertWrap';
+  EXPERT_SETTINGS.forEach(g=>renderGroup(g, expWrap));
+  settingsBody.appendChild(expWrap);
 }
 function loadSettings(){
   settingsFields.forEach(({f,inp})=>{ inp.value=String(cfgGet(f.path)); });
@@ -642,6 +665,17 @@ document.getElementById('settingsReset').addEventListener('click', ()=>{
   applySettings();
 });
 buildSettings();
+
+/* ============ ЭКСПЕРТНЫЕ НАСТРОЙКИ ============ */
+const expertBtn=document.getElementById('expertBtn');
+const expertWrap=document.getElementById('expertWrap');
+let expertOpen=false;
+expertWrap.style.display='none';
+expertBtn.addEventListener('click',()=>{
+  expertOpen=!expertOpen;
+  expertWrap.style.display=expertOpen?'block':'none';
+  expertBtn.classList.toggle('open',expertOpen);
+});
 
 /* ============ СХЕМА «Ж» ============ */
 const gateSvg=document.getElementById('gateSvg');
