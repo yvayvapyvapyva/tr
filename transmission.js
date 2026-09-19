@@ -101,6 +101,13 @@ function loadWheelNm(wa,br){
         + PHYS.BRAKE_F*br*sign)*PHYS.RWHEEL;
 }
 
+/* Насосные потери двигателя, Н·м. Константы заданы в конфиге для базовой
+   мощности PWR_REF_PS и масштабируются текущей мощностью так же, как кривая
+   момента: поменяли мощность — потери изменились пропорционально. */
+function pumpDragNm(rpm){
+  return (PHYS.CLOSE_DRAG_B + PHYS.CLOSE_DRAG_K*rpm) * (PHYS.PWR_PS/PWR_REF_PS);
+}
+
 export class Transmission{
   constructor(){
     this.reset();
@@ -402,7 +409,7 @@ export class Transmission{
          (gov>0), поэтому здесь они не мешают. */
       const closure=Math.max(0, Math.min(1, 1-this.gasP/PHYS.GAS_CLOSE_POS));
       if(gov<=0.01 && closure>0)
-        Td+=(PHYS.CLOSE_DRAG_B+PHYS.CLOSE_DRAG_K*rpm)*closure;
+        Td+=pumpDragNm(rpm)*closure;
     } else if(this.engineState==='cranking'){
       /* стартер — машина постоянного тока с ограниченным моментом:
          максимален на нулевых оборотах и падает до 0 на холостом ходу.
@@ -413,13 +420,13 @@ export class Transmission{
       const rpm=we*RPM_C;
       Te=Math.max(0,PHYS.START_TQ*(1-rpm/PHYS.START_FREE_RPM));
       Td=PHYS.ENG_DRAG_B+PHYS.ENG_DRAG_K*rpm
-        +PHYS.CLOSE_DRAG_B+PHYS.CLOSE_DRAG_K*rpm;
+        +pumpDragNm(rpm);
     } else {
       /* двигатель не работает: горения нет, только трение и компрессия.
          Колёса через сцепление при этом могут раскрутить коленвал. */
       const rpm=we*RPM_C;
       Td=PHYS.ENG_DRAG_B+PHYS.ENG_DRAG_K*rpm
-        +PHYS.CLOSE_DRAG_B+PHYS.CLOSE_DRAG_K*rpm;
+        +pumpDragNm(rpm);
     }
 
     /* сцепление работает всегда, включая момент работы стартера:
