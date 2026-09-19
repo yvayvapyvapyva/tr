@@ -561,8 +561,17 @@ function buildGauge(svg,cfg){
       fill:'none',stroke:'#2fae5f','stroke-width':5,opacity:.95}));
   }
   if(cfg.redFrom!=null){
-    svg.appendChild(mkEl('path',{d:arcPath(46,cfg.redFrom/cfg.max,1),
+    const redEnd=cfg.redTo!=null?Math.min(1,cfg.redTo/cfg.max):1;
+    svg.appendChild(mkEl('path',{d:arcPath(46,cfg.redFrom/cfg.max,redEnd),
       fill:'none',stroke:'#d6402c','stroke-width':5,opacity:.9}));
+  }
+  /* красная риска отсечки: короткая толстая метка на внешнем кольце
+     точно в положении отсечки — выше неё коленвал не раскрутится */
+  if(cfg.cutAt!=null){
+    const half=Math.max(30,cfg.max*0.008);
+    const c0=Math.max(0,(cfg.cutAt-half)/cfg.max), c1=Math.min(1,(cfg.cutAt+half)/cfg.max);
+    svg.appendChild(mkEl('path',{d:arcPath(50,c0,c1),
+      fill:'none',stroke:'#ff3b30','stroke-width':6,opacity:.95}));
   }
   const n=Math.round(cfg.max/cfg.step);
   for(let i=0;i<=n;i++){
@@ -605,8 +614,9 @@ function setGauge(g,value){
   g.needle.setAttribute('transform','rotate('+(GA_A0 + t*(GA_A1-GA_A0)).toFixed(2)+')');
 }
 let tacho=buildGauge(document.getElementById('tachoSvg'),{
-  max:PHYS.REV_LIM, step:250, major:1000, redFrom:PHYS.REV_MAX, greenFrom:1500, greenTo:2500,
-  divider:1000, color:'#ffd166', needle:'#ff6b4a', unit:'×1000'});
+  max:PHYS.REV_LIM, step:250, major:1000, redFrom:PHYS.REV_MAX, redTo:PHYS.RED_TO,
+  greenFrom:PHYS.GREEN_FROM, greenTo:PHYS.GREEN_TO,
+  divider:1000, color:'#ffd166', needle:'#ff6b4a', unit:'×1000', cutAt:PHYS.REV_CUT});
 const speedo=buildGauge(document.getElementById('speedoSvg'),{
   max:180, step:10, major:20, divider:1, numSize:8,
   color:'#6cf09c', needle:'#6cf09c', unit:'км/ч'});
@@ -620,8 +630,9 @@ const defaultValues={}; // заводские значения — снимок 
 
 function rebuildTacho(){
   tacho=buildGauge(document.getElementById('tachoSvg'),{
-    max:PHYS.REV_LIM, step:250, major:1000, redFrom:PHYS.REV_MAX, greenFrom:1500, greenTo:2500,
-    divider:1000, color:'#ffd166', needle:'#ff6b4a', unit:'×1000'});
+    max:PHYS.REV_LIM, step:250, major:1000, redFrom:PHYS.REV_MAX, redTo:PHYS.RED_TO,
+    greenFrom:PHYS.GREEN_FROM, greenTo:PHYS.GREEN_TO,
+    divider:1000, color:'#ffd166', needle:'#ff6b4a', unit:'×1000', cutAt:PHYS.REV_CUT});
 }
 
 function renderGroup(g, wrap){

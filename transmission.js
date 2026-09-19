@@ -19,10 +19,13 @@ const GEAR_NODES=[
 /* производные величины — пересчитываются после изменения настроек */
 const RPM_C=60/(2*Math.PI);       // рад/с → об/мин
 let IDLE_W=PHYS.IDLE_RPM*Math.PI/30;
-let OVERREV_W=PHYS.REV_LIM*Math.PI/30;
+let OVERREV_W=PHYS.REV_LIM*Math.PI/30;   // жёсткий лимит (страховка, по нему тахометр)
+let OVERREV_CUT=PHYS.REV_CUT*Math.PI/30; // отсечка — искусственный ограничитель
 export function refreshDerived(){
   IDLE_W=PHYS.IDLE_RPM*Math.PI/30;
   OVERREV_W=PHYS.REV_LIM*Math.PI/30;
+  OVERREV_CUT=PHYS.REV_CUT*Math.PI/30;
+  if(OVERREV_CUT>OVERREV_W) OVERREV_CUT=OVERREV_W; // отсечка не выше жёсткого лимита
 }
 
 function nodePos(g){
@@ -157,6 +160,7 @@ export class Transmission{
     this.brakeLevel=0;
     this.idleI=0;
     this.bumpArmed=false;
+    this.cutOn=false;
   }
 
   setClutch(v){ this.p=v; }
@@ -429,6 +433,18 @@ export class Transmission{
       }
       Te=Math.min(TeMax, Math.max(gov, Tpw+corr));
 
+      /* Отсечка — искусственный ограничитель: выше неё подача режется
+         (момент 0), и даже на полном газе коленвал не раскручивается выше.
+         Гистерезис ~150 об/мин, чтобы не дрожать на границе. Жёсткий лимит
+         (OVERREV_W, по нему строится тахометр) — отдельная страховка выше. */
+      const CUT_HYS_W=150*Math.PI/30;
+      if(this.cutOn){
+        if(we<OVERREV_CUT-CUT_HYS_W) this.cutOn=false;
+      } else {
+        if(we>OVERREV_CUT) this.cutOn=true;
+      }
+      if(this.cutOn) Te=0;
+
       Td=engDragNm(rpm);
       /* закрытый дроссель: насосные потери (торможение двигателем)
          плавно растут при отпускании педали — от полного газа (0) до
@@ -619,6 +635,7 @@ export class Transmission{
     }
     we=Math.max(0,we);
     if(we>OVERREV_W) we=OVERREV_W;
+    if(we>OVERREV_CUT) we=OVERREV_CUT; /* отсечка — обороты не выше неё никогда */
     /* красная зона: зубчатая пара жёсткая, поэтому диск и колёса не могут
        крутиться быстрее лимита коленвала даже при пробуксовке. Без этого
        лимита диск «улетает» за коленвал при затяжной буксографии на газе
