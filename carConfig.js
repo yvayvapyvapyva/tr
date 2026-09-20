@@ -270,6 +270,6 @@ export const PHYS = {
   PEDAL_RETURN_CLUTCH: false,
   PEDAL_RETURN_BRAKE: true,
   PEDAL_RETURN_GAS: false,
-  SHOW_HOLD_GAUGE: true,
-  SHOW_COM_GAUGES: true,
+  SHOW_HOLD_GAUGE: false,
+  SHOW_COM_GAUGES: false,
 };

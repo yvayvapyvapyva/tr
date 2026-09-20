@@ -383,7 +383,7 @@
 <div id="view"></div>
 
 <!-- Динамический индикатор зоны удержания: отдельный элемент у левого края, по центру -->
-<div id="holdGauge" title="Зона удержания сцепления: зелёная метка — предел отпускания, голубая — текущая педаль">
+<div id="holdGauge" class="off" title="Зона удержания сцепления: зелёная метка — предел отпускания, голубая — текущая педаль">
   <div class="hgScale" id="hgScale"></div>
   <div class="hgNow" id="hgNow"></div>
   <div class="hgLimit" id="hgLimit"></div>
@@ -1642,6 +1642,7 @@ rebuildScomScales();
 function updateGaugeVisibility(){
   scomGaugesEl.style.display = PHYS.SHOW_COM_GAUGES ? '' : 'none';
 }
+updateGaugeVisibility();
 
 function highlightScale(data, pct){
   const lim=pct*100;
