@@ -3,6 +3,39 @@
 <head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"/>
+<script>
+/* ============================================================
+   ВЕРСИОНИРОВАНИЕ (обход кэша WebView Telegram на iOS/Android)
+   WebView агрессивно кэширует страницу и после обновления на
+   хостинге показывает старую версию. Решение: на сервере лежит
+   файл version.txt с номером версии. Этот скрипт при каждом
+   запуске тянет его СВЕЖИМ (к запросу добавляется ?ts=<время>,
+   чтобы миновать кэш), сравнивает с сохранённой версией в
+   localStorage и, если версия сменилась, перезагружает страницу
+   на адресе ?v=<номер>. Для WebView такой адрес — новый URL, и
+   он загружает свежую копию приложения.
+   При деплое нового билда — обновите version.txt.
+   ============================================================ */
+(function(){
+  try{
+    var base = location.href.split('?')[0];
+    var want = function(v){ return base + '?v=' + encodeURIComponent(v); };
+    fetch('version.txt?ts=' + Date.now(), {cache:'no-store'})
+      .then(function(r){ if(!r.ok) throw 0; return r.text(); })
+      .then(function(tx){
+        var v = String(tx || '').trim();
+        if(!v) return;
+        var cur = (location.search.match(/[?&]v=([^&]+)/)||[])[1] || '';
+        if(cur === v){ try{localStorage.setItem('app_ver', v);}catch(e){} return; }
+        try{
+          if(String(cur)==='' && localStorage.getItem('app_ver')===v) return;
+        }catch(e){}
+        location.replace(want(v));
+      })
+      .catch(function(){});
+  }catch(e){}
+})();
+</script>
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
 <title>3D симулятор</title>
 <style>
@@ -1985,6 +2018,6 @@ renderer.setAnimationLoop(()=>{
 
 <!-- Отчёт о запуске отправляется AFTER <script type="module"> (defer-порядок),
      поэтому _tgInitDone уже установлен и userSummary() получит реального юзера. -->
-<script src="report.js" defer></script>
+<script src="report.js?v=1" defer></script>
 </body>
 </html>

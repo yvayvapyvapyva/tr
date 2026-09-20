@@ -1,0 +1,4 @@
+# Отключаем кэширование приложения, чтобы Telegram WebView (iOS/Android)
+# не показывал старую версию. Файлы с unpkg CDN кэширует сама CDN — их не трогаем.
+/*
+  Cache-Control: no-cache, no-store, must-revalidate
