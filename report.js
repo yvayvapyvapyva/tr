@@ -103,19 +103,26 @@
         return !!(wa && wa.initDataUnsafe && (wa.initDataUnsafe.user || wa.initDataUnsafe.auth_date));
     }
 
-    /* Ждём инициализацию Telegram опросом (500 мс), максимум MAX_TRIES попыток
-       (~12 с). Как только SDK готов — сразу шлём отчёт с полными данными юзера.
-       Если за всё время так и не инициализировался (нет сети / открыт в браузере) —
-       отправляем «как есть», чтобы запуск не потерялся совсем. */
-    function waitTelegramAndReport(tries) {
-        if (tgReady()) return sendLaunchReportOnce();
-        if (tries <= 0) return sendLaunchReportOnce();
-        setTimeout(function () { waitTelegramAndReport(tries - 1); }, 500);
+    /* Ждём инициализацию Telegram опросом каждые 500 мс до 60 секунд.
+       Обычно SDK готов за 1–2 с, но на холодном старте / медленной сети (а также
+       при «свежем» первом запуске) он может инициализироваться позже — раньше 12 с
+       не хватало, и отчёт уходил с 'default'. Отправляем, когда:
+        1) SDK полностью готов (есть данные юзера), либо
+        2) прошло >10 с и WebApp появился, но юзера нет (открыт вне Telegram),
+        3) жёстко по истечении 60 с — чтобы запуск не потерялся совсем. */
+    var _t0 = Date.now();
+    function waitTelegramAndReport() {
+        var elapsed = Date.now() - _t0;
+        var wa = window.Telegram && window.Telegram.WebApp;
+        if (tgReady() || (wa && elapsed > 10000) || elapsed > 60000) {
+            return sendLaunchReportOnce();
+        }
+        setTimeout(waitTelegramAndReport, 500);
     }
 
     window.sendLaunchReport = sendLaunchReport;
 
     if (window.disableLaunchReport !== true) {
-        waitTelegramAndReport(24);
+        waitTelegramAndReport();
     }
 })();
