@@ -554,9 +554,14 @@ const WHEEL_R=2.32;
    привязанным к дороге. Дальний проезд зациклен — мимо столба можно
    проезжать много раз. */
 (function makeRoadSign(){
-  const W=1200, H=400;
-  const c=document.createElement('canvas'); c.width=W; c.height=H;
+  const FONT='bold 92px Arial';
+  const H=320;
+  const c=document.createElement('canvas');
   const k=c.getContext('2d');
+  k.font=FONT;
+  const tw=Math.max(k.measureText('ЭНЦИКЛОПЕДИЯ').width,k.measureText('ВОЖДЕНИЯ').width);
+  const W=Math.ceil(tw+140);       /* ширина вплотную к тексту: поля + рамка */
+  c.width=W; c.height=H;
   const g=k.createLinearGradient(0,0,0,H);
   g.addColorStop(0,'#e5311f'); g.addColorStop(0.5,'#b91608'); g.addColorStop(1,'#e5311f');
   k.fillStyle=g; k.fillRect(0,0,W,H);
@@ -564,14 +569,16 @@ const WHEEL_R=2.32;
   for(let i=0;i<80;i++){
     k.fillRect(Math.random()*W,Math.random()*H,2+Math.random()*3,1);
   }
-  k.strokeStyle='#000'; k.lineWidth=18; k.strokeRect(9,9,W-18,H-18);   /* чёрная окантовка */
-  k.strokeStyle='#000'; k.lineWidth=3;  k.strokeRect(31,31,W-62,H-62);
+  k.strokeStyle='#000'; k.lineWidth=16; k.strokeRect(5,5,W-10,H-10);   /* чёрная окантовка */
+  k.strokeStyle='#000'; k.lineWidth=2;  k.strokeRect(20,20,W-40,H-40);
   k.textAlign='center'; k.textBaseline='middle';
-  k.font='bold 76px Arial'; k.lineJoin='round';
+  k.font=FONT; k.lineJoin='round';
   k.strokeStyle='#000'; k.lineWidth=12;
-  k.strokeText('ЭНЦИКЛОПЕДИЯ ВОЖДЕНИЯ', W/2, H/2+2);
+  k.strokeText('ЭНЦИКЛОПЕДИЯ', W/2, H/2-52);
+  k.strokeText('ВОЖДЕНИЯ', W/2, H/2+52);
   k.fillStyle='#fff';
-  k.fillText('ЭНЦИКЛОПЕДИЯ ВОЖДЕНИЯ', W/2, H/2+2);
+  k.fillText('ЭНЦИКЛОПЕДИЯ', W/2, H/2-52);
+  k.fillText('ВОЖДЕНИЯ', W/2, H/2+52);
   const tex=new THREE.CanvasTexture(c);
   tex.minFilter=THREE.LinearFilter; tex.anisotropy=renderer.capabilities.getMaxAnisotropy();
   const mat=new THREE.MeshBasicMaterial({map:tex,side:THREE.DoubleSide});
@@ -579,11 +586,10 @@ const WHEEL_R=2.32;
   const SIGN_GROUP=new THREE.Group();
   window.SIGN_GROUP=SIGN_GROUP;
 
-  /* щит знака (надпись) — повёрнут лицевой стороной в сторону сцены */
-  const SIGN_W=11;
+  /* щит знака (надпись) — лицевой стороной к пользователю (+z, к камере) */
+  const SIGN_W=5.5;
   const sign=new THREE.Mesh(new THREE.PlaneGeometry(SIGN_W,SIGN_W*H/W),mat);
   sign.position.set(0,3.0,0);
-  sign.rotation.y=Math.PI/2;
   sign.userData.noFit=true;
   SIGN_GROUP.add(sign);
 
