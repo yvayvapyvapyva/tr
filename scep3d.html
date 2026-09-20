@@ -547,6 +547,80 @@ function makeAsphalt(){
 const asphaltGround=makeAsphalt();
 const WHEEL_R=2.32;
 
+/* ============ ДОРОЖНЫЙ ЗНАК НА СТОЛБЕ ============
+   Знак «ЭНЦИКЛОПЕДИЯ ВОЖДЕНИЯ» стоит у обочины и движется вместе
+   с проезжающим асфальтом: каждая полная «лента» дороги (одна текстура
+   = 8.333 у.е.) сдвигает столб ровно на свою длину, поэтому знак выглядит
+   привязанным к дороге. Дальний проезд зациклен — мимо столба можно
+   проезжать много раз. */
+(function makeRoadSign(){
+  const W=1200, H=400;
+  const c=document.createElement('canvas'); c.width=W; c.height=H;
+  const k=c.getContext('2d');
+  const g=k.createLinearGradient(0,0,0,H);
+  g.addColorStop(0,'#e5311f'); g.addColorStop(0.5,'#b91608'); g.addColorStop(1,'#e5311f');
+  k.fillStyle=g; k.fillRect(0,0,W,H);
+  k.fillStyle='rgba(60,4,0,0.14)';
+  for(let i=0;i<80;i++){
+    k.fillRect(Math.random()*W,Math.random()*H,2+Math.random()*3,1);
+  }
+  k.strokeStyle='#000'; k.lineWidth=18; k.strokeRect(9,9,W-18,H-18);   /* чёрная окантовка */
+  k.strokeStyle='#000'; k.lineWidth=3;  k.strokeRect(31,31,W-62,H-62);
+  k.textAlign='center'; k.textBaseline='middle';
+  k.font='bold 76px Arial'; k.lineJoin='round';
+  k.strokeStyle='#000'; k.lineWidth=12;
+  k.strokeText('ЭНЦИКЛОПЕДИЯ ВОЖДЕНИЯ', W/2, H/2+2);
+  k.fillStyle='#fff';
+  k.fillText('ЭНЦИКЛОПЕДИЯ ВОЖДЕНИЯ', W/2, H/2+2);
+  const tex=new THREE.CanvasTexture(c);
+  tex.minFilter=THREE.LinearFilter; tex.anisotropy=renderer.capabilities.getMaxAnisotropy();
+  const mat=new THREE.MeshBasicMaterial({map:tex,side:THREE.DoubleSide});
+
+  const SIGN_GROUP=new THREE.Group();
+  window.SIGN_GROUP=SIGN_GROUP;
+
+  /* щит знака (надпись) — повёрнут лицевой стороной в сторону сцены */
+  const SIGN_W=11;
+  const sign=new THREE.Mesh(new THREE.PlaneGeometry(SIGN_W,SIGN_W*H/W),mat);
+  sign.position.set(0,3.0,0);
+  sign.rotation.y=Math.PI/2;
+  sign.userData.noFit=true;
+  SIGN_GROUP.add(sign);
+
+  /* столб: от асфальта до нижнего края щита */
+  const groundY=-3.835;
+  const signH=SIGN_W*H/W;
+  const postH=3.0-signH/2-groundY;
+  const post=new THREE.Mesh(
+    new THREE.CylinderGeometry(0.16,0.22,postH,16),
+    new THREE.MeshStandardMaterial({color:0x2e333a,metalness:.6,roughness:.5})
+  );
+  post.position.y=groundY+postH/2;
+  post.userData.noFit=true;
+  SIGN_GROUP.add(post);
+
+  /* небольшой кронштейн между столбом и щитом */
+  const brace=new THREE.Mesh(
+    new THREE.BoxGeometry(.5,.18,.5),
+    new THREE.MeshStandardMaterial({color:0x7a2416,metalness:.5,roughness:.5})
+  );
+  brace.position.y=3.0-signH/2+.09;
+  brace.userData.noFit=true;
+  SIGN_GROUP.add(brace);
+
+  /* зона зацикливания: знак движется в ногу с качением асфальта,
+     приклеенный к дороге. phase=42 смещает старт к центру (z = −20),
+     но граница сброса цикла остаётся в конце сцены (−62): после
+     зацикливания знак всегда появляется из глубины, а не с места старта */
+  SIGN_GROUP.userData.z0=62;
+  SIGN_GROUP.userData.cycle=80;
+  SIGN_GROUP.userData.phase=42;
+
+  SIGN_GROUP.position.set(-12.9,0,-SIGN_GROUP.userData.z0+SIGN_GROUP.userData.phase);
+  SIGN_GROUP.userData.noFit=true;
+  scene.add(SIGN_GROUP);
+})();
+
 function resize(){
   const v=window.visualViewport;
   const w=(v && v.width>0) ? v.width : innerWidth;
@@ -1831,6 +1905,14 @@ renderer.setAnimationLoop(()=>{
   const gOff = wheelAngle * WHEEL_R / (100/12);
   asphaltGround.tex.offset.y = gOff % 1;
   asphaltGround.lineTex.offset.y = (gOff * (8.334/12.8)) % 1;
+  /* дорожный знак движется синхронно с асфальтом и зациклен,
+     чтобы мимо столба можно было проезжать многократно */
+  if(window.SIGN_GROUP){
+    const sg=window.SIGN_GROUP;
+    const cycle=sg.userData.cycle;
+    const d=((wheelAngle*WHEEL_R+sg.userData.phase)%cycle+cycle)%cycle;
+    sg.position.z=-sg.userData.z0+d;
+  }
 
   for(let i=0;i<cylXs.length;i++){
     const x=cylXs[i], psi=sim.thE+phases[i];
