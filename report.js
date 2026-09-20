@@ -16,7 +16,6 @@
 
     function sendReportMessage(lines) {
         try {
-            lines = lines.concat(['— via Cloudflare ☁️']);
             const text = lines.filter(l => l !== null).join('\n');
             if (!text) return;
             const headers = { 'Content-Type': 'application/json' };
@@ -46,6 +45,30 @@
         return userPart + (tags.length ? ' | ' + tags.join(' · ') : '');
     }
 
+    // Устройство из user agent: только имя модели и ОС — без длинной строки UA.
+    function deviceFromUA(ua) {
+        if (!ua) return null;
+        let m = ua.match(/iPhone; CPU iPhone OS (\d+[_\d]*)/);
+        if (m) return 'iPhone (iOS ' + m[1].replace(/_/g, '.') + ')';
+        m = ua.match(/iPad;.*?OS (\d+[_\d]*)/);
+        if (m) return 'iPad (iOS ' + m[1].replace(/_/g, '.') + ')';
+        m = ua.match(/Android ([\d.]+);\s*([^)]+)/);
+        if (m) return (m[2].trim() || 'Android') + ' (Android ' + m[1] + ')';
+        if (/Macintosh/.test(ua)) return 'Mac';
+        if (/Windows/.test(ua)) return 'PC (Windows)';
+        if (/Linux/.test(ua)) return 'Linux';
+        return null;
+    }
+
+    // Компактные сведения об устройстве: экран, язык, модель устройства.
+    function deviceInfo() {
+        const parts = [];
+        parts.push((screen && screen.width && screen.height) ? screen.width + 'x' + screen.height : '?');
+        parts.push(navigator.language || '?');
+        parts.push(deviceFromUA(navigator.userAgent || '') || '?');
+        return 'd:' + parts.join(',');
+    }
+
     function sendLaunchReport() {
         try {
             const wa = window.Telegram && window.Telegram.WebApp;
@@ -59,6 +82,7 @@
             if (wa) chat.push(wa.platform, 'WebApp ' + wa.version);
             else chat.push('unknown', 'WebApp 6.0');
             lines.push('chat: ' + chat.join(' · '));
+            lines.push(deviceInfo());
             lines.push(new Date().toLocaleString('ru-RU'));
             sendReportMessage(lines);
         } catch (e) {}
@@ -71,21 +95,27 @@
         sendLaunchReport();
     }
 
+    /* Готовность SDK Telegram: WebApp инициализирован и есть данные пользователя.
+       Проверяем асинхронно — скрипт telegram-web-app.js грузится с сети и может
+       выполниться позже, чем report.js (defer). */
+    function tgReady() {
+        var wa = window.Telegram && window.Telegram.WebApp;
+        return !!(wa && wa.initDataUnsafe && (wa.initDataUnsafe.user || wa.initDataUnsafe.auth_date));
+    }
+
+    /* Ждём инициализацию Telegram опросом (500 мс), максимум MAX_TRIES попыток
+       (~12 с). Как только SDK готов — сразу шлём отчёт с полными данными юзера.
+       Если за всё время так и не инициализировался (нет сети / открыт в браузере) —
+       отправляем «как есть», чтобы запуск не потерялся совсем. */
+    function waitTelegramAndReport(tries) {
+        if (tgReady()) return sendLaunchReportOnce();
+        if (tries <= 0) return sendLaunchReportOnce();
+        setTimeout(function () { waitTelegramAndReport(tries - 1); }, 500);
+    }
+
     window.sendLaunchReport = sendLaunchReport;
 
     if (window.disableLaunchReport !== true) {
-        // Отчёт о запуске отправляем только после того, как Telegram
-        // проинициализирован — иначе userSummary() вернёт 'default'.
-        if (window._tgInitDone) {
-            sendLaunchReportOnce();
-        } else if (typeof window.onTgReady === 'function') {
-            window.onTgReady(sendLaunchReportOnce);
-            // Резерв: если SDK Telegram так и не загрузился (недоступен/заблокирован),
-            // через 6 секунд всё равно отправляем анонимный отчёт, чтобы запуск
-            // не потерялся совсем.
-            setTimeout(sendLaunchReportOnce, 6000);
-        } else {
-            sendLaunchReportOnce();
-        }
+        waitTelegramAndReport(24);
     }
 })();
