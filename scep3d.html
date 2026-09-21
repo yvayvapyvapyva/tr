@@ -242,6 +242,24 @@
   #msg.warn{display:block;background:rgba(90,20,20,.82);color:#ffc2b7;border:2px solid rgba(192,57,43,.7);box-shadow:0 4px 20px rgba(192,57,43,.5)}
   #msg.info{display:block;background:rgba(18,49,79,.82);color:#a8d4ff;border:2px solid rgba(42,111,159,.7);box-shadow:0 4px 24px rgba(42,111,159,.45)}
 
+  /* ---------- КНОПКА СПРАВКИ — слева от кнопки настроек ---------- */
+  #helpBtn{position:absolute;top:6px;right:56px;flex:0 0 auto;
+       width:32px;height:32px;border-radius:50%;border:none;cursor:pointer;padding:0;margin:0;
+       background:radial-gradient(circle at 34% 28%, #3c4d66 0%, #202e40 46%, #0d1622 100%);
+       color:#a8d4ff;
+       display:flex;align-items:center;justify-content:center;
+       pointer-events:auto;touch-action:manipulation;
+       box-shadow:0 0 0 2px #33465c,0 0 0 4px #131c26,
+         inset 0 1px 3px rgba(255,255,255,.18),inset 0 -3px 6px rgba(0,0,0,.55),
+         0 2px 8px rgba(0,0,0,.5);
+       transition:transform .08s ease,box-shadow .25s ease,color .25s ease;
+       -webkit-tap-highlight-color:transparent}
+  #helpBtn svg{display:block;width:15px;height:15px;fill:none;
+       filter:drop-shadow(0 0 3px currentColor)}
+  #helpBtn:hover{background:radial-gradient(circle at 34% 28%, #47608a 0%, #273950 46%, #111d2e 100%);color:#dcecff}
+  #helpBtn:active{transform:scale(.9);
+       box-shadow:0 0 0 2px #33465c,0 0 0 4px #131c26,0 0 10px rgba(120,180,255,.45)}
+
   /* ---------- КНОПКА НАСТРОЕК — маленькая, притянута к верхнему правому
      углу панели приборов (#topUI) ---------- */
   #settingsBtn{position:absolute;top:6px;right:6px;flex:0 0 auto;
@@ -299,6 +317,33 @@
   #settingsReset{background:rgba(44,66,92,.5);color:#a8d4ff}
   #settingsReset:hover{background:rgba(56,82,112,.6)}
 
+  /* ---------- ОКНО СПРАВКИ ---------- */
+  #helpOverlay{position:fixed;inset:0;z-index:40;background:rgba(4,8,14,.55);
+       display:none;align-items:center;justify-content:center;
+       padding:calc(60px + env(safe-area-inset-top)) 14px 14px}
+  #helpOverlay.open{display:flex}
+  #helpPanel{width:min(500px,96vw);
+       max-height:calc(100vh - 60px - 14px - env(safe-area-inset-top));
+       background:rgba(13,21,32,.97);border:1px solid #2b3f58;border-radius:16px;
+       box-shadow:0 18px 50px rgba(0,0,0,.6);display:flex;flex-direction:column;overflow:hidden}
+  #helpHead{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;
+       border-bottom:1px solid #26374d}
+  #helpHead h3{margin:0;font-size:15px;color:#e8f1fb;text-transform:uppercase;letter-spacing:.6px}
+  #helpClose{background:none;border:none;color:#8fa3bb;font-size:20px;cursor:pointer;line-height:1;padding:0 4px}
+  #helpClose:hover{color:#fff}
+  #helpBody{overflow-y:auto;padding:12px 16px;font-size:13px;line-height:1.5;color:#e8f1fb}
+  #helpBody h4{margin:14px 0 4px;font-size:12px;color:#6fb4e8;text-transform:uppercase;letter-spacing:.4px}
+  #helpBody p{margin:0 0 8px}
+  #helpBody .gdesc{display:block;margin:0 0 6px;font-size:11px;color:#718aa4}
+  #helpBody .tgLink{display:flex;align-items:center;gap:8px;margin:0 0 8px;padding:10px 12px;
+       background:rgba(42,111,159,.18);border:1px solid #2b3f58;border-radius:10px;
+       color:#a8d4ff;text-decoration:none;cursor:pointer;
+       -webkit-tap-highlight-color:transparent}
+  #helpBody .tgLink:hover{background:rgba(42,111,159,.32);color:#dcecff}
+  #helpBody .tgLink:active{transform:scale(.98)}
+  /* мини-иконка «выйти»/стрелка справа */
+  #helpBody .tgLink::after{content:'↗';margin-left:auto;opacity:.7;font-size:13px}
+
   /* ---------- Кнопка раскрытия экспертных настроек ---------- */
   #expertBtn{display:block;width:calc(100% - 20px);margin:6px 10px 0;padding:10px 12px;
        border:none;border-radius:10px;cursor:pointer;
@@ -320,6 +365,8 @@
     #topUI{gap:8px;padding:5px 10px}
     #settingsBtn{width:32px;height:32px;top:6px;right:6px}
     #settingsBtn svg{width:15px;height:15px}
+    #helpBtn{width:32px;height:32px;top:6px;right:48px}
+    #helpBtn svg{width:15px;height:15px}
     #bottomUI{left:8px;right:8px;width:auto;padding:6px 6px}
     .pcol{flex:1 1 0;width:auto;min-width:0;padding:0 2px}
     .pcol.gearcol{flex:1.5 1 0;width:auto}
@@ -360,6 +407,24 @@
   </div>
 </div>
 
+<!-- Окно справки: текст будет добавлен позже -->
+<div id="helpOverlay">
+  <div id="helpPanel">
+    <div id="helpHead">
+      <h3>Контакты</h3>
+      <button id="helpClose" type="button" aria-label="Закрыть">✕</button>
+    </div>
+    <div id="helpBody">
+      <h4>Администраторы</h4>
+      <a class="tgLink" href="https://t.me/mishan191">Михаил @mishan191</a>
+      <a class="tgLink" href="https://t.me/Eliseev_I_A">Иван @Eliseev_I_A</a>
+
+      <h4>Чат</h4>
+      <a class="tgLink" href="https://t.me/drivingschool52">ЧАТ Энциклопедия Вождения @drivingschool52</a>
+    </div>
+  </div>
+</div>
+
 <div id="topUI">
   <div class="gauge"><svg id="tachoSvg"  viewBox="-60 -60 120 120"></svg></div>
   <div class="gauge"><svg id="speedoSvg" viewBox="-60 -60 120 120"></svg></div>
@@ -370,6 +435,14 @@
             stroke-linecap="round" fill="none"/>
     </svg>
     <span id="startBtnTxt">СТАРТ</span>
+  </button>
+  <button id="helpBtn" type="button" aria-label="Контакты">
+    <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2"
+         stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <circle cx="12" cy="12" r="9.25"/>
+      <path d="M9.4 9.2a2.6 2.6 0 1 1 4 2.4 2.8 2.8 0 0 0-1.4 2.2"/>
+      <circle cx="12" cy="17.2" r=".9" fill="currentColor" stroke="none"/>
+    </svg>
   </button>
   <button id="settingsBtn" type="button" aria-label="Настройки">
     <svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="2"
@@ -873,6 +946,23 @@ document.getElementById('settingsReset').addEventListener('click', ()=>{
   applySettings();
 });
 buildSettings();
+
+/* ============ ОКНО СПРАВКИ ============ */
+const helpBtn=document.getElementById('helpBtn');
+const helpOverlay=document.getElementById('helpOverlay');
+function openHelp(){ helpOverlay.classList.add('open'); }
+function closeHelp(){ helpOverlay.classList.remove('open'); }
+helpBtn.addEventListener('click', openHelp);
+document.getElementById('helpClose').addEventListener('click', closeHelp);
+helpOverlay.addEventListener('click', e=>{ if(e.target===helpOverlay) closeHelp(); });
+document.querySelectorAll('#helpBody .tgLink').forEach(a=>{
+  a.addEventListener('click', e=>{
+    e.preventDefault();
+    const url=a.getAttribute('href');
+    try{ if(window.Telegram && Telegram.WebApp && Telegram.WebApp.openTelegramLink) Telegram.WebApp.openTelegramLink(url); }
+    catch(err){ window.open(url,'_blank'); }
+  });
+});
 
 /* ============ ЭКСПЕРТНЫЕ НАСТРОЙКИ ============ */
 const expertBtn=document.getElementById('expertBtn');
