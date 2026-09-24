@@ -18,8 +18,13 @@
    ============================================================ */
 (function(){
   try{
-    var base = location.href.split('?')[0];
-    var want = function(v){ return base + '?v=' + encodeURIComponent(v); };
+    /* base без query, но С сохранением hash (#tgWebAppData=…). Старый код
+       location.href.split('?')[0] срезал и hash: после редиректа WebView
+       терял данные запуска Telegram — нет полного экрана, а отчёт уходил
+       как «запущено в браузере» (user = default). */
+    var base = location.origin + location.pathname;
+    var _hash = location.hash || '';
+    var want = function(v){ return base + '?v=' + encodeURIComponent(v) + _hash; };
     fetch('version.txt?ts=' + Date.now(), {cache:'no-store'})
       .then(function(r){ if(!r.ok) throw 0; return r.text(); })
       .then(function(tx){
@@ -536,17 +541,27 @@ import {OrbitControls} from 'three/addons/controls/OrbitControls.js';
 import {Transmission, refreshDerived, enginePowerPS} from './transmission.js';
 import {PHYS, GATE_X, ROW_Y, CAR, SETTINGS, EXPERT_SETTINGS, cfgGet, cfgSet} from './carConfig.js';
 
-const tg = window.Telegram?.WebApp;
-if (tg) {
+/* Инициализация Telegram. Полный экран и expand() запрашиваем с повторами:
+   на холодном старте WebView применяет их не мгновенно, и одиночный вызов
+   (как был — сразу и один раз) иногда теряется → приложение открывается
+   не в полный экран. */
+const tgInit = () => {
+  const tg = window.Telegram && window.Telegram.WebApp;
+  if (!tg) return false;
   try { tg.ready(); } catch(e) {}
   try { tg.expand(); } catch(e) {}
   try { if (tg.requestFullscreen) tg.requestFullscreen(); } catch(e) {}
   try { if (tg.disableVerticalSwipes) tg.disableVerticalSwipes(); } catch(e) {}
-}
+  return true;
+};
+tgInit();
+setTimeout(tgInit, 300);
+setTimeout(tgInit, 800);
 window._tgInitDone = true;
 
 document.addEventListener('touchmove', e => {
-  if (tg && e.touches.length === 1 && e.touches[0].clientY < 50) e.preventDefault();
+  const _tg = window.Telegram && window.Telegram.WebApp;
+  if (_tg && e.touches.length === 1 && e.touches[0].clientY < 50) e.preventDefault();
 }, {passive: false});
 
 let lastTap = 0;
@@ -774,8 +789,8 @@ function fitSoon(){ clearTimeout(fitTimer); fitTimer=setTimeout(fitAll,150); }
 addEventListener('resize', fitSoon);
 addEventListener('orientationchange',()=>{ setTimeout(fitAll, 200); });
 if(window.visualViewport){ visualViewport.addEventListener('resize',fitSoon); }
-if(tg && tg.onEvent){
-  try{ tg.onEvent('viewportChanged', fitSoon); }catch(e){}
+if(window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.onEvent){
+  try{ window.Telegram.WebApp.onEvent('viewportChanged', fitSoon); }catch(e){}
   const fitStart=Date.now();
   const fitSettle=setInterval(()=>{
     fitAll();
