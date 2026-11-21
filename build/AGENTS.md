@@ -17,9 +17,10 @@
 
 1. Залить `build/index.html` как `index.html` в корень сайта (Cloudflare Pages / любой статический хостинг).
 2. Залить `build/version.txt` в тот же корень — без него не будет работать проверка версии.
-3. Внешние зависимости подтягиваются с CDN, их заливать не нужно:
-   - `https://telegram.org/js/telegram-web-app.js` (SDK Telegram)
-   - `https://unpkg.com/three@0.160.0/...` (three.js + OrbitControls, через `<script type="importmap">`)
+3. Внешняя зависимость только одна — SDK Telegram:
+   - `https://telegram.org/js/telegram-web-app.js` (подключается в `<head>`).
+   three.js и OrbitControls **вшиты в билд** (см. ниже), CDN (unpkg) больше не используется.
+   Отчёт о запуске отправляется на Cloudflare Worker (`pad-report.ivan43103.workers.dev`).
 4. Заголовки из корневого файла `_headers` (Cloudflare Pages) тоже нужны: они отключают кэширование,
    иначе Telegram WebView на iOS/Android продолжит показывать старую версию. Файл лежит в корне репозитория,
    в эту папку он не скопирован.
@@ -31,11 +32,15 @@
 - **После каждого изменения исходников папку `build/` нужно пересобрать заново**, иначе на хостинг
   уедет старый код. Сборка = esbuild: `carConfig.js` + `transmission.js` + тело `<script type="module">`
   из `scep3d.html` + `report.js` склеиваются в один модуль, минифицируются
-  (`--bundle --minify --format=esm --target=es2020`), `--external:three` и
-  `--external:three/addons/controls/OrbitControls.js`; CSS минифицируется отдельно.
+  (`--bundle --minify --format=esm --target=es2020`); three.js и OrbitControls
+  берутся из локальной папки `vendor/` (esbuild `--alias`) и тоже попадают в билд; CSS минифицируется отдельно.
   Сборка автоматизирована скриптом `build.mjs` в корне: запуск `node build.mjs`
   (нужен только Node, esbuild подтягивается через `npx`). Скрипт также копирует
   `version.txt` из корня и пересобирает `index.html`.
+- `vendor/three.module.js` и `vendor/addons/controls/OrbitControls.js` — копии three.js r160
+  (MIT), скачаны один раз, чтобы приложение не зависело от unpkg (в РФ мобильный доступ к нему
+  бывает заблокирован). Не редактировать. Дев-версия `scep3d.html` берёт их через `importmap`
+  (`./vendor/…`), в билд они вшиваются.
 - **При деплое обновлять `version.txt`** (например `1.5` → `1.6`). Скрипт в начале `index.html`
   сравнивает его с сохранённым в `localStorage` и перезагружает страницу, иначе WebView
   продолжит отдавать старый кэш.

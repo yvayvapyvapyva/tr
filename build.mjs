@@ -65,6 +65,8 @@ if (!versionScriptSrc) fail('в scep3d.html не найден скрипт ве�
 const metas = [...headSrc.matchAll(/<meta\b[^>]*>/g)].map(m => m[0]);
 const title = ((headSrc.match(/<title>([\s\S]*?)<\/title>/) || [])[1] || '3D симулятор').trim();
 
+/* importmap нужен только дев-версии (scep3d.html). В билде three.js
+   вшивается в модуль, поэтому importmap в него не попадает. */
 const importmap = (src.match(/<script type="importmap">([\s\S]*?)<\/script>/) || [])[1];
 if (!importmap) fail('в scep3d.html не найден importmap');
 
@@ -89,8 +91,11 @@ esbuild([
   '--format=esm',
   '--target=es2020',
   '--legal-comments=none',
-  '--external:three',
-  '--external:three/addons/controls/OrbitControls.js',
+  /* three.js и OrbitControls лежат в vendor/ и вшиваются в билд:
+     приложение не зависит от unpkg и работает без доступа к CDN */
+  '--alias:three=' + path.join(ROOT, 'vendor', 'three.module.js'),
+  '--alias:three/addons/controls/OrbitControls.js=' +
+    path.join(ROOT, 'vendor', 'addons', 'controls', 'OrbitControls.js'),
   '--outfile=' + path.join(TMP, 'app.js'),
 ]);
 const appJs = fs.readFileSync(path.join(TMP, 'app.js'), 'utf8').trim();
@@ -121,9 +126,7 @@ ${metas.join('\n')}
 </head>
 <body>
 ${bodyHtml}
-<script type="importmap">
-${importmap.trim()}
-</script>
+<!-- three.js r160 + OrbitControls — MIT License, © 2010-2023 three.js authors, https://threejs.org -->
 <script type="module">
 ${appJs}
 ${reportJs}
