@@ -33,6 +33,9 @@
   из `scep3d.html` + `report.js` склеиваются в один модуль, минифицируются
   (`--bundle --minify --format=esm --target=es2020`), `--external:three` и
   `--external:three/addons/controls/OrbitControls.js`; CSS минифицируется отдельно.
+  Сборка автоматизирована скриптом `build.mjs` в корне: запуск `node build.mjs`
+  (нужен только Node, esbuild подтягивается через `npx`). Скрипт также копирует
+  `version.txt` из корня и пересобирает `index.html`.
 - **При деплое обновлять `version.txt`** (например `1.5` → `1.6`). Скрипт в начале `index.html`
   сравнивает его с сохранённым в `localStorage` и перезагружает страницу, иначе WebView
   продолжит отдавать старый кэш.
